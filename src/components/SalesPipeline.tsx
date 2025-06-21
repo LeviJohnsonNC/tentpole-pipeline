@@ -79,10 +79,10 @@ const SalesPipeline = () => {
   ];
 
   const columns = [
-    { id: "new-deals", title: "New deals", count: requests.length },
-    { id: "contacted", title: "Assessment unscheduled", count: 0 },
-    { id: "quote-sent", title: "Assessment overdue", count: 0 },
-    { id: "followup", title: "Assessment completed", count: 0 }
+    { id: "new-deals", title: "New Deals", count: requests.length },
+    { id: "contacted", title: "Contacted", count: 0 },
+    { id: "quote-sent", title: "Quote Sent", count: 0 },
+    { id: "followup", title: "Followup", count: 0 }
   ];
 
   const formatAmount = (amount: number) => {
