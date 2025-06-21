@@ -27,7 +27,9 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
     transform,
     transition,
     isDragging: isSortableDragging,
-  } = useSortable({ id: deal.id });
+  } = useSortable({ 
+    id: deal.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),

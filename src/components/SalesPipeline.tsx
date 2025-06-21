@@ -78,29 +78,6 @@ const SalesPipeline = () => {
     // If we're dragging over a different container
     if (activeContainer !== overContainer) {
       setDeals((deals) => {
-        const activeItems = deals.filter(deal => deal.status === activeContainer);
-        const overItems = deals.filter(deal => deal.status === overContainer);
-        
-        // Find the indexes
-        const activeIndex = activeItems.findIndex(deal => deal.id === activeId);
-        const overIndex = typeof overId === 'string' 
-          ? overItems.length 
-          : overItems.findIndex(deal => deal.id === overId);
-
-        let newIndex: number;
-        if (typeof overId === 'string') {
-          // Dropping in empty column or at the end
-          newIndex = overItems.length;
-        } else {
-          // Dropping over another item
-          const isBelowOverItem = over &&
-            activeIndex >= 0 &&
-            overIndex >= 0;
-          
-          const modifier = isBelowOverItem ? 1 : 0;
-          newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length;
-        }
-
         return deals.map(deal => {
           if (deal.id === activeId) {
             return { ...deal, status: overContainer };
@@ -177,7 +154,7 @@ const SalesPipeline = () => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-4 gap-4 h-full">
+        <div className="grid grid-cols-4 gap-6 h-full">
           {pipelineColumns.map((column) => {
             const columnDeals = getColumnDeals(column.id);
             return (
