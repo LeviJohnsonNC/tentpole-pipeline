@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import Sidebar from "@/components/Sidebar";
 import OverviewCards from "@/components/OverviewCards";
 import RequestsTable from "@/components/RequestsTable";
+import SalesPipeline from "@/components/SalesPipeline";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("all-requests");
@@ -70,10 +71,10 @@ const Index = () => {
               </div>
             </div>
             
-            <OverviewCards />
+            {activeTab === "all-requests" && <OverviewCards />}
           </div>
           
-          {/* Tabs and Filters */}
+          {/* Tabs and Content */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div className="border-b border-gray-200">
               <div className="flex items-center justify-between p-4">
@@ -133,10 +134,12 @@ const Index = () => {
             <div className="p-4">
               {activeTab === "all-requests" ? (
                 <RequestsTable />
+              ) : activeTab === "sales-pipeline" ? (
+                <SalesPipeline />
               ) : (
                 <div className="text-center py-12">
                   <div className="text-gray-500 text-lg">Coming soon</div>
-                  <div className="text-gray-400 text-sm mt-2">Sales Pipeline functionality will be available here</div>
+                  <div className="text-gray-400 text-sm mt-2">This functionality will be available here</div>
                 </div>
               )}
             </div>
