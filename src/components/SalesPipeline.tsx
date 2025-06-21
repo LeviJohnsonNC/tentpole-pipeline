@@ -1,97 +1,152 @@
-import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Calendar, DollarSign } from "lucide-react";
+
+import React, { useState } from "react";
+import { 
+  DndContext, 
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core';
+import { 
+  arrayMove, 
+  sortableKeyboardCoordinates 
+} from '@dnd-kit/sortable';
+import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PipelineColumn from './pipeline/PipelineColumn';
+import DealCard from './pipeline/DealCard';
+import { initialDeals, pipelineColumns, Deal } from './pipeline/SalesPipelineData';
 
 const SalesPipeline = () => {
-  // Using the same request data from RequestsTable but formatted for pipeline
-  const requests = [
-    {
-      id: 1,
-      client: "Test Client",
-      title: "New landscaping request",
-      property: "333 Skimmon Place, Saskatoon, Saskatchewan S7V 0A7",
-      contact: "(306) 555-5555\ntest@client.com",
-      requested: "May 26",
-      amount: 45000,
-      status: "New"
-    },
-    {
-      id: 2,
-      client: "Test Client",
-      title: "Landscaping",
-      property: "333 Skimmon Place, Saskatoon, Saskatchewan S7V 0A7",
-      contact: "(306) 555-5555\ntest@client.com",
-      requested: "May 26",
-      amount: 45000,
-      status: "New"
-    },
-    {
-      id: 3,
-      client: "Pete Duggan",
-      title: "Garden maintenance",
-      property: "188 Chestnut Street, Pictou, Nova Scotia B2H 1Y5",
-      contact: "",
-      requested: "May 23",
-      amount: 25000,
-      status: "New"
-    },
-    {
-      id: 4,
-      client: "Sid Sidé",
-      title: "Landscaping consultation",
-      property: "",
-      contact: "",
-      requested: "May 23",
-      amount: 5000,
-      status: "New"
-    },
-    {
-      id: 5,
-      client: "Pam Sillar",
-      title: "Request!",
-      property: "190 Watt Street, Winnipeg, Manitoba R2L 2B8",
-      contact: "",
-      requested: "May 23",
-      amount: 18000,
-      status: "New"
-    },
-    {
-      id: 6,
-      client: "Enjoi Skateboards",
-      title: "Levi's Request #1",
-      property: "",
-      contact: "(306) 555-5555",
-      requested: "Mar 19",
-      amount: 15000,
-      status: "New"
-    },
-    {
-      id: 7,
-      client: "Marketing Dashboard Aabsss",
-      title: "Commercial landscaping",
-      property: "5527 15 Ave NW, Edmonton, AB T5A 2X6",
-      contact: "(123456789074744443\nlaura.@getjobber.com",
-      requested: "Nov 13",
-      amount: 15000,
-      status: "New"
-    }
-  ];
+  const [deals, setDeals] = useState<Deal[]>(initialDeals);
+  const [activeId, setActiveId] = useState<number | null>(null);
 
-  const columns = [
-    { id: "new-deals", title: "New Deals", count: requests.length },
-    { id: "contacted", title: "Contacted", count: 0 },
-    { id: "quote-sent", title: "Quote Sent", count: 0 },
-    { id: "followup", title: "Followup", count: 0 }
-  ];
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before drag starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const formatAmount = (amount: number) => {
     return `$ ${amount.toLocaleString()}.00`;
   };
 
-  const formatDate = (dateStr: string) => {
-    // Convert "May 26" format to "Jul 10" format for consistency
-    return dateStr;
+  const getColumnDeals = (columnId: string) => {
+    return deals.filter(deal => deal.status === columnId);
   };
+
+  const getColumnTotalValue = (columnId: string) => {
+    const columnDeals = getColumnDeals(columnId);
+    const total = columnDeals.reduce((sum, deal) => sum + deal.amount, 0);
+    return formatAmount(total);
+  };
+
+  const findContainer = (id: number) => {
+    const deal = deals.find(deal => deal.id === id);
+    return deal?.status || null;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as number);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+
+    const activeId = active.id as number;
+    const overId = over.id;
+
+    // Find the containers
+    const activeContainer = findContainer(activeId);
+    const overContainer = typeof overId === 'string' ? overId : findContainer(overId as number);
+
+    if (!activeContainer || !overContainer) return;
+
+    // If we're dragging over a different container
+    if (activeContainer !== overContainer) {
+      setDeals((deals) => {
+        const activeItems = deals.filter(deal => deal.status === activeContainer);
+        const overItems = deals.filter(deal => deal.status === overContainer);
+        
+        // Find the indexes
+        const activeIndex = activeItems.findIndex(deal => deal.id === activeId);
+        const overIndex = typeof overId === 'string' 
+          ? overItems.length 
+          : overItems.findIndex(deal => deal.id === overId);
+
+        let newIndex: number;
+        if (typeof overId === 'string') {
+          // Dropping in empty column or at the end
+          newIndex = overItems.length;
+        } else {
+          // Dropping over another item
+          const isBelowOverItem = over &&
+            activeIndex >= 0 &&
+            overIndex >= 0;
+          
+          const modifier = isBelowOverItem ? 1 : 0;
+          newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length;
+        }
+
+        return deals.map(deal => {
+          if (deal.id === activeId) {
+            return { ...deal, status: overContainer };
+          }
+          return deal;
+        });
+      });
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over) {
+      setActiveId(null);
+      return;
+    }
+
+    const activeId = active.id as number;
+    const overId = over.id;
+
+    const activeContainer = findContainer(activeId);
+    const overContainer = typeof overId === 'string' ? overId : findContainer(overId as number);
+
+    if (!activeContainer || !overContainer) {
+      setActiveId(null);
+      return;
+    }
+
+    if (activeContainer === overContainer) {
+      // Reordering within the same container
+      const containerDeals = deals.filter(deal => deal.status === activeContainer);
+      const activeIndex = containerDeals.findIndex(deal => deal.id === activeId);
+      const overIndex = containerDeals.findIndex(deal => deal.id === overId);
+
+      if (activeIndex !== overIndex) {
+        const newOrder = arrayMove(containerDeals, activeIndex, overIndex);
+        const otherDeals = deals.filter(deal => deal.status !== activeContainer);
+        setDeals([...otherDeals, ...newOrder]);
+      }
+    }
+
+    setActiveId(null);
+  };
+
+  const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
 
   return (
     <div className="h-full">
@@ -110,53 +165,40 @@ const SalesPipeline = () => {
               Filter by date
             </Button>
           </div>
-          <span className="text-sm text-gray-500">(19 results)</span>
+          <span className="text-sm text-gray-500">({deals.length} results)</span>
         </div>
       </div>
 
       {/* Pipeline Columns */}
-      <div className="grid grid-cols-4 gap-4 h-full">
-        {columns.map((column, columnIndex) => (
-          <div key={column.id} className="flex flex-col bg-gray-50 rounded-lg p-4">
-            {/* Column Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-medium text-gray-900">{column.title}</h3>
-                <Badge variant="secondary" className="text-xs">
-                  {column.count}
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">
-                  $ {columnIndex === 0 ? "45,0000.00" : "45,0000.00"}
-                </span>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <MoreHorizontal className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="grid grid-cols-4 gap-4 h-full">
+          {pipelineColumns.map((column) => {
+            const columnDeals = getColumnDeals(column.id);
+            return (
+              <PipelineColumn
+                key={column.id}
+                id={column.id}
+                title={column.title}
+                deals={columnDeals}
+                count={columnDeals.length}
+                totalValue={getColumnTotalValue(column.id)}
+              />
+            );
+          })}
+        </div>
 
-            {/* Cards Container */}
-            <div className="flex-1 space-y-2">
-              {columnIndex === 0 && requests.map((request) => (
-                <div key={request.id} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                  <h4 className="font-medium text-gray-900 text-sm mb-1">
-                    {request.client}
-                  </h4>
-                  <p className="text-sm text-gray-600">{request.title}</p>
-                </div>
-              ))}
-              
-              {/* Empty state for other columns */}
-              {columnIndex !== 0 && (
-                <div className="text-center py-8 text-gray-400">
-                  <p className="text-sm">No deals in this stage</p>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+        <DragOverlay>
+          {activeItem ? (
+            <DealCard deal={activeItem} isDragging />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 };
