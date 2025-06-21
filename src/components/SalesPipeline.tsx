@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal, Calendar, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -116,9 +115,9 @@ const SalesPipeline = () => {
       </div>
 
       {/* Pipeline Columns */}
-      <div className="grid grid-cols-4 gap-6 h-full">
+      <div className="grid grid-cols-4 gap-4 h-full">
         {columns.map((column, columnIndex) => (
-          <div key={column.id} className="flex flex-col">
+          <div key={column.id} className="flex flex-col bg-gray-50 rounded-lg p-4">
             {/* Column Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
@@ -138,55 +137,13 @@ const SalesPipeline = () => {
             </div>
 
             {/* Cards Container */}
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-2">
               {columnIndex === 0 && requests.map((request) => (
-                <div key={request.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                  {/* Card Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 text-sm mb-1">
-                        {request.client}
-                      </h4>
-                      {request.title && (
-                        <p className="text-sm text-gray-600 mb-2">{request.title}</p>
-                      )}
-                    </div>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0">
-                      <MoreHorizontal className="h-3 w-3" />
-                    </Button>
-                  </div>
-
-                  {/* Property */}
-                  {request.property && (
-                    <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-                      {request.property}
-                    </p>
-                  )}
-
-                  {/* Contact Info */}
-                  {request.contact && (
-                    <p className="text-xs text-gray-500 mb-3 whitespace-pre-line">
-                      {request.contact}
-                    </p>
-                  )}
-
-                  {/* Card Footer */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
-                        Client
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatAmount(request.amount)}
-                      </div>
-                      <div className="text-xs text-gray-500 flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {formatDate(request.requested)} 6d
-                      </div>
-                    </div>
-                  </div>
+                <div key={request.id} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                  <h4 className="font-medium text-gray-900 text-sm mb-1">
+                    {request.client}
+                  </h4>
+                  <p className="text-sm text-gray-600">{request.title}</p>
                 </div>
               ))}
               
