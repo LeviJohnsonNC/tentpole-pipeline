@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { QuoteWithClient } from "@/utils/dataHelpers";
-import { Search, Filter, MoreHorizontal, Copy, Mail } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Copy, MessageSquareText } from "lucide-react";
+import { SendQuoteModal } from "./SendQuoteModal";
+import { useQuoteStore } from "@/store/quoteStore";
 
 interface QuotesTableProps {
   quotes: QuoteWithClient[];
@@ -16,6 +17,8 @@ interface QuotesTableProps {
 const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [salespersonFilter, setSalespersonFilter] = useState<string>("all");
+  const [selectedQuote, setSelectedQuote] = useState<QuoteWithClient | null>(null);
+  const { updateQuoteStatus } = useQuoteStore();
   
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -63,6 +66,17 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   });
 
   const uniqueSalespeople = [...new Set(quotes.map(q => q.salesperson).filter(Boolean))];
+
+  const handleSendQuote = (quote: QuoteWithClient) => {
+    setSelectedQuote(quote);
+  };
+
+  const handleQuoteSent = () => {
+    if (selectedQuote) {
+      updateQuoteStatus(selectedQuote.id, 'Awaiting Response');
+      setSelectedQuote(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -112,17 +126,18 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                       variant="ghost" 
                       size="sm" 
                       className="h-8 w-8 p-0 hover:bg-gray-100"
-                      title="Copy"
+                      title="Send as text message"
+                      onClick={() => handleSendQuote(quote)}
                     >
-                      <Copy className="h-4 w-4" />
+                      <MessageSquareText className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       className="h-8 w-8 p-0 hover:bg-gray-100"
-                      title="Email"
+                      title="Copy"
                     >
-                      <Mail className="h-4 w-4" />
+                      <Copy className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -146,6 +161,13 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
           </TableBody>
         </Table>
       </div>
+
+      <SendQuoteModal 
+        quote={selectedQuote}
+        isOpen={!!selectedQuote}
+        onClose={() => setSelectedQuote(null)}
+        onSend={handleQuoteSent}
+      />
     </div>
   );
 };
