@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -24,6 +23,7 @@ import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
 import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
+import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { 
   createInitialDeals, 
@@ -36,12 +36,13 @@ import {
 const SalesPipeline = () => {
   const { sessionClients, updateSessionClient } = useClientStore();
   const { sessionRequests, removeSessionRequest, updateSessionRequest } = useRequestStore();
+  const { sessionQuotes } = useQuoteStore();
   const { stages } = useStagesStore();
   
   const initialDeals = useMemo(() => {
-    console.log('Creating initial deals with clients:', sessionClients.length, 'requests:', sessionRequests.length);
-    return createInitialDeals(sessionClients, sessionRequests);
-  }, [sessionClients, sessionRequests]);
+    console.log('Creating initial deals with clients:', sessionClients.length, 'requests:', sessionRequests.length, 'quotes:', sessionQuotes.length);
+    return createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages]);
   
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -49,10 +50,10 @@ const SalesPipeline = () => {
   // Update deals when session data changes
   React.useEffect(() => {
     console.log('Session data changed. Updating deals...');
-    const newDeals = createInitialDeals(sessionClients, sessionRequests);
+    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
     console.log('New deals count:', newDeals.length);
     setDeals(newDeals);
-  }, [sessionClients, sessionRequests]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

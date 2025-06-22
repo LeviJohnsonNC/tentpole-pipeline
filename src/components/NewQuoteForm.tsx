@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,7 @@ const NewQuoteForm = () => {
       quoteNumber: `Q-${Date.now()}`,
       title: data.title,
       property: data.property,
-      status: 'Draft',
+      status: 'Draft', // Ensure quotes are created with Draft status
       amount: data.amount,
       createdDate: new Date().toISOString(),
       notes: data.notes,
@@ -59,6 +58,7 @@ const NewQuoteForm = () => {
     };
 
     addSessionQuote(newQuote);
+    console.log('New quote created and added to session:', newQuote.id);
     toast.success("Quote saved successfully");
     navigate("/quotes");
   };
