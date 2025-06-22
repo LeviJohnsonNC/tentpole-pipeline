@@ -14,7 +14,7 @@ import {
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Search, Bell, MessageCircle, Settings, Plus } from "lucide-react";
+import { Search, Bell, MessageCircle, Settings, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ import {
 import Sidebar from "@/components/Sidebar";
 import StageCard from "@/components/stages/StageCard";
 import { useStagesStore } from "@/store/stagesStore";
+import { useNavigate } from "react-router-dom";
 
 const jobberStageOptions = [
   "Assessment Complete",
@@ -44,6 +45,7 @@ const jobberStageOptions = [
 const EditStages = () => {
   const { stages, updateStageTitle, reorderStages, addCustomStage, addJobberStage, deleteStage, getUsedJobberStages } = useStagesStore();
   const [showJobberDropdown, setShowJobberDropdown] = useState(false);
+  const navigate = useNavigate();
 
   const usedJobberStages = getUsedJobberStages();
   const availableJobberStages = jobberStageOptions.filter(option => !usedJobberStages.includes(option));
@@ -78,6 +80,10 @@ const EditStages = () => {
 
   const handleDeleteStage = (id: string) => {
     deleteStage(id);
+  };
+
+  const handleClose = () => {
+    navigate(-1); // Go back to previous page
   };
 
   return (
@@ -215,10 +221,19 @@ const EditStages = () => {
               </div>
             </div>
             
-            <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
               <p className="text-xs text-gray-500">
                 Changes are automatically saved and will be reflected in your sales pipeline.
               </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClose}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Close
+              </Button>
             </div>
           </div>
         </main>
