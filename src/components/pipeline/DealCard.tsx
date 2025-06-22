@@ -45,7 +45,7 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
       {...attributes}
       {...listeners}
       className={`
-        bg-white border border-gray-200 rounded-lg p-3 shadow-sm 
+        bg-white border border-gray-200 rounded-lg p-2 shadow-sm 
         cursor-grab active:cursor-grabbing
         transition-all duration-150 ease-out
         hover:shadow-md hover:-translate-y-0.5
@@ -56,10 +56,10 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
         ${isDragging ? 'pointer-events-none' : ''}
       `}
     >
-      <h4 className="font-medium text-gray-900 text-sm mb-1 truncate">
+      <h4 className="font-medium text-gray-900 text-xs mb-1 truncate">
         {deal.client}
       </h4>
-      <p className="text-sm text-gray-600 truncate">{deal.title}</p>
+      <p className="text-xs text-gray-600 truncate">{deal.title}</p>
     </div>
   );
 };

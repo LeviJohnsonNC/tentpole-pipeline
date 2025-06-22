@@ -37,7 +37,7 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
   return (
     <div 
       className={`
-        flex flex-col bg-gray-50 rounded-lg p-4 
+        flex flex-col bg-gray-50 rounded-lg p-3 
         transition-all duration-200 ease-out
         ${isOver ? 'bg-blue-50 ring-2 ring-blue-200 ring-opacity-50' : ''}
       `}
@@ -45,7 +45,7 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
       {/* Column Header */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-medium text-gray-900">{title}</h3>
+          <h3 className="font-medium text-gray-900 text-sm truncate">{title}</h3>
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
             <MoreHorizontal className="h-3 w-3" />
           </Button>
@@ -56,14 +56,14 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
           <Badge variant="secondary" className="text-xs">
             {count}
           </Badge>
-          <span className="text-sm text-gray-500">
+          <span className="text-xs text-gray-500 truncate">
             {totalValue}
           </span>
         </div>
       </div>
 
       {/* Separator */}
-      <Separator className="mb-4" />
+      <Separator className="mb-3" />
 
       {/* Cards Container */}
       <div 
@@ -78,8 +78,8 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
         
         {/* Empty state */}
         {deals.length === 0 && (
-          <div className="text-center py-8 text-gray-400">
-            <p className="text-sm">No deals in this stage</p>
+          <div className="text-center py-6 text-gray-400">
+            <p className="text-xs">No deals in this stage</p>
             {isOver && (
               <p className="text-xs mt-1 text-blue-600">Drop here to move deal</p>
             )}

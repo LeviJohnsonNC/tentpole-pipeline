@@ -190,13 +190,13 @@ const SalesPipeline = () => {
         onDragEnd={handleDragEnd}
       >
         <ScrollArea className="w-full">
-          <div className="flex space-x-6 pb-4 min-w-max">
+          <div className="flex space-x-4 pb-4 min-w-max">
             {stages
               .sort((a, b) => a.order - b.order)
               .map((stage) => {
                 const columnDeals = getColumnDeals(stage.id);
                 return (
-                  <div key={stage.id} className="w-80 flex-shrink-0">
+                  <div key={stage.id} className="w-64 flex-shrink-0">
                     <PipelineColumn
                       id={stage.id}
                       title={stage.title}
