@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuoteStore } from "@/store/quoteStore";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useRequestStore } from "@/store/requestStore";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import ClientSelectionModal from "./ClientSelectionModal";
 import StarRating from "./StarRating";
 import { Quote } from "@/types/Quote";
-import { getAllClients } from "@/utils/dataHelpers";
+import { getAllClients, getRequestById } from "@/utils/dataHelpers";
 import { useClientStore } from "@/store/clientStore";
 
 interface QuoteFormData {
@@ -30,8 +31,10 @@ const NewQuoteForm = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const { addSessionQuote } = useQuoteStore();
   const { sessionClients } = useClientStore();
+  const { sessionRequests } = useRequestStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<QuoteFormData>({
     defaultValues: {
@@ -42,9 +45,31 @@ const NewQuoteForm = () => {
 
   const watchedRating = watch("rating");
 
-  // Handle pre-filled data from request conversion
+  // Handle pre-filled data from request conversion via URL params or location state
   useEffect(() => {
-    if (location.state && location.state.fromRequest) {
+    const requestId = searchParams.get('requestId');
+    const clientId = searchParams.get('clientId');
+    
+    if (requestId && clientId) {
+      // Coming from request conversion via URL
+      const request = getRequestById(requestId, sessionRequests);
+      
+      if (request) {
+        // Set client
+        setSelectedClientId(clientId);
+        setValue("clientId", clientId);
+        
+        // Fill in property from request if available
+        if (request.serviceDetails) {
+          // Try to extract property address from service details or use a generic property field
+          setValue("property", ""); // Leave property blank as requested, user can fill it in
+        }
+        
+        // Fill in notes with service details
+        setValue("notes", request.serviceDetails);
+      }
+    } else if (location.state && location.state.fromRequest) {
+      // Coming from request conversion via location state (legacy)
       const { clientId, property, notes, serviceDetails } = location.state;
       
       if (clientId) {
@@ -60,7 +85,7 @@ const NewQuoteForm = () => {
         setValue("notes", notes || serviceDetails);
       }
     }
-  }, [location.state, setValue]);
+  }, [searchParams, location.state, setValue, sessionRequests]);
 
   // Get all clients and find the selected one
   const allClients = getAllClients(sessionClients);
@@ -72,10 +97,12 @@ const NewQuoteForm = () => {
       return;
     }
 
+    const requestId = searchParams.get('requestId') || location.state?.requestId;
+
     const newQuote: Quote = {
       id: crypto.randomUUID(),
       clientId: selectedClientId,
-      requestId: location.state?.requestId, // Link to request if created from request
+      requestId: requestId || undefined, // Link to request if created from request
       quoteNumber: `Q-${Date.now()}`,
       title: data.title,
       property: data.property,
