@@ -44,8 +44,8 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
       className={`
         flex flex-col rounded-lg p-3 
         transition-all duration-200 ease-out
-        ${isJobberStage ? 'bg-green-50' : 'bg-gray-50'}
-        ${isOver ? (isJobberStage ? 'bg-green-100 ring-2 ring-green-200 ring-opacity-50' : 'bg-blue-50 ring-2 ring-blue-200 ring-opacity-50') : ''}
+        ${isJobberStage ? 'bg-gray-100' : 'bg-gray-50'}
+        ${isOver ? (isJobberStage ? 'bg-gray-200 ring-2 ring-gray-300 ring-opacity-50' : 'bg-blue-50 ring-2 ring-blue-200 ring-opacity-50') : ''}
       `}
     >
       {/* Column Header */}
@@ -95,7 +95,7 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
         {/* Drop zone overlay for better UX */}
         {isOver && deals.length > 0 && (
           <div className={`absolute inset-0 bg-opacity-20 rounded border-2 border-dashed pointer-events-none ${
-            isJobberStage ? 'bg-green-100 border-green-300' : 'bg-blue-100 border-blue-300'
+            isJobberStage ? 'bg-gray-200 border-gray-400' : 'bg-blue-100 border-blue-300'
           }`} />
         )}
       </div>
