@@ -67,7 +67,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   return (
     <div className="space-y-4">
       {/* Table */}
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
@@ -77,14 +77,13 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
               <TableHead className="font-medium">Created</TableHead>
               <TableHead className="font-medium">Status</TableHead>
               <TableHead className="font-medium text-right">Total</TableHead>
-              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredQuotes.map(quote => (
               <HoverCard key={quote.id} openDelay={200} closeDelay={100}>
                 <HoverCardTrigger asChild>
-                  <TableRow className="hover:bg-gray-50 cursor-pointer">
+                  <TableRow className="hover:bg-gray-50 cursor-pointer relative">
                     <TableCell>
                       <div>
                         <div className="font-medium text-gray-900">{quote.client.name}</div>
@@ -100,14 +99,15 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(quote.amount)}</TableCell>
-                    <TableCell></TableCell>
                   </TableRow>
                 </HoverCardTrigger>
                 <HoverCardContent 
                   className="w-auto p-2 bg-white border shadow-lg" 
                   side="right" 
                   align="center"
-                  sideOffset={10}
+                  sideOffset={20}
+                  alignOffset={0}
+                  avoidCollisions={false}
                 >
                   <div className="flex items-center space-x-1">
                     <Button 
@@ -140,7 +140,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
             ))}
             {filteredQuotes.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   No quotes found matching your criteria.
                 </TableCell>
               </TableRow>
