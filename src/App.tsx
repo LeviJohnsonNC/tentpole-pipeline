@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Clients from "./pages/Clients";
 import NewClient from "./pages/NewClient";
 import NewRequest from "./pages/NewRequest";
+import RequestDetails from "./pages/RequestDetails";
 import EditStages from "./pages/EditStages";
 import NotFound from "./pages/NotFound";
 import Quotes from "./pages/Quotes";
@@ -25,6 +26,7 @@ const App = () => (
         <Route path="/clients" element={<Clients />} />
         <Route path="/clients/new" element={<NewClient />} />
         <Route path="/requests/new" element={<NewRequest />} />
+        <Route path="/requests/:id" element={<RequestDetails />} />
         <Route path="/requests/edit-stages" element={<EditStages />} />
         <Route path="/quotes" element={<Quotes />} />
         <Route path="/quotes/new" element={<NewQuote />} />
