@@ -82,6 +82,7 @@ export const getRequestsWithClientInfo = (sessionClients: Client[] = [], session
   return allRequests.map(request => {
     const client = getClientById(request.clientId, sessionClients);
     if (!client) {
+      console.warn(`Client not found for request ${request.id}`);
       throw new Error(`Client not found for request ${request.id}`);
     }
     return {
@@ -100,6 +101,7 @@ export const getQuotesWithClientInfo = (sessionClients: Client[] = [], sessionQu
   return allQuotes.map(quote => {
     const client = getClientById(quote.clientId, sessionClients);
     if (!client) {
+      console.warn(`Client not found for quote ${quote.id}`);
       throw new Error(`Client not found for quote ${quote.id}`);
     }
     return {
@@ -107,6 +109,61 @@ export const getQuotesWithClientInfo = (sessionClients: Client[] = [], sessionQu
       client
     };
   });
+};
+
+// Validation functions for data integrity
+export const validateRequestQuoteConsistency = (sessionRequests: Request[] = [], sessionQuotes: Quote[] = []): string[] => {
+  const issues: string[] = [];
+  const allRequests = getAllRequests(sessionRequests);
+  const allQuotes = getAllQuotes(sessionQuotes);
+  
+  // Check for quotes referencing non-existent requests
+  allQuotes.forEach(quote => {
+    if (quote.requestId) {
+      const request = allRequests.find(r => r.id === quote.requestId);
+      if (!request) {
+        issues.push(`Quote ${quote.id} references non-existent request ${quote.requestId}`);
+      }
+    }
+  });
+  
+  // Check for requests with converted status but no approved/converted quotes
+  allRequests.forEach(request => {
+    if (request.status === 'Converted') {
+      const requestQuotes = allQuotes.filter(q => q.requestId === request.id);
+      const hasConvertedQuote = requestQuotes.some(q => q.status === 'Approved' || q.status === 'Converted');
+      if (!hasConvertedQuote) {
+        issues.push(`Request ${request.id} is marked as Converted but has no approved/converted quotes`);
+      }
+    }
+  });
+  
+  return issues;
+};
+
+export const validateClientReferences = (sessionClients: Client[] = [], sessionRequests: Request[] = [], sessionQuotes: Quote[] = []): string[] => {
+  const issues: string[] = [];
+  const allClients = getAllClients(sessionClients);
+  const allRequests = getAllRequests(sessionRequests);
+  const allQuotes = getAllQuotes(sessionQuotes);
+  
+  // Check for requests referencing non-existent clients
+  allRequests.forEach(request => {
+    const client = allClients.find(c => c.id === request.clientId);
+    if (!client) {
+      issues.push(`Request ${request.id} references non-existent client ${request.clientId}`);
+    }
+  });
+  
+  // Check for quotes referencing non-existent clients
+  allQuotes.forEach(quote => {
+    const client = allClients.find(c => c.id === quote.clientId);
+    if (!client) {
+      issues.push(`Quote ${quote.id} references non-existent client ${quote.clientId}`);
+    }
+  });
+  
+  return issues;
 };
 
 // Enhanced business logic for quote status changes with new rules

@@ -14,47 +14,65 @@ interface Deal {
   quoteId?: string; // Optional field for quote-based deals
 }
 
-// Mapping function to assign pipeline stages to "New" requests
-const assignPipelineStage = (requestId: string, stages: any[], sessionQuotes: any[]): string => {
-  // First check if this request has any quotes with "Awaiting Response" status
+// Helper function to find the newest quote for a request
+const getNewestQuoteForRequest = (requestId: string, sessionQuotes: any[]): any | null => {
   const requestQuotes = sessionQuotes.filter(quote => quote.requestId === requestId);
-  const hasAwaitingResponseQuote = requestQuotes.some(quote => quote.status === 'Awaiting Response');
+  if (requestQuotes.length === 0) return null;
   
-  if (hasAwaitingResponseQuote) {
-    // Find the "Quote Awaiting Response" stage
-    const awaitingStage = stages.find(stage => 
-      stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
-    );
-    if (awaitingStage) {
-      return awaitingStage.id;
+  // Sort by created date (newest first) and return the first one
+  return requestQuotes.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())[0];
+};
+
+// Mapping function to assign pipeline stages based on quote status or request state
+const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string => {
+  // If there's a newest quote, use its status to determine stage
+  if (newestQuote) {
+    console.log(`Request ${request.id} has newest quote ${newestQuote.id} with status: ${newestQuote.status}`);
+    
+    if (newestQuote.status === 'Awaiting Response') {
+      const awaitingStage = stages.find(stage => 
+        stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
+      );
+      if (awaitingStage) {
+        return awaitingStage.id;
+      }
+    }
+    
+    if (newestQuote.status === 'Draft') {
+      return 'contacted'; // Draft quotes are in contacted stage
+    }
+    
+    if (newestQuote.status === 'Changes Requested') {
+      return 'followup'; // Changes requested goes to followup
+    }
+    
+    // Approved and Converted quotes shouldn't be in pipeline (closed won)
+    if (newestQuote.status === 'Approved' || newestQuote.status === 'Converted') {
+      return null; // Don't include in pipeline
     }
   }
   
-  // If no awaiting response quotes, use the original mapping for realistic distribution
+  // If no quote, use original mapping for realistic distribution
   const stageMapping: Record<string, string> = {
-    // New deals (just received)
     'request-1': 'new-deals',
     'request-2': 'new-deals', 
     'request-4': 'new-deals',
     'request-6': 'new-deals',
-    
-    // Contacted (initial contact made)
     'request-7': 'contacted',
     'request-8': 'contacted',
     'request-9': 'contacted',
-    
-    // Follow-up (awaiting decisions)
     'request-10': 'followup',
     'request-11': 'followup',
     'request-12': 'followup'
   };
   
-  return stageMapping[requestId] || 'new-deals';
+  return stageMapping[request.id] || 'new-deals';
 };
 
 // Function to determine pipeline stage for standalone quotes
 const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
-  // Map quote status directly to pipeline stages
+  console.log(`Standalone quote ${quote.id} has status: ${quote.status}`);
+  
   if (quote.status === 'Awaiting Response') {
     const awaitingStage = stages.find(stage => 
       stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
@@ -65,7 +83,11 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
   }
   
   if (quote.status === 'Draft') {
-    return 'new-deals'; // Draft quotes start in new deals
+    return 'contacted'; // Draft quotes are in contacted stage
+  }
+  
+  if (quote.status === 'Changes Requested') {
+    return 'followup'; // Changes requested goes to followup
   }
   
   // Approved and Converted quotes shouldn't be in pipeline (closed won)
@@ -73,8 +95,8 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
     return null;
   }
   
-  // Fallback to "New Deals"
-  return 'new-deals';
+  // Fallback to "contacted" for draft-like quotes
+  return 'contacted';
 };
 
 // Sample pricing based on service type
@@ -99,33 +121,35 @@ const getEstimatedAmount = (serviceDetails: string, title: string): number => {
   return 800; // Default amount
 };
 
-// Check if a request has any approved/converted quotes (closed won)
-const isRequestClosedWon = (requestId: string, sessionQuotes: any[]): boolean => {
-  const requestQuotes = sessionQuotes.filter(quote => quote.requestId === requestId);
-  return requestQuotes.some(quote => quote.status === 'Approved' || quote.status === 'Converted');
-};
-
-// Convert requests to deals for the pipeline (ONLY open requests without closed quotes)
+// Convert requests to deals for the pipeline (with newest quote logic)
 const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
   console.log('Requests with client info:', requestsWithClients.length);
   
-  // Only include requests with status 'New' AND no closed quotes
+  // Only include requests with status 'New'
   const openRequests = requestsWithClients.filter(request => {
     console.log(`Request ${request.id} has status: ${request.status}`);
-    if (request.status !== 'New') return false;
-    
-    // Check if this request has any approved/converted quotes (closed won)
-    const isClosedWon = isRequestClosedWon(request.id, sessionQuotes);
-    console.log(`Request ${request.id} is closed won: ${isClosedWon}`);
-    return !isClosedWon;
+    return request.status === 'New';
   });
   console.log('Open requests for pipeline:', openRequests.length);
   
   const deals = openRequests.map((request) => {
-    const pipelineStage = assignPipelineStage(request.id, stages, sessionQuotes);
-    const amount = getEstimatedAmount(request.serviceDetails, request.title);
+    // Find the newest quote for this request
+    const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
+    console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none');
+    
+    // Determine pipeline stage based on newest quote or request alone
+    const pipelineStage = assignPipelineStage(request, newestQuote, stages);
+    
+    // If pipeline stage is null (closed won), don't include in pipeline
+    if (!pipelineStage) {
+      console.log(`Request ${request.id} excluded from pipeline (closed won)`);
+      return null;
+    }
+    
+    // Use quote amount if available, otherwise estimate from request
+    const amount = newestQuote ? newestQuote.amount : getEstimatedAmount(request.serviceDetails, request.title);
     
     return {
       id: request.id,
@@ -136,9 +160,10 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       requested: request.requestDate,
       amount: amount,
       status: pipelineStage,
-      type: 'request' as const
+      type: 'request' as const,
+      quoteId: newestQuote?.id
     };
-  });
+  }).filter(Boolean); // Remove null entries
   
   console.log('Final deals from requests:', deals.length);
   return deals;
@@ -158,8 +183,8 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     // Must be standalone (no requestId)
     if (quote.requestId) return false;
     
-    // Must have active status (not closed won)
-    return quote.status === 'Draft' || quote.status === 'Awaiting Response';
+    // Must have active status (not closed won or archived)
+    return quote.status === 'Draft' || quote.status === 'Awaiting Response' || quote.status === 'Changes Requested';
   });
   console.log('Standalone quotes for pipeline:', standaloneQuotes.length);
   
@@ -167,7 +192,10 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     const pipelineStage = assignQuotePipelineStage(quote, stages);
     
     // If pipelineStage is null, don't include this quote
-    if (!pipelineStage) return null;
+    if (!pipelineStage) {
+      console.log(`Standalone quote ${quote.id} excluded from pipeline (closed won)`);
+      return null;
+    }
     
     return {
       id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
@@ -191,7 +219,7 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
   console.log('\n=== PIPELINE DATA CREATION ===');
   console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
   
-  // Create deals from open requests (no closed quotes)
+  // Create deals from open requests (using newest quote logic)
   const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
   
   // Create deals from standalone quotes only
