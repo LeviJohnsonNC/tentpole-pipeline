@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -5,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { QuoteWithClient } from "@/utils/dataHelpers";
-import { Search, Filter, MoreHorizontal, Copy, MessageSquareText } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Copy, MessageSquareText, Mail } from "lucide-react";
 import { SendQuoteModal } from "./SendQuoteModal";
+import { EmailQuoteModal } from "./EmailQuoteModal";
 import { useQuoteStore } from "@/store/quoteStore";
 
 interface QuotesTableProps {
@@ -17,7 +19,8 @@ interface QuotesTableProps {
 const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [salespersonFilter, setSalespersonFilter] = useState<string>("all");
-  const [selectedQuote, setSelectedQuote] = useState<QuoteWithClient | null>(null);
+  const [selectedQuoteForText, setSelectedQuoteForText] = useState<QuoteWithClient | null>(null);
+  const [selectedQuoteForEmail, setSelectedQuoteForEmail] = useState<QuoteWithClient | null>(null);
   const { updateQuoteStatus } = useQuoteStore();
   
   const getStatusBadgeColor = (status: string) => {
@@ -67,14 +70,25 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
 
   const uniqueSalespeople = [...new Set(quotes.map(q => q.salesperson).filter(Boolean))];
 
-  const handleSendQuote = (quote: QuoteWithClient) => {
-    setSelectedQuote(quote);
+  const handleSendQuoteText = (quote: QuoteWithClient) => {
+    setSelectedQuoteForText(quote);
   };
 
-  const handleQuoteSent = () => {
-    if (selectedQuote) {
-      updateQuoteStatus(selectedQuote.id, 'Awaiting Response');
-      setSelectedQuote(null);
+  const handleSendQuoteEmail = (quote: QuoteWithClient) => {
+    setSelectedQuoteForEmail(quote);
+  };
+
+  const handleQuoteSentText = () => {
+    if (selectedQuoteForText) {
+      updateQuoteStatus(selectedQuoteForText.id, 'Awaiting Response');
+      setSelectedQuoteForText(null);
+    }
+  };
+
+  const handleQuoteSentEmail = () => {
+    if (selectedQuoteForEmail) {
+      updateQuoteStatus(selectedQuoteForEmail.id, 'Awaiting Response');
+      setSelectedQuoteForEmail(null);
     }
   };
 
@@ -127,9 +141,18 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                       size="sm" 
                       className="h-8 w-8 p-0 hover:bg-gray-100"
                       title="Send as text message"
-                      onClick={() => handleSendQuote(quote)}
+                      onClick={() => handleSendQuoteText(quote)}
                     >
                       <MessageSquareText className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
+                      title="Send as email"
+                      onClick={() => handleSendQuoteEmail(quote)}
+                    >
+                      <Mail className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -163,10 +186,17 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
       </div>
 
       <SendQuoteModal 
-        quote={selectedQuote}
-        isOpen={!!selectedQuote}
-        onClose={() => setSelectedQuote(null)}
-        onSend={handleQuoteSent}
+        quote={selectedQuoteForText}
+        isOpen={!!selectedQuoteForText}
+        onClose={() => setSelectedQuoteForText(null)}
+        onSend={handleQuoteSentText}
+      />
+
+      <EmailQuoteModal 
+        quote={selectedQuoteForEmail}
+        isOpen={!!selectedQuoteForEmail}
+        onClose={() => setSelectedQuoteForEmail(null)}
+        onSend={handleQuoteSentEmail}
       />
     </div>
   );
