@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from "react";
 import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,9 +18,11 @@ const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const totalRequests = useMemo(() => {
-    return getAllRequests(sessionRequests).length;
+  const allRequests = useMemo(() => {
+    return getAllRequests(sessionRequests);
   }, [sessionRequests]);
+
+  const totalRequests = allRequests.length;
 
   // Handle returning from EditStages with tab state
   useEffect(() => {
@@ -171,7 +172,7 @@ const Index = () => {
             {/* Content */}
             <div className="p-4">
               {activeTab === "all-requests" ? (
-                <RequestsTable />
+                <RequestsTable requests={allRequests} />
               ) : activeTab === "sales-pipeline" ? (
                 <SalesPipeline />
               ) : (

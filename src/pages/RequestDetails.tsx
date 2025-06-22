@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Search, Bell, MessageCircle, Settings, Edit2, MoreHorizontal, Copy } from "lucide-react";
@@ -177,7 +176,7 @@ const RequestDetails = () => {
                     </div>
                     
                     <div className="space-y-2 text-sm text-gray-600">
-                      <p>{client.address}</p>
+                      <p>{client.primaryAddress}</p>
                       <p>{client.phone}</p>
                     </div>
                   </CardContent>
