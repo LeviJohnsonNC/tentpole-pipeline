@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -21,11 +22,13 @@ import PipelineColumn from './pipeline/PipelineColumn';
 import DealCard from './pipeline/DealCard';
 import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
-import { createInitialDeals, pipelineColumns, Deal } from './pipeline/SalesPipelineData';
+import { useStagesStore } from "@/store/stagesStore";
+import { createInitialDeals, Deal } from './pipeline/SalesPipelineData';
 
 const SalesPipeline = () => {
   const { sessionClients } = useClientStore();
   const { sessionRequests } = useRequestStore();
+  const { stages } = useStagesStore();
   
   const initialDeals = useMemo(() => {
     return createInitialDeals(sessionClients, sessionRequests);
@@ -66,7 +69,7 @@ const SalesPipeline = () => {
 
   const findContainer = (id: string) => {
     // Check if id is a column id first
-    if (pipelineColumns.some(col => col.id === id)) {
+    if (stages.some(stage => stage.id === id)) {
       return id;
     }
     
@@ -186,19 +189,21 @@ const SalesPipeline = () => {
         onDragEnd={handleDragEnd}
       >
         <div className="grid grid-cols-4 gap-6 h-full">
-          {pipelineColumns.map((column) => {
-            const columnDeals = getColumnDeals(column.id);
-            return (
-              <PipelineColumn
-                key={column.id}
-                id={column.id}
-                title={column.title}
-                deals={columnDeals}
-                count={columnDeals.length}
-                totalValue={getColumnTotalValue(column.id)}
-              />
-            );
-          })}
+          {stages
+            .sort((a, b) => a.order - b.order)
+            .map((stage) => {
+              const columnDeals = getColumnDeals(stage.id);
+              return (
+                <PipelineColumn
+                  key={stage.id}
+                  id={stage.id}
+                  title={stage.title}
+                  deals={columnDeals}
+                  count={columnDeals.length}
+                  totalValue={getColumnTotalValue(stage.id)}
+                />
+              );
+            })}
         </div>
 
         <DragOverlay>
@@ -209,6 +214,85 @@ const SalesPipeline = () => {
       </DndContext>
     </div>
   );
+};
+
+const handleDragStart = (event: DragStartEvent) => {
+  const { active } = event;
+  setActiveId(active.id as string);
+};
+
+const handleDragOver = (event: DragOverEvent) => {
+  const { active, over } = event;
+  
+  if (!over || !active) return;
+
+  const activeId = active.id as string;
+  const overId = over.id as string;
+
+  // Don't do anything if we're hovering over the same item
+  if (activeId === overId) return;
+
+  const activeContainer = findContainer(activeId);
+  const overContainer = findContainer(overId);
+
+  if (!activeContainer || !overContainer) return;
+
+  // Only move between containers, don't reorder within the same container here
+  if (activeContainer !== overContainer) {
+    setDeals((prevDeals) => {
+      return prevDeals.map(deal => {
+        if (deal.id === activeId) {
+          return { ...deal, status: overContainer };
+        }
+        return deal;
+      });
+    });
+  }
+};
+
+const handleDragEnd = (event: DragEndEvent) => {
+  const { active, over } = event;
+  
+  setActiveId(null);
+  
+  if (!over || !active) return;
+
+  const activeId = active.id as string;
+  const overId = over.id as string;
+
+  // Don't do anything if dropped on itself
+  if (activeId === overId) return;
+
+  const activeContainer = findContainer(activeId);
+  const overContainer = findContainer(overId);
+
+  if (!activeContainer || !overContainer) return;
+
+  if (activeContainer === overContainer) {
+    // Reordering within the same container
+    setDeals((prevDeals) => {
+      const containerDeals = prevDeals.filter(deal => deal.status === activeContainer);
+      const otherDeals = prevDeals.filter(deal => deal.status !== activeContainer);
+      
+      const activeIndex = containerDeals.findIndex(deal => deal.id === activeId);
+      const overIndex = containerDeals.findIndex(deal => deal.id === overId);
+
+      if (activeIndex === -1 || overIndex === -1) return prevDeals;
+
+      const reorderedDeals = arrayMove(containerDeals, activeIndex, overIndex);
+      return [...otherDeals, ...reorderedDeals];
+    });
+  } else {
+    // Moving between containers - ensure final state is correct
+    setDeals((prevDeals) => {
+      return prevDeals.map(deal => {
+        if (deal.id === activeId) {
+          return { ...deal, status: overContainer };
+        }
+        return deal;
+      });
+    });
+  }
 };
 
 export default SalesPipeline;

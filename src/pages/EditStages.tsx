@@ -13,7 +13,7 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
+  horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Search, Bell, MessageCircle, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -99,7 +99,7 @@ const EditStages = () => {
           </div>
           
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-            <div className="mb-4">
+            <div className="mb-6">
               <h2 className="text-lg font-medium text-gray-900 mb-2">Pipeline Stages</h2>
               <p className="text-sm text-gray-500">
                 These stages represent your sales pipeline. You can rename them and reorder them to match your workflow.
@@ -113,9 +113,9 @@ const EditStages = () => {
             >
               <SortableContext
                 items={stages.map(stage => stage.id)}
-                strategy={verticalListSortingStrategy}
+                strategy={horizontalListSortingStrategy}
               >
-                <div className="space-y-3 max-w-md">
+                <div className="grid grid-cols-4 gap-4">
                   {stages
                     .sort((a, b) => a.order - b.order)
                     .map((stage) => (
