@@ -325,7 +325,7 @@ const SalesPipeline = () => {
               .map((stage) => {
                 const columnDeals = getColumnDeals(stage.id);
                 return (
-                  <div key={stage.id} className="w-64 flex-shrink-0">
+                  <div key={stage.id} className="w-44 flex-shrink-0">
                     <PipelineColumn
                       id={stage.id}
                       title={stage.title}

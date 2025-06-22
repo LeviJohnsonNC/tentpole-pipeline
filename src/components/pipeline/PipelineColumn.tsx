@@ -37,6 +37,9 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
   const stage = stages.find(s => s.id === id);
   const isJobberStage = stage?.isJobberStage;
 
+  // Don't show amount for New Deals and Contacted columns
+  const shouldShowAmount = id !== 'new-deals' && id !== 'contacted';
+
   const dealIds = deals.map(deal => deal.id);
 
   return (
@@ -62,9 +65,11 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
           <Badge variant="secondary" className="text-xs">
             {count}
           </Badge>
-          <span className="text-xs text-gray-500 truncate">
-            {totalValue}
-          </span>
+          {shouldShowAmount && (
+            <span className="text-xs text-gray-500 truncate">
+              {totalValue}
+            </span>
+          )}
         </div>
       </div>
 
