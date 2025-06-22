@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { 
   Plus, 
   Home, 
@@ -21,25 +22,25 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const Sidebar = () => {
-  const [activeItem, setActiveItem] = useState("requests");
+  const location = useLocation();
 
   const menuItems = [
-    { id: "create", label: "Create", icon: Plus, hasAction: true },
-    { id: "home", label: "Home", icon: Home },
-    { id: "schedule", label: "Schedule", icon: Calendar, badge: "New" },
-    { id: "clients", label: "Clients", icon: Users },
-    { id: "requests", label: "Requests", icon: FileText },
-    { id: "quotes", label: "Quotes", icon: DollarSign },
-    { id: "jobs", label: "Jobs", icon: Briefcase },
-    { id: "invoices", label: "Invoices", icon: Receipt },
-    { id: "marketing", label: "Marketing", icon: TrendingUp },
-    { id: "ai-receptionist", label: "AI Receptionist", icon: Bot },
-    { id: "insights", label: "Insights", icon: BarChart3 },
-    { id: "expenses", label: "Expenses", icon: CreditCard },
-    { id: "timesheets", label: "Timesheets", icon: Clock },
-    { id: "community", label: "Community", icon: MessageSquare },
-    { id: "apps", label: "Apps", icon: Grid3X3 },
-    { id: "refer", label: "Refer a friend", icon: UserPlus },
+    { id: "create", label: "Create", icon: Plus, hasAction: true, path: "/" },
+    { id: "home", label: "Home", icon: Home, path: "/" },
+    { id: "schedule", label: "Schedule", icon: Calendar, badge: "New", path: "/schedule" },
+    { id: "clients", label: "Clients", icon: Users, path: "/clients" },
+    { id: "requests", label: "Requests", icon: FileText, path: "/" },
+    { id: "quotes", label: "Quotes", icon: DollarSign, path: "/quotes" },
+    { id: "jobs", label: "Jobs", icon: Briefcase, path: "/jobs" },
+    { id: "invoices", label: "Invoices", icon: Receipt, path: "/invoices" },
+    { id: "marketing", label: "Marketing", icon: TrendingUp, path: "/marketing" },
+    { id: "ai-receptionist", label: "AI Receptionist", icon: Bot, path: "/ai-receptionist" },
+    { id: "insights", label: "Insights", icon: BarChart3, path: "/insights" },
+    { id: "expenses", label: "Expenses", icon: CreditCard, path: "/expenses" },
+    { id: "timesheets", label: "Timesheets", icon: Clock, path: "/timesheets" },
+    { id: "community", label: "Community", icon: MessageSquare, path: "/community" },
+    { id: "apps", label: "Apps", icon: Grid3X3, path: "/apps" },
+    { id: "refer", label: "Refer a friend", icon: UserPlus, path: "/refer" },
   ];
 
   return (
@@ -57,12 +58,12 @@ const Sidebar = () => {
         <ul className="space-y-1 px-3">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeItem === item.id;
+            const isActive = location.pathname === item.path;
             
             return (
               <li key={item.id}>
-                <button
-                  onClick={() => setActiveItem(item.id)}
+                <Link
+                  to={item.path}
                   className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                     isActive
                       ? "bg-[#0B6839] text-white"
@@ -76,7 +77,7 @@ const Sidebar = () => {
                       {item.badge}
                     </Badge>
                   )}
-                </button>
+                </Link>
               </li>
             );
           })}
