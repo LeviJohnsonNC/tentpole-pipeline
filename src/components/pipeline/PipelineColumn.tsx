@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import DealCard from './DealCard';
 
 interface Deal {
-  id: number;
+  id: string; // Changed from number to string
   client: string;
   title: string;
   property: string;

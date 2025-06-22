@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 interface Deal {
-  id: number;
+  id: string; // Changed from number to string
   client: string;
   title: string;
   property: string;

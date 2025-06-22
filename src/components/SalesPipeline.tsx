@@ -24,7 +24,7 @@ import { initialDeals, pipelineColumns, Deal } from './pipeline/SalesPipelineDat
 
 const SalesPipeline = () => {
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null); // Changed from number to string
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -51,14 +51,14 @@ const SalesPipeline = () => {
     return formatAmount(total);
   };
 
-  const findContainer = (id: number) => {
+  const findContainer = (id: string) => { // Changed parameter type from number to string
     const deal = deals.find(deal => deal.id === id);
     return deal?.status || null;
   };
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    setActiveId(active.id as number);
+    setActiveId(active.id as string); // Changed from number to string
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -66,12 +66,12 @@ const SalesPipeline = () => {
     
     if (!over) return;
 
-    const activeId = active.id as number;
+    const activeId = active.id as string; // Changed from number to string
     const overId = over.id;
 
     // Find the containers
     const activeContainer = findContainer(activeId);
-    const overContainer = typeof overId === 'string' ? overId : findContainer(overId as number);
+    const overContainer = typeof overId === 'string' ? overId : findContainer(overId as string); // Changed from number to string
 
     if (!activeContainer || !overContainer) return;
 
@@ -96,11 +96,11 @@ const SalesPipeline = () => {
       return;
     }
 
-    const activeId = active.id as number;
+    const activeId = active.id as string; // Changed from number to string
     const overId = over.id;
 
     const activeContainer = findContainer(activeId);
-    const overContainer = typeof overId === 'string' ? overId : findContainer(overId as number);
+    const overContainer = typeof overId === 'string' ? overId : findContainer(overId as string); // Changed from number to string
 
     if (!activeContainer || !overContainer) {
       setActiveId(null);
