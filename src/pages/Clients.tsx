@@ -4,11 +4,14 @@ import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizonta
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import ClientsOverviewCards from "@/components/ClientsOverviewCards";
 import ClientsTable from "@/components/ClientsTable";
 
 const Clients = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
       <Sidebar />
@@ -57,7 +60,10 @@ const Clients = () => {
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-semibold text-gray-900">Clients</h1>
               <div className="flex items-center space-x-3">
-                <Button className="bg-[#0B6839] hover:bg-[#0B6839]/90 text-white">
+                <Button 
+                  className="bg-[#0B6839] hover:bg-[#0B6839]/90 text-white"
+                  onClick={() => navigate('/clients/new')}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   New Client
                 </Button>

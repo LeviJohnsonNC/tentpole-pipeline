@@ -1,16 +1,22 @@
-
 import { Client } from '@/types/Client';
 import { Request } from '@/types/Request';
 import { clientsData } from '@/data/clientsData';
 import { requestsData } from '@/data/requestsData';
+import { useClientStore } from '@/store/clientStore';
 
 // Client operations
 export const getClientById = (id: string): Client | undefined => {
+  // Check session clients first
+  const sessionClients = useClientStore.getState().sessionClients;
+  const sessionClient = sessionClients.find(client => client.id === id);
+  if (sessionClient) return sessionClient;
+  
   return clientsData.find(client => client.id === id);
 };
 
 export const getAllClients = (): Client[] => {
-  return clientsData;
+  const sessionClients = useClientStore.getState().sessionClients;
+  return [...clientsData, ...sessionClients];
 };
 
 // Request operations
