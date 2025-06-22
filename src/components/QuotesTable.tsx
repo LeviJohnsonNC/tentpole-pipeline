@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -104,7 +105,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                 </HoverCardTrigger>
                 <HoverCardContent 
                   className="w-auto p-2 bg-white border shadow-lg" 
-                  side="left" 
+                  side="right" 
                   align="center"
                   sideOffset={10}
                 >
