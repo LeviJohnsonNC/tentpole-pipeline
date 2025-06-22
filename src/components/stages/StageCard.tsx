@@ -2,18 +2,31 @@
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Check, X } from 'lucide-react';
+import { GripVertical, Check, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Stage } from '@/store/stagesStore';
 
 interface StageCardProps {
   stage: Stage;
   onUpdateTitle: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
+  canDelete?: boolean;
 }
 
-const StageCard = ({ stage, onUpdateTitle }: StageCardProps) => {
+const StageCard = ({ stage, onUpdateTitle, onDelete, canDelete = true }: StageCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(stage.title);
 
@@ -47,6 +60,10 @@ const StageCard = ({ stage, onUpdateTitle }: StageCardProps) => {
     } else if (e.key === 'Escape') {
       handleCancel();
     }
+  };
+
+  const handleDelete = () => {
+    onDelete(stage.id);
   };
 
   return (
@@ -93,11 +110,40 @@ const StageCard = ({ stage, onUpdateTitle }: StageCardProps) => {
                 </Button>
               </div>
             ) : (
-              <div
-                onClick={() => setIsEditing(true)}
-                className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded text-sm font-medium"
-              >
-                {stage.title}
+              <div className="flex items-center justify-between">
+                <div
+                  onClick={() => setIsEditing(true)}
+                  className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded text-sm font-medium flex-1"
+                >
+                  {stage.title}
+                </div>
+                {canDelete && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Stage</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete the "{stage.title}" stage? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
               </div>
             )}
           </div>

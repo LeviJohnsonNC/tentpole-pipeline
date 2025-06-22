@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   DndContext,
@@ -43,8 +42,11 @@ const jobberStageOptions = [
 ];
 
 const EditStages = () => {
-  const { stages, updateStageTitle, reorderStages, addCustomStage, addJobberStage } = useStagesStore();
+  const { stages, updateStageTitle, reorderStages, addCustomStage, addJobberStage, deleteStage, getUsedJobberStages } = useStagesStore();
   const [showJobberDropdown, setShowJobberDropdown] = useState(false);
+
+  const usedJobberStages = getUsedJobberStages();
+  const availableJobberStages = jobberStageOptions.filter(option => !usedJobberStages.includes(option));
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -72,6 +74,10 @@ const EditStages = () => {
   const handleJobberStageSelect = (stageTitle: string) => {
     addJobberStage(stageTitle);
     setShowJobberDropdown(false);
+  };
+
+  const handleDeleteStage = (id: string) => {
+    deleteStage(id);
   };
 
   return (
@@ -149,6 +155,8 @@ const EditStages = () => {
                           <StageCard
                             stage={stage}
                             onUpdateTitle={updateStageTitle}
+                            onDelete={handleDeleteStage}
+                            canDelete={stages.length > 1}
                           />
                         </div>
                       ))}
@@ -173,6 +181,7 @@ const EditStages = () => {
                       variant="outline" 
                       size="sm"
                       className="whitespace-nowrap"
+                      disabled={availableJobberStages.length === 0}
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Jobber Stage
@@ -183,17 +192,23 @@ const EditStages = () => {
                       <div className="text-sm font-medium text-gray-900 mb-2 px-2">
                         Select a Jobber stage:
                       </div>
-                      {jobberStageOptions.map((option) => (
-                        <Button
-                          key={option}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start text-left"
-                          onClick={() => handleJobberStageSelect(option)}
-                        >
-                          {option}
-                        </Button>
-                      ))}
+                      {availableJobberStages.length > 0 ? (
+                        availableJobberStages.map((option) => (
+                          <Button
+                            key={option}
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start text-left"
+                            onClick={() => handleJobberStageSelect(option)}
+                          >
+                            {option}
+                          </Button>
+                        ))
+                      ) : (
+                        <div className="px-2 py-3 text-sm text-gray-500">
+                          All Jobber stages have been added
+                        </div>
+                      )}
                     </div>
                   </PopoverContent>
                 </Popover>

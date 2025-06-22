@@ -5,6 +5,7 @@ export interface Stage {
   id: string;
   title: string;
   order: number;
+  isJobberStage?: boolean;
 }
 
 interface StagesStore {
@@ -13,6 +14,8 @@ interface StagesStore {
   reorderStages: (stages: Stage[]) => void;
   addCustomStage: () => void;
   addJobberStage: (title: string) => void;
+  deleteStage: (id: string) => void;
+  getUsedJobberStages: () => string[];
 }
 
 const defaultStages: Stage[] = [
@@ -56,10 +59,21 @@ export const useStagesStore = create<StagesStore>((set, get) => ({
       const newStage: Stage = {
         id: generateId(),
         title,
-        order: maxOrder + 1
+        order: maxOrder + 1,
+        isJobberStage: true
       };
       return {
         stages: [...state.stages, newStage]
       };
     }),
+  deleteStage: (id) =>
+    set((state) => ({
+      stages: state.stages.filter(stage => stage.id !== id)
+    })),
+  getUsedJobberStages: () => {
+    const { stages } = get();
+    return stages
+      .filter(stage => stage.isJobberStage)
+      .map(stage => stage.title);
+  },
 }));
