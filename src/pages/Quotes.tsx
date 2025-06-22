@@ -36,21 +36,9 @@ const Quotes = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search..."
-                  className="pl-10 w-64"
-                />
-              </div>
-              
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
-              
               <Button variant="outline" size="sm">
                 <MoreHorizontal className="h-4 w-4" />
+                More Actions
               </Button>
               
               <Button asChild className="bg-green-600 hover:bg-green-700">
@@ -66,6 +54,32 @@ const Quotes = () => {
         {/* Main Content */}
         <main className="flex-1 p-6">
           <QuotesOverviewCards quotes={allQuotes} />
+          
+          {/* Search and Filter Controls moved to main content area */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search quotes..."
+                  className="pl-10 w-64"
+                />
+              </div>
+              
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+            </div>
+            
+            <Button asChild className="bg-green-600 hover:bg-green-700">
+              <Link to="/quotes/new">
+                <Plus className="h-4 w-4 mr-2" />
+                New Quote
+              </Link>
+            </Button>
+          </div>
+          
           <QuotesTable quotes={quotesWithClients} />
         </main>
       </div>
