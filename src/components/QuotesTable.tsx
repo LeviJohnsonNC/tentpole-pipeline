@@ -54,25 +54,7 @@ const QuotesTable = ({
   const uniqueSalespeople = [...new Set(quotes.map(q => q.salesperson).filter(Boolean))];
   return <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div className="flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            
-          </div>
-          
-          
-          
-          <select value={salespersonFilter} onChange={e => setSalespersonFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="all">All Salespeople</option>
-            {uniqueSalespeople.map(person => <option key={person} value={person}>{person}</option>)}
-          </select>
-        </div>
-        
-        <Button className="bg-green-600 hover:bg-green-700">
-          New Quote
-        </Button>
-      </div>
+      
 
       {/* Table */}
       <div className="border rounded-lg">
