@@ -70,7 +70,9 @@ const StageCard = ({ stage, onUpdateTitle, onDelete, canDelete = true }: StageCa
     <Card
       ref={setNodeRef}
       style={style}
-      className={`relative h-48 ${isDragging ? 'opacity-50' : ''}`}
+      className={`relative h-48 ${isDragging ? 'opacity-50' : ''} ${
+        stage.isJobberStage ? 'bg-green-50 border-green-200' : ''
+      }`}
     >
       <CardContent className="p-4 h-full flex flex-col">
         <div className="flex items-center space-x-3">

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useStagesStore } from "@/store/stagesStore";
 import DealCard from './DealCard';
 
 interface Deal {
@@ -31,15 +32,20 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
   const { setNodeRef, isOver } = useDroppable({
     id,
   });
+  
+  const { stages } = useStagesStore();
+  const stage = stages.find(s => s.id === id);
+  const isJobberStage = stage?.isJobberStage;
 
   const dealIds = deals.map(deal => deal.id);
 
   return (
     <div 
       className={`
-        flex flex-col bg-gray-50 rounded-lg p-3 
+        flex flex-col rounded-lg p-3 
         transition-all duration-200 ease-out
-        ${isOver ? 'bg-blue-50 ring-2 ring-blue-200 ring-opacity-50' : ''}
+        ${isJobberStage ? 'bg-green-50' : 'bg-gray-50'}
+        ${isOver ? (isJobberStage ? 'bg-green-100 ring-2 ring-green-200 ring-opacity-50' : 'bg-blue-50 ring-2 ring-blue-200 ring-opacity-50') : ''}
       `}
     >
       {/* Column Header */}
@@ -88,7 +94,9 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
         
         {/* Drop zone overlay for better UX */}
         {isOver && deals.length > 0 && (
-          <div className="absolute inset-0 bg-blue-100 bg-opacity-20 rounded border-2 border-dashed border-blue-300 pointer-events-none" />
+          <div className={`absolute inset-0 bg-opacity-20 rounded border-2 border-dashed pointer-events-none ${
+            isJobberStage ? 'bg-green-100 border-green-300' : 'bg-blue-100 border-blue-300'
+          }`} />
         )}
       </div>
     </div>
