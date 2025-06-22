@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import PipelineColumn from './pipeline/PipelineColumn';
 import DealCard from './pipeline/DealCard';
 import { useClientStore } from "@/store/clientStore";
@@ -180,7 +181,7 @@ const SalesPipeline = () => {
         </div>
       </div>
 
-      {/* Pipeline Columns */}
+      {/* Pipeline Columns with Horizontal Scroll */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -188,23 +189,27 @@ const SalesPipeline = () => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-4 gap-6 h-full">
-          {stages
-            .sort((a, b) => a.order - b.order)
-            .map((stage) => {
-              const columnDeals = getColumnDeals(stage.id);
-              return (
-                <PipelineColumn
-                  key={stage.id}
-                  id={stage.id}
-                  title={stage.title}
-                  deals={columnDeals}
-                  count={columnDeals.length}
-                  totalValue={getColumnTotalValue(stage.id)}
-                />
-              );
-            })}
-        </div>
+        <ScrollArea className="w-full">
+          <div className="flex space-x-6 pb-4 min-w-max">
+            {stages
+              .sort((a, b) => a.order - b.order)
+              .map((stage) => {
+                const columnDeals = getColumnDeals(stage.id);
+                return (
+                  <div key={stage.id} className="w-80 flex-shrink-0">
+                    <PipelineColumn
+                      id={stage.id}
+                      title={stage.title}
+                      deals={columnDeals}
+                      count={columnDeals.length}
+                      totalValue={getColumnTotalValue(stage.id)}
+                    />
+                  </div>
+                );
+              })}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <DragOverlay>
           {activeItem ? (
