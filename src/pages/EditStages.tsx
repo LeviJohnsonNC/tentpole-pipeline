@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -33,7 +34,7 @@ import {
 import Sidebar from "@/components/Sidebar";
 import StageCard from "@/components/stages/StageCard";
 import { useStagesStore } from "@/store/stagesStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const jobberStageOptions = [
   "Assessment Complete",
@@ -45,7 +46,16 @@ const jobberStageOptions = [
 const EditStages = () => {
   const { stages, updateStageTitle, reorderStages, addCustomStage, addJobberStage, deleteStage, getUsedJobberStages } = useStagesStore();
   const [showJobberDropdown, setShowJobberDropdown] = useState(false);
+  const [referrerTab, setReferrerTab] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if we have state from navigation that tells us which tab was active
+    if (location.state && location.state.fromTab) {
+      setReferrerTab(location.state.fromTab);
+    }
+  }, [location.state]);
 
   const usedJobberStages = getUsedJobberStages();
   const availableJobberStages = jobberStageOptions.filter(option => !usedJobberStages.includes(option));
@@ -83,7 +93,25 @@ const EditStages = () => {
   };
 
   const handleClose = () => {
-    navigate(-1); // Go back to previous page
+    try {
+      // If we know which tab the user came from, navigate accordingly
+      if (referrerTab === 'sales-pipeline') {
+        navigate('/', { state: { activeTab: 'sales-pipeline' } });
+      } else if (referrerTab === 'all-requests') {
+        navigate('/', { state: { activeTab: 'all-requests' } });
+      } else {
+        // Try to go back, with fallback to home
+        if (window.history.length > 1) {
+          navigate(-1);
+        } else {
+          navigate('/');
+        }
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback to home page
+      navigate('/');
+    }
   };
 
   return (

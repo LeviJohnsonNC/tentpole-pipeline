@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,14 +11,32 @@ import RequestsTable from "@/components/RequestsTable";
 import SalesPipeline from "@/components/SalesPipeline";
 import { getAllRequests } from "@/utils/dataHelpers";
 import { useRequestStore } from "@/store/requestStore";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("all-requests");
   const { sessionRequests } = useRequestStore();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const totalRequests = useMemo(() => {
     return getAllRequests(sessionRequests).length;
   }, [sessionRequests]);
+
+  // Handle returning from EditStages with tab state
+  useEffect(() => {
+    if (location.state && location.state.activeTab) {
+      setActiveTab(location.state.activeTab);
+      // Clear the state so it doesn't persist on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  const handleEditStages = () => {
+    navigate('/requests/edit-stages', { 
+      state: { fromTab: activeTab }
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
@@ -83,7 +101,7 @@ const Index = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => window.location.href = '/requests/edit-stages'}>
+                    <DropdownMenuItem onClick={handleEditStages}>
                       Edit Stages
                     </DropdownMenuItem>
                   </DropdownMenuContent>
