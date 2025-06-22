@@ -22,4 +22,13 @@ export interface Quote {
     rate: number;
     total: number;
   }[];
+  // New fields for the form
+  rating?: number;
+  division?: string;
+  customFields?: {
+    id: string;
+    name: string;
+    value: string;
+    type: 'text' | 'number' | 'dropdown';
+  }[];
 }

@@ -10,6 +10,7 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { getQuotesWithClientInfo, getAllQuotes } from "@/utils/dataHelpers";
 import { Search, Plus, Filter, MoreHorizontal } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Quotes = () => {
   const { sessionClients } = useClientStore();
@@ -52,9 +53,11 @@ const Quotes = () => {
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
               
-              <Button className="bg-green-600 hover:bg-green-700">
-                <Plus className="h-4 w-4 mr-2" />
-                New Quote
+              <Button asChild className="bg-green-600 hover:bg-green-700">
+                <Link to="/quotes/new">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Quote
+                </Link>
               </Button>
             </div>
           </div>
