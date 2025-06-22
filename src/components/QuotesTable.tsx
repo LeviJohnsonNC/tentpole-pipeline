@@ -138,10 +138,10 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                   </HoverCardTrigger>
                   <HoverCardContent 
                     className="w-auto p-2 bg-white border shadow-lg z-50" 
-                    side="right" 
-                    align="start"
-                    sideOffset={15}
-                    alignOffset={-10}
+                    side="top" 
+                    align="end"
+                    sideOffset={8}
+                    alignOffset={0}
                     avoidCollisions={false}
                   >
                     <div className="flex items-center space-x-1">
