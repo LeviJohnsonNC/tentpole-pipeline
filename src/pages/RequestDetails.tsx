@@ -6,6 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Sidebar from "@/components/Sidebar";
 import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
@@ -47,6 +53,12 @@ const RequestDetails = () => {
   const handleCancel = () => {
     setEditedRequest(request);
     setIsEditing(false);
+  };
+
+  const handleConvertToQuote = () => {
+    if (request && client) {
+      navigate(`/quotes/new?requestId=${request.id}&clientId=${client.id}`);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -127,10 +139,19 @@ const RequestDetails = () => {
                     <Badge className={getStatusColor(request.status)}>
                       {request.status}
                     </Badge>
-                    <Button variant="ghost" size="sm" className="text-gray-500">
-                      <MoreHorizontal className="h-4 w-4" />
-                      More
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-gray-500">
+                          <MoreHorizontal className="h-4 w-4" />
+                          More
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-white">
+                        <DropdownMenuItem onClick={handleConvertToQuote}>
+                          Convert to Quote
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
