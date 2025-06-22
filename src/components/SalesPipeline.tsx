@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -18,6 +19,7 @@ import {
 import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 import PipelineColumn from './pipeline/PipelineColumn';
 import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
@@ -96,6 +98,51 @@ const SalesPipeline = () => {
     return deal?.status || null;
   };
 
+  // Validation function for Jobber stages
+  const canDropInJobberStage = (dealId: string, targetStageId: string): { allowed: boolean; message?: string } => {
+    const deal = deals.find(d => d.id === dealId);
+    const targetStage = stages.find(s => s.id === targetStageId);
+    
+    if (!deal || !targetStage || !targetStage.isJobberStage) {
+      return { allowed: true };
+    }
+
+    const stageTitle = targetStage.title.toLowerCase();
+    
+    // Map Jobber stage titles to required deal conditions
+    if (stageTitle.includes('draft') && stageTitle.includes('quote')) {
+      // For "Draft Quote" stage, need to have a quote
+      if (deal.type !== 'quote') {
+        return { 
+          allowed: false, 
+          message: "Only deals with drafted quotes can be moved to Draft Quote stage. Create a quote first." 
+        };
+      }
+    } else if (stageTitle.includes('quote') && stageTitle.includes('sent')) {
+      // For "Quote Sent" stage, need quote to be sent (this would need additional status tracking)
+      if (deal.type !== 'quote') {
+        return { 
+          allowed: false, 
+          message: "Only sent quotes can be moved to Quote Sent stage." 
+        };
+      }
+    } else if (stageTitle.includes('invoice') && stageTitle.includes('sent')) {
+      // For "Invoice Sent" stage
+      return { 
+        allowed: false, 
+        message: "Only jobs with sent invoices can be moved to Invoice Sent stage." 
+      };
+    } else if (stageTitle.includes('work') && (stageTitle.includes('scheduled') || stageTitle.includes('progress'))) {
+      // For work-related stages
+      return { 
+        allowed: false, 
+        message: "Only scheduled jobs can be moved to work stages." 
+      };
+    }
+
+    return { allowed: true };
+  };
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     setActiveId(active.id as string);
@@ -119,6 +166,12 @@ const SalesPipeline = () => {
 
     // Don't move to action zones during drag over
     if (overContainer.startsWith('action-')) return;
+
+    // Check Jobber stage validation before allowing drag over
+    const validation = canDropInJobberStage(activeId, overContainer);
+    if (!validation.allowed) {
+      return; // Prevent drag over for invalid drops
+    }
 
     // Only move between containers, don't reorder within the same container here
     if (activeContainer !== overContainer) {
@@ -164,6 +217,26 @@ const SalesPipeline = () => {
           handleWonAction(activeId, deals, setDeals);
           break;
       }
+      return;
+    }
+
+    // Validate Jobber stage drops
+    const validation = canDropInJobberStage(activeId, overContainer);
+    if (!validation.allowed) {
+      toast.error(validation.message);
+      // Revert the deal to its original position
+      setDeals((prevDeals) => {
+        const originalDeal = initialDeals.find(d => d.id === activeId);
+        if (originalDeal) {
+          return prevDeals.map(deal => {
+            if (deal.id === activeId) {
+              return { ...deal, status: originalDeal.status };
+            }
+            return deal;
+          });
+        }
+        return prevDeals;
+      });
       return;
     }
 
