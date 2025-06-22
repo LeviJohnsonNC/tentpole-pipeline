@@ -67,7 +67,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   return (
     <div className="space-y-4">
       {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-visible">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
@@ -81,9 +81,9 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
           </TableHeader>
           <TableBody>
             {filteredQuotes.map(quote => (
-              <HoverCard key={quote.id} openDelay={200} closeDelay={100}>
+              <HoverCard key={quote.id} openDelay={100} closeDelay={300}>
                 <HoverCardTrigger asChild>
-                  <TableRow className="hover:bg-gray-50 cursor-pointer relative">
+                  <TableRow className="hover:bg-gray-50 cursor-pointer">
                     <TableCell>
                       <div>
                         <div className="font-medium text-gray-900">{quote.client.name}</div>
@@ -102,12 +102,10 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                   </TableRow>
                 </HoverCardTrigger>
                 <HoverCardContent 
-                  className="w-auto p-2 bg-white border shadow-lg" 
+                  className="w-auto p-2 bg-white border shadow-lg z-50" 
                   side="right" 
                   align="center"
-                  sideOffset={20}
-                  alignOffset={0}
-                  avoidCollisions={false}
+                  sideOffset={10}
                 >
                   <div className="flex items-center space-x-1">
                     <Button 
