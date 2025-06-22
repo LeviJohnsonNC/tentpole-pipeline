@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Search, Bell, MessageCircle, Settings, Edit2, MoreHorizontal, Copy } from "lucide-react";
+import { Search, Bell, MessageCircle, Settings, Edit2, MoreHorizontal, Copy, Quote, Briefcase, Archive, Printer, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import Sidebar from "@/components/Sidebar";
 import { useClientStore } from "@/store/clientStore";
@@ -59,6 +60,26 @@ const RequestDetails = () => {
     if (request && client) {
       navigate(`/quotes/new?requestId=${request.id}&clientId=${client.id}`);
     }
+  };
+
+  const handleConvertToJob = () => {
+    // TODO: Implement convert to job functionality
+    console.log('Convert to Job clicked');
+  };
+
+  const handleArchive = () => {
+    // TODO: Implement archive functionality
+    console.log('Archive clicked');
+  };
+
+  const handlePrint = () => {
+    // TODO: Implement print functionality
+    console.log('Print clicked');
+  };
+
+  const handleDelete = () => {
+    // TODO: Implement delete functionality
+    console.log('Delete clicked');
   };
 
   const getStatusColor = (status: string) => {
@@ -146,9 +167,27 @@ const RequestDetails = () => {
                           More
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="bg-white">
-                        <DropdownMenuItem onClick={handleConvertToQuote}>
-                          Convert to Quote
+                      <DropdownMenuContent align="start" className="bg-white z-50">
+                        <DropdownMenuItem onClick={handleConvertToQuote} className="flex items-center space-x-2">
+                          <Quote className="h-4 w-4 text-gray-600" />
+                          <span>Convert to Quote</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleConvertToJob} className="flex items-center space-x-2">
+                          <Briefcase className="h-4 w-4 text-green-600" />
+                          <span>Convert to Job</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleArchive} className="flex items-center space-x-2">
+                          <Archive className="h-4 w-4 text-gray-600" />
+                          <span>Archive</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handlePrint} className="flex items-center space-x-2">
+                          <Printer className="h-4 w-4 text-gray-600" />
+                          <span>Print</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleDelete} className="flex items-center space-x-2 text-red-600">
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
