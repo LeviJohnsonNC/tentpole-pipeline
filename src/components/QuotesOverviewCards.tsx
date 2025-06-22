@@ -6,9 +6,11 @@ import { ChevronRight, HelpCircle } from "lucide-react";
 
 interface QuotesOverviewCardsProps {
   quotes: Quote[];
+  onStatusFilter?: (status: string | null) => void;
+  activeFilter?: string | null;
 }
 
-const QuotesOverviewCards = ({ quotes }: QuotesOverviewCardsProps) => {
+const QuotesOverviewCards = ({ quotes, onStatusFilter, activeFilter }: QuotesOverviewCardsProps) => {
   const metrics = calculateQuoteMetrics(quotes);
   
   // Calculate additional metrics needed for the new design
@@ -20,96 +22,70 @@ const QuotesOverviewCards = ({ quotes }: QuotesOverviewCardsProps) => {
     .filter(q => q.status === 'Converted')
     .reduce((sum, q) => sum + q.amount, 0);
 
+  const handleStatusClick = (status: string) => {
+    if (onStatusFilter) {
+      // If clicking the same status, clear the filter
+      onStatusFilter(activeFilter === status ? null : status);
+    }
+  };
+
   return (
     <div className="mb-6">
-      {/* Top row - simplified metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-        <Card className="bg-gray-50 border-0">
-          <CardContent className="p-4">
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600">Draft</p>
-              <p className="text-2xl font-semibold text-gray-900">{metrics.draft}</p>
-              <p className="text-xs text-gray-500">{metrics.total > 0 ? Math.round((metrics.draft / metrics.total) * 100) : 0}% of total quotes</p>
+      {/* Overview Card */}
+      <Card className="bg-white border border-gray-200 mb-4">
+        <CardContent className="p-4">
+          <h3 className="text-sm font-medium text-gray-900 mb-3">Overview</h3>
+          <div className="space-y-2">
+            <div 
+              className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
+                activeFilter === 'Draft' ? 'bg-blue-50' : ''
+              }`}
+              onClick={() => handleStatusClick('Draft')}
+            >
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                <span className="text-sm text-gray-600">Draft ({metrics.draft})</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-blue-50 border-0">
-          <CardContent className="p-4">
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600">Awaiting Response</p>
-              <p className="text-2xl font-semibold text-gray-900">{metrics.awaitingResponse}</p>
-              <p className="text-xs text-gray-500">{metrics.total > 0 ? Math.round((metrics.awaitingResponse / metrics.total) * 100) : 0}% of total quotes</p>
+            <div 
+              className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
+                activeFilter === 'Awaiting Response' ? 'bg-blue-50' : ''
+              }`}
+              onClick={() => handleStatusClick('Awaiting Response')}
+            >
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span className="text-sm text-gray-600">Awaiting Response ({metrics.awaitingResponse})</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-green-50 border-0">
-          <CardContent className="p-4">
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600">Conversion Rate</p>
-              <p className="text-2xl font-semibold text-gray-900">{metrics.conversionRate}%</p>
-              <p className="text-xs text-gray-500">{metrics.approved + metrics.converted} of {metrics.sent} sent quotes</p>
+            <div 
+              className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
+                activeFilter === 'Changes Requested' ? 'bg-blue-50' : ''
+              }`}
+              onClick={() => handleStatusClick('Changes Requested')}
+            >
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <span className="text-sm text-gray-600">Changes Requested ({changesRequested})</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-purple-50 border-0">
-          <CardContent className="p-4">
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600">Sent</p>
-              <p className="text-2xl font-semibold text-gray-900">{metrics.sent}</p>
-              <p className="text-xs text-gray-500">{metrics.total > 0 ? Math.round((metrics.sent / metrics.total) * 100) : 0}% of total quotes</p>
+            <div 
+              className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
+                activeFilter === 'Approved' ? 'bg-blue-50' : ''
+              }`}
+              onClick={() => handleStatusClick('Approved')}
+            >
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-gray-600">Approved ({metrics.approved})</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-emerald-50 border-0">
-          <CardContent className="p-4">
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600">Converted</p>
-              <p className="text-2xl font-semibold text-gray-900">{metrics.converted}</p>
-              <p className="text-xs text-gray-500">{metrics.total > 0 ? Math.round((metrics.converted / metrics.total) * 100) : 0}% of total quotes</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Bottom row - detailed cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {/* Overview Card */}
-        <Card className="bg-white border border-gray-200">
-          <CardContent className="p-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Overview</h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Draft ({metrics.draft})</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Awaiting Response ({metrics.awaitingResponse})</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Changes Requested ({changesRequested})</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Approved ({metrics.approved})</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Conversion Rate Card */}
         <Card className="bg-white border border-gray-200">
           <CardContent className="p-4">
@@ -159,6 +135,9 @@ const QuotesOverviewCards = ({ quotes }: QuotesOverviewCardsProps) => {
             <p className="text-sm text-gray-500">${convertedValue.toLocaleString()}</p>
           </CardContent>
         </Card>
+
+        {/* Empty placeholders for spacing */}
+        <div></div>
 
         {/* Help Card */}
         <Card className="bg-white border border-gray-200">

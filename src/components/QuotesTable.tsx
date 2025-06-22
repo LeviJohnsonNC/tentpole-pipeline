@@ -5,15 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { QuoteWithClient } from "@/utils/dataHelpers";
 import { Search, Filter, MoreHorizontal } from "lucide-react";
+
 interface QuotesTableProps {
   quotes: QuoteWithClient[];
+  statusFilter?: string | null;
 }
-const QuotesTable = ({
-  quotes
-}: QuotesTableProps) => {
+
+const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [salespersonFilter, setSalespersonFilter] = useState<string>("all");
+  
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'Draft':
@@ -32,12 +33,14 @@ const QuotesTable = ({
         return 'bg-gray-100 text-gray-800';
     }
   };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-CA', {
       style: 'currency',
       currency: 'CAD'
     }).format(amount);
   };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-CA', {
       month: 'short',
@@ -45,17 +48,22 @@ const QuotesTable = ({
       year: 'numeric'
     });
   };
+
   const filteredQuotes = quotes.filter(quote => {
-    const matchesSearch = quote.client.name.toLowerCase().includes(searchTerm.toLowerCase()) || quote.quoteNumber.toLowerCase().includes(searchTerm.toLowerCase()) || quote.title.toLowerCase().includes(searchTerm.toLowerCase()) || quote.property.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || quote.status === statusFilter;
+    const matchesSearch = quote.client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         quote.quoteNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         quote.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         quote.property.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = !statusFilter || quote.status === statusFilter;
     const matchesSalesperson = salespersonFilter === "all" || quote.salesperson === salespersonFilter;
+    
     return matchesSearch && matchesStatus && matchesSalesperson;
   });
-  const uniqueSalespeople = [...new Set(quotes.map(q => q.salesperson).filter(Boolean))];
-  return <div className="space-y-4">
-      {/* Filters */}
-      
 
+  const uniqueSalespeople = [...new Set(quotes.map(q => q.salesperson).filter(Boolean))];
+
+  return (
+    <div className="space-y-4">
       {/* Table */}
       <div className="border rounded-lg">
         <Table>
@@ -71,7 +79,8 @@ const QuotesTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredQuotes.map(quote => <TableRow key={quote.id} className="hover:bg-gray-50">
+            {filteredQuotes.map(quote => (
+              <TableRow key={quote.id} className="hover:bg-gray-50">
                 <TableCell>
                   <div>
                     <div className="font-medium text-gray-900">{quote.client.name}</div>
@@ -92,15 +101,20 @@ const QuotesTable = ({
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </TableCell>
-              </TableRow>)}
-            {filteredQuotes.length === 0 && <TableRow>
+              </TableRow>
+            ))}
+            {filteredQuotes.length === 0 && (
+              <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No quotes found matching your criteria.
                 </TableCell>
-              </TableRow>}
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default QuotesTable;

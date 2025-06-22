@@ -17,9 +17,22 @@ const Quotes = () => {
   const { sessionClients } = useClientStore();
   const { sessionRequests } = useRequestStore();
   const { sessionQuotes } = useQuoteStore();
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   
   const quotesWithClients = getQuotesWithClientInfo(sessionClients, sessionQuotes);
   const allQuotes = getAllQuotes(sessionQuotes);
+
+  // Filter quotes for display count
+  const filteredQuotesCount = statusFilter 
+    ? allQuotes.filter(quote => quote.status === statusFilter).length
+    : allQuotes.length;
+
+  const getFilterDisplayText = () => {
+    if (statusFilter) {
+      return `${statusFilter} quotes (${filteredQuotesCount} results)`;
+    }
+    return `All quotes (${allQuotes.length} results)`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
@@ -81,13 +94,29 @@ const Quotes = () => {
           </div>
 
           {/* Overview Cards */}
-          <QuotesOverviewCards quotes={allQuotes} />
+          <QuotesOverviewCards 
+            quotes={allQuotes} 
+            onStatusFilter={setStatusFilter}
+            activeFilter={statusFilter}
+          />
 
           {/* All quotes section */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              All quotes ({allQuotes.length} results)
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {getFilterDisplayText()}
+                {statusFilter && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="ml-2 text-blue-600"
+                    onClick={() => setStatusFilter(null)}
+                  >
+                    Clear filter
+                  </Button>
+                )}
+              </h2>
+            </div>
             
             {/* Filter and Search Controls */}
             <div className="flex items-center justify-between mb-4">
@@ -95,7 +124,7 @@ const Quotes = () => {
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-700">Status</span>
                   <Button variant="outline" size="sm" className="bg-gray-100">
-                    All
+                    {statusFilter || 'All'}
                   </Button>
                 </div>
                 
@@ -124,7 +153,7 @@ const Quotes = () => {
             </div>
           </div>
           
-          <QuotesTable quotes={quotesWithClients} />
+          <QuotesTable quotes={quotesWithClients} statusFilter={statusFilter} />
         </main>
       </div>
     </div>
