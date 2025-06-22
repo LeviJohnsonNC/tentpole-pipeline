@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from "react";
 import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,19 +9,21 @@ import Sidebar from "@/components/Sidebar";
 import OverviewCards from "@/components/OverviewCards";
 import RequestsTable from "@/components/RequestsTable";
 import SalesPipeline from "@/components/SalesPipeline";
-import { getAllRequests } from "@/utils/dataHelpers";
+import { getRequestsWithClientInfo } from "@/utils/dataHelpers";
 import { useRequestStore } from "@/store/requestStore";
+import { useClientStore } from "@/store/clientStore";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("all-requests");
   const { sessionRequests } = useRequestStore();
+  const { sessionClients } = useClientStore();
   const location = useLocation();
   const navigate = useNavigate();
   
   const allRequests = useMemo(() => {
-    return getAllRequests(sessionRequests);
-  }, [sessionRequests]);
+    return getRequestsWithClientInfo(sessionClients, sessionRequests);
+  }, [sessionRequests, sessionClients]);
 
   const totalRequests = allRequests.length;
 
