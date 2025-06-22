@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -15,16 +15,36 @@ import {
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Search, Bell, MessageCircle, Settings } from "lucide-react";
+import { Search, Bell, MessageCircle, Settings, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import Sidebar from "@/components/Sidebar";
 import StageCard from "@/components/stages/StageCard";
 import { useStagesStore } from "@/store/stagesStore";
 
+const jobberStageOptions = [
+  "Assessment Complete",
+  "Draft Quote", 
+  "Quote Awaiting Response",
+  "Quote Changes Requested"
+];
+
 const EditStages = () => {
-  const { stages, updateStageTitle, reorderStages } = useStagesStore();
+  const { stages, updateStageTitle, reorderStages, addCustomStage, addJobberStage } = useStagesStore();
+  const [showJobberDropdown, setShowJobberDropdown] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -47,6 +67,11 @@ const EditStages = () => {
       const reorderedStages = arrayMove(stages, oldIndex, newIndex);
       reorderStages(reorderedStages);
     }
+  };
+
+  const handleJobberStageSelect = (stageTitle: string) => {
+    addJobberStage(stageTitle);
+    setShowJobberDropdown(false);
   };
 
   return (
@@ -106,28 +131,74 @@ const EditStages = () => {
               </p>
             </div>
 
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={stages.map(stage => stage.id)}
-                strategy={horizontalListSortingStrategy}
+            <div className="flex items-start space-x-4">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                <div className="grid grid-cols-4 gap-4">
-                  {stages
-                    .sort((a, b) => a.order - b.order)
-                    .map((stage) => (
-                      <StageCard
-                        key={stage.id}
-                        stage={stage}
-                        onUpdateTitle={updateStageTitle}
-                      />
-                    ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+                <SortableContext
+                  items={stages.map(stage => stage.id)}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  <div className="flex space-x-4 flex-1">
+                    {stages
+                      .sort((a, b) => a.order - b.order)
+                      .map((stage) => (
+                        <div key={stage.id} className="flex-1 min-w-0">
+                          <StageCard
+                            stage={stage}
+                            onUpdateTitle={updateStageTitle}
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+
+              <div className="flex flex-col space-y-3 ml-6">
+                <Button 
+                  onClick={addCustomStage}
+                  variant="outline" 
+                  size="sm"
+                  className="whitespace-nowrap"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Custom Stage
+                </Button>
+                
+                <Popover open={showJobberDropdown} onOpenChange={setShowJobberDropdown}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Jobber Stage
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-0">
+                    <div className="p-2">
+                      <div className="text-sm font-medium text-gray-900 mb-2 px-2">
+                        Select a Jobber stage:
+                      </div>
+                      {jobberStageOptions.map((option) => (
+                        <Button
+                          key={option}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-left"
+                          onClick={() => handleJobberStageSelect(option)}
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
             
             <div className="mt-6 pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-500">

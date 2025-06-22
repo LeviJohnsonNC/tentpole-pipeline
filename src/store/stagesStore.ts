@@ -11,6 +11,8 @@ interface StagesStore {
   stages: Stage[];
   updateStageTitle: (id: string, title: string) => void;
   reorderStages: (stages: Stage[]) => void;
+  addCustomStage: () => void;
+  addJobberStage: (title: string) => void;
 }
 
 const defaultStages: Stage[] = [
@@ -20,7 +22,11 @@ const defaultStages: Stage[] = [
   { id: "followup", title: "Followup", order: 3 }
 ];
 
-export const useStagesStore = create<StagesStore>((set) => ({
+const generateId = () => {
+  return Math.random().toString(36).substr(2, 9);
+};
+
+export const useStagesStore = create<StagesStore>((set, get) => ({
   stages: defaultStages,
   updateStageTitle: (id, title) =>
     set((state) => ({
@@ -32,4 +38,28 @@ export const useStagesStore = create<StagesStore>((set) => ({
     set(() => ({
       stages: stages.map((stage, index) => ({ ...stage, order: index })),
     })),
+  addCustomStage: () =>
+    set((state) => {
+      const maxOrder = Math.max(...state.stages.map(s => s.order));
+      const newStage: Stage = {
+        id: generateId(),
+        title: "",
+        order: maxOrder + 1
+      };
+      return {
+        stages: [...state.stages, newStage]
+      };
+    }),
+  addJobberStage: (title) =>
+    set((state) => {
+      const maxOrder = Math.max(...state.stages.map(s => s.order));
+      const newStage: Stage = {
+        id: generateId(),
+        title,
+        order: maxOrder + 1
+      };
+      return {
+        stages: [...state.stages, newStage]
+      };
+    }),
 }));
