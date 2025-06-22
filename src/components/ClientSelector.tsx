@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -22,8 +22,9 @@ const ClientSelector = ({ value, onValueChange, placeholder = "Select client..."
   const { sessionClients } = useClientStore();
   const navigate = useNavigate();
   
-  const clients = getAllClients(sessionClients);
-  const selectedClient = clients.find(client => client.id === value);
+  // Memoize clients to prevent unnecessary recalculations
+  const clients = useMemo(() => getAllClients(sessionClients), [sessionClients]);
+  const selectedClient = useMemo(() => clients.find(client => client.id === value), [clients, value]);
 
   const getStatusColor = (status: Client['status']) => {
     switch (status) {
