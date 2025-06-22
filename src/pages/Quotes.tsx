@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import QuotesOverviewCards from "@/components/QuotesOverviewCards";
@@ -16,11 +15,21 @@ import { Badge } from "@/components/ui/badge";
 const Quotes = () => {
   const { sessionClients } = useClientStore();
   const { sessionRequests } = useRequestStore();
-  const { sessionQuotes } = useQuoteStore();
+  const { sessionQuotes, initializeWithStaticData } = useQuoteStore();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  
+  // Ensure store is initialized
+  useEffect(() => {
+    initializeWithStaticData();
+  }, [initializeWithStaticData]);
+  
+  console.log('Quotes page rendering with session quotes:', sessionQuotes.length);
   
   const quotesWithClients = getQuotesWithClientInfo(sessionClients, sessionQuotes);
   const allQuotes = getAllQuotes(sessionQuotes);
+
+  console.log('All quotes for display:', allQuotes.length);
+  console.log('Quotes with client info:', quotesWithClients.length);
 
   // Filter quotes for display count
   const filteredQuotesCount = statusFilter 

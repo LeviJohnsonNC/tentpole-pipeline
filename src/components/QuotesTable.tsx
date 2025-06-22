@@ -23,6 +23,11 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = useState<QuoteWithClient | null>(null);
   const { updateQuoteStatus } = useQuoteStore();
   
+  console.log('QuotesTable rendering with quotes:', quotes.length);
+  quotes.forEach(quote => {
+    console.log(`Quote ${quote.id} (${quote.client.name}): status = ${quote.status}`);
+  });
+  
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'Draft':
@@ -71,15 +76,18 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   const uniqueSalespeople = [...new Set(quotes.map(q => q.salesperson).filter(Boolean))];
 
   const handleSendQuoteText = (quote: QuoteWithClient) => {
+    console.log('Preparing to send text for quote:', quote.id);
     setSelectedQuoteForText(quote);
   };
 
   const handleSendQuoteEmail = (quote: QuoteWithClient) => {
+    console.log('Preparing to send email for quote:', quote.id);
     setSelectedQuoteForEmail(quote);
   };
 
   const handleQuoteSentText = () => {
     if (selectedQuoteForText) {
+      console.log('Text sent for quote:', selectedQuoteForText.id, 'updating status to Awaiting Response');
       updateQuoteStatus(selectedQuoteForText.id, 'Awaiting Response');
       setSelectedQuoteForText(null);
     }
@@ -87,6 +95,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
 
   const handleQuoteSentEmail = () => {
     if (selectedQuoteForEmail) {
+      console.log('Email sent for quote:', selectedQuoteForEmail.id, 'updating status to Awaiting Response');
       updateQuoteStatus(selectedQuoteForEmail.id, 'Awaiting Response');
       setSelectedQuoteForEmail(null);
     }

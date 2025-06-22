@@ -44,7 +44,7 @@ export const getClientByRequestId = (requestId: string, sessionClients: Client[]
 
 // Quote operations
 export const getQuoteById = (id: string, sessionQuotes: Quote[] = []): Quote | undefined => {
-  // Check session quotes first
+  // Check session quotes first - they override static data
   const sessionQuote = sessionQuotes.find(quote => quote.id === id);
   if (sessionQuote) return sessionQuote;
   
@@ -52,7 +52,14 @@ export const getQuoteById = (id: string, sessionQuotes: Quote[] = []): Quote | u
 };
 
 export const getAllQuotes = (sessionQuotes: Quote[] = []): Quote[] => {
-  return [...quotesData, ...sessionQuotes];
+  // Create a map of session quotes for efficient lookup
+  const sessionQuoteMap = new Map(sessionQuotes.map(quote => [quote.id, quote]));
+  
+  // Start with static quotes but replace any that exist in session
+  const staticQuotesFiltered = quotesData.filter(quote => !sessionQuoteMap.has(quote.id));
+  
+  // Combine: session quotes take priority, then non-overridden static quotes
+  return [...sessionQuotes, ...staticQuotesFiltered];
 };
 
 export const getQuotesByClientId = (clientId: string, sessionQuotes: Quote[] = []): Quote[] => {
