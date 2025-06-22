@@ -8,72 +8,20 @@ export interface Stage {
   isJobberStage?: boolean;
 }
 
-interface StagesStore {
+interface StagesState {
   stages: Stage[];
-  updateStageTitle: (id: string, title: string) => void;
-  reorderStages: (stages: Stage[]) => void;
-  addCustomStage: () => void;
-  addJobberStage: (title: string) => void;
-  deleteStage: (id: string) => void;
-  getUsedJobberStages: () => string[];
+  updateStages: (stages: Stage[]) => void;
 }
 
 const defaultStages: Stage[] = [
-  { id: "new-deals", title: "New Deals", order: 0 },
-  { id: "contacted", title: "Contacted", order: 1 },
-  { id: "quote-awaiting-response", title: "Quote Awaiting Response", order: 2, isJobberStage: true },
-  { id: "followup", title: "Followup", order: 3 }
+  { id: "new-deals", title: "New Deals", order: 1 },
+  { id: "contacted", title: "Contacted", order: 2 },
+  { id: "draft-quote", title: "Draft Quote", order: 3, isJobberStage: true },
+  { id: "quote-awaiting-response", title: "Quote Awaiting Response", order: 4, isJobberStage: true },
+  { id: "followup", title: "Followup", order: 5 }
 ];
 
-const generateId = () => {
-  return Math.random().toString(36).substr(2, 9);
-};
-
-export const useStagesStore = create<StagesStore>((set, get) => ({
+export const useStagesStore = create<StagesState>((set) => ({
   stages: defaultStages,
-  updateStageTitle: (id, title) =>
-    set((state) => ({
-      stages: state.stages.map((stage) =>
-        stage.id === id ? { ...stage, title } : stage
-      ),
-    })),
-  reorderStages: (stages) =>
-    set(() => ({
-      stages: stages.map((stage, index) => ({ ...stage, order: index })),
-    })),
-  addCustomStage: () =>
-    set((state) => {
-      const maxOrder = Math.max(...state.stages.map(s => s.order));
-      const newStage: Stage = {
-        id: generateId(),
-        title: "",
-        order: maxOrder + 1
-      };
-      return {
-        stages: [...state.stages, newStage]
-      };
-    }),
-  addJobberStage: (title) =>
-    set((state) => {
-      const maxOrder = Math.max(...state.stages.map(s => s.order));
-      const newStage: Stage = {
-        id: generateId(),
-        title,
-        order: maxOrder + 1,
-        isJobberStage: true
-      };
-      return {
-        stages: [...state.stages, newStage]
-      };
-    }),
-  deleteStage: (id) =>
-    set((state) => ({
-      stages: state.stages.filter(stage => stage.id !== id)
-    })),
-  getUsedJobberStages: () => {
-    const { stages } = get();
-    return stages
-      .filter(stage => stage.isJobberStage)
-      .map(stage => stage.title);
-  },
+  updateStages: (stages) => set({ stages }),
 }));

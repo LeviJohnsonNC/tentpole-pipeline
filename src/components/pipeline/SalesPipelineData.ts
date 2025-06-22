@@ -1,4 +1,3 @@
-
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -29,6 +28,16 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   if (newestQuote) {
     console.log(`Request ${request.id} has newest quote ${newestQuote.id} with status: ${newestQuote.status}`);
     
+    if (newestQuote.status === 'Draft') {
+      const draftStage = stages.find(stage => 
+        stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
+      );
+      if (draftStage) {
+        return draftStage.id;
+      }
+      return 'draft-quote'; // Fallback to default draft quote stage ID
+    }
+    
     if (newestQuote.status === 'Awaiting Response') {
       const awaitingStage = stages.find(stage => 
         stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
@@ -36,10 +45,6 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
       if (awaitingStage) {
         return awaitingStage.id;
       }
-    }
-    
-    if (newestQuote.status === 'Draft') {
-      return 'contacted'; // Draft quotes are in contacted stage
     }
     
     if (newestQuote.status === 'Changes Requested') {
@@ -73,6 +78,16 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
 const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
   console.log(`Standalone quote ${quote.id} has status: ${quote.status}`);
   
+  if (quote.status === 'Draft') {
+    const draftStage = stages.find(stage => 
+      stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
+    );
+    if (draftStage) {
+      return draftStage.id;
+    }
+    return 'draft-quote'; // Fallback to default draft quote stage ID
+  }
+  
   if (quote.status === 'Awaiting Response') {
     const awaitingStage = stages.find(stage => 
       stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
@@ -80,10 +95,6 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
     if (awaitingStage) {
       return awaitingStage.id;
     }
-  }
-  
-  if (quote.status === 'Draft') {
-    return 'contacted'; // Draft quotes are in contacted stage
   }
   
   if (quote.status === 'Changes Requested') {
@@ -95,8 +106,8 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
     return null;
   }
   
-  // Fallback to "contacted" for draft-like quotes
-  return 'contacted';
+  // Fallback to "draft-quote" for draft-like quotes
+  return 'draft-quote';
 };
 
 // Sample pricing based on service type
@@ -240,6 +251,7 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
 export const pipelineColumns = [
   { id: "new-deals", title: "New Deals" },
   { id: "contacted", title: "Contacted" },
+  { id: "draft-quote", title: "Draft Quote" },
   { id: "quote-awaiting-response", title: "Quote Awaiting Response" },
   { id: "followup", title: "Followup" }
 ];
