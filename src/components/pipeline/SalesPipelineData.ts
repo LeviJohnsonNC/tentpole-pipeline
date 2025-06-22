@@ -1,4 +1,3 @@
-
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -64,6 +63,28 @@ const assignQuotePipelineStage = (stages: any[]): string => {
   return 'new-deals';
 };
 
+// Function to find the most recent quote for a request
+const getMostRecentQuoteForRequest = (requestId: string, quotes: any[]): any | null => {
+  const requestQuotes = quotes.filter(quote => quote.requestId === requestId);
+  if (requestQuotes.length === 0) return null;
+  
+  // Sort by creation date and return the most recent
+  return requestQuotes.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())[0];
+};
+
+// Function to determine if a request should be moved to draft quote stage
+const shouldMoveRequestToDraftQuote = (requestId: string, sessionQuotes: any[], stages: any[]): string | null => {
+  const mostRecentQuote = getMostRecentQuoteForRequest(requestId, sessionQuotes);
+  if (!mostRecentQuote) return null;
+  
+  // Check if "Draft Quote" stage exists
+  const draftQuoteStage = stages.find(stage => 
+    stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
+  );
+  
+  return draftQuoteStage ? draftQuoteStage.id : null;
+};
+
 // Sample pricing based on service type
 const getEstimatedAmount = (serviceDetails: string, title: string): number => {
   const details = serviceDetails.toLowerCase();
@@ -87,7 +108,7 @@ const getEstimatedAmount = (serviceDetails: string, title: string): number => {
 };
 
 // Convert requests to deals for the pipeline
-const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = []): Deal[] => {
+const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
   console.log('Requests with client info:', requestsWithClients.length);
@@ -99,36 +120,46 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
   });
   console.log('Open requests for pipeline:', openRequests.length);
   
-  const deals = openRequests.map((request) => ({
-    id: request.id,
-    client: request.client.name,
-    title: request.title || 'Service Request',
-    property: request.client.primaryAddress,
-    contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
-    requested: request.requestDate,
-    amount: getEstimatedAmount(request.serviceDetails, request.title),
-    status: assignPipelineStage(request.id), // Pipeline status mapping
-    type: 'request' as const
-  }));
+  const deals = openRequests.map((request) => {
+    // Check if this request should be moved to draft quote stage
+    const draftQuoteStageId = shouldMoveRequestToDraftQuote(request.id, sessionQuotes, stages);
+    const pipelineStage = draftQuoteStageId || assignPipelineStage(request.id);
+    
+    // If there's a quote for this request, use the most recent quote's amount
+    const mostRecentQuote = getMostRecentQuoteForRequest(request.id, sessionQuotes);
+    const amount = mostRecentQuote ? mostRecentQuote.amount : getEstimatedAmount(request.serviceDetails, request.title);
+    
+    return {
+      id: request.id,
+      client: request.client.name,
+      title: request.title || 'Service Request',
+      property: request.client.primaryAddress,
+      contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
+      requested: request.requestDate,
+      amount: amount,
+      status: pipelineStage,
+      type: 'request' as const
+    };
+  });
   
   console.log('Final deals from requests:', deals.length);
   return deals;
 };
 
-// Convert quotes to deals for the pipeline
-const createDealsFromQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
-  console.log('Creating deals from quotes. Session quotes:', sessionQuotes.length);
+// Convert standalone quotes (not linked to requests) to deals for the pipeline
+const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
+  console.log('Creating deals from standalone quotes. Session quotes:', sessionQuotes.length);
   const quotesWithClients = getQuotesWithClientInfo(sessionClients, sessionQuotes);
   console.log('Quotes with client info:', quotesWithClients.length);
   
-  // Only include quotes with status 'Draft' (for pipeline display)
-  const draftQuotes = quotesWithClients.filter(quote => {
-    console.log(`Quote ${quote.id} has status: ${quote.status}`);
-    return quote.status === 'Draft';
+  // Only include quotes with status 'Draft' that are NOT linked to requests
+  const standaloneQuotes = quotesWithClients.filter(quote => {
+    console.log(`Quote ${quote.id} has status: ${quote.status}, requestId: ${quote.requestId}`);
+    return quote.status === 'Draft' && !quote.requestId;
   });
-  console.log('Draft quotes for pipeline:', draftQuotes.length);
+  console.log('Standalone draft quotes for pipeline:', standaloneQuotes.length);
   
-  const deals = draftQuotes.map((quote) => ({
+  const deals = standaloneQuotes.map((quote) => ({
     id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
     client: quote.client.name,
     title: quote.title || 'Quote',
@@ -141,17 +172,19 @@ const createDealsFromQuotes = (sessionClients: any[] = [], sessionQuotes: any[] 
     quoteId: quote.id
   }));
   
-  console.log('Final deals from quotes:', deals.length);
+  console.log('Final deals from standalone quotes:', deals.length);
   return deals;
 };
 
 export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
-  const requestDeals = createDealsFromRequests(sessionClients, sessionRequests);
-  const quoteDeals = createDealsFromQuotes(sessionClients, sessionQuotes, stages);
+  const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
+  const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
   
-  console.log('Total deals created:', requestDeals.length + quoteDeals.length);
-  return [...requestDeals, ...quoteDeals];
+  console.log('Total deals created:', requestDeals.length + standaloneQuoteDeals.length);
+  return [...requestDeals, ...standaloneQuoteDeals];
 };
+
+// ... keep existing code (pipelineColumns export and action handlers)
 
 export const pipelineColumns = [
   { id: "new-deals", title: "New Deals" },
