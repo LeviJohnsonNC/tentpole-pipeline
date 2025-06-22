@@ -114,12 +114,25 @@ const SalesPipeline = () => {
     
     // Map Jobber stage titles to required deal conditions
     if (stageTitle.includes('draft') && stageTitle.includes('quote')) {
-      // For "Draft Quote" stage, need to have a quote
-      if (deal.type !== 'quote') {
-        return { 
-          allowed: false, 
-          message: "Only deals with drafted quotes can be moved to Draft Quote stage. Create a quote first." 
-        };
+      // For "Draft Quote" stage, need to have a quote (any status except archived)
+      if (deal.type === 'quote') {
+        // Quote-type deals already have a quote, so they're allowed
+        const quote = sessionQuotes.find(q => q.id === deal.quoteId);
+        if (!quote || quote.status === 'Archived') {
+          return { 
+            allowed: false, 
+            message: "Cannot move archived quotes to Draft Quote stage." 
+          };
+        }
+      } else {
+        // For request-type deals, check if there's any quote (except archived) for this request
+        const requestQuote = sessionQuotes.find(q => q.requestId === deal.id && q.status !== 'Archived');
+        if (!requestQuote) {
+          return { 
+            allowed: false, 
+            message: "Only deals with created quotes can be moved to Draft Quote stage. Create a quote first." 
+          };
+        }
       }
     } else if (stageTitle.includes('quote') && stageTitle.includes('awaiting')) {
       // For "Quote Awaiting Response" stage, need quote to be sent
