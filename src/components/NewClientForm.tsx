@@ -64,7 +64,7 @@ const NewClientForm = () => {
     },
   });
 
-  const onSubmit = async (data: ClientFormData) => {
+  const onSubmit = (data: ClientFormData) => {
     console.log('Form submission data:', data);
     
     const primaryAddress: Address = {
@@ -106,22 +106,19 @@ const NewClientForm = () => {
     };
 
     console.log('Created new client object:', newClient);
-    
-    // Add client to store
     addSessionClient(newClient);
     
-    // Wait for store to update
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log('Store state after adding client:', useClientStore.getState().sessionClients);
+    // Force a small delay to ensure store update
+    setTimeout(() => {
+      console.log('Store state after adding client:', useClientStore.getState().sessionClients);
+    }, 100);
     
     toast({
       title: "Client created successfully",
       description: `${newClient.name} has been added to your clients.`,
     });
 
-    // Navigate to requests instead of clients to test the flow
-    navigate('/requests/new');
+    navigate('/clients');
   };
 
   return (
@@ -154,7 +151,7 @@ const NewClientForm = () => {
               Save and create another
             </Button>
             <Button type="submit" className="bg-[#0B6839] hover:bg-[#0B6839]/90">
-              Save and Create Request
+              Save
             </Button>
           </div>
         </div>

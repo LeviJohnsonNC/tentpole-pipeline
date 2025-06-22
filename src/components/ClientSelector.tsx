@@ -19,7 +19,6 @@ interface ClientSelectorProps {
 
 const ClientSelector = ({ value, onValueChange, placeholder = "Select client..." }: ClientSelectorProps) => {
   const [open, setOpen] = useState(false);
-  const [forceUpdate, setForceUpdate] = useState(0);
   const sessionClients = useClientStore(state => state.sessionClients);
   const navigate = useNavigate();
   
@@ -33,10 +32,9 @@ const ClientSelector = ({ value, onValueChange, placeholder = "Select client..."
   
   const selectedClient = clients.find(client => client.id === value);
 
-  // Force component to re-render when sessionClients change
+  // Add effect to log when sessionClients change
   useEffect(() => {
     console.log('ClientSelector useEffect - sessionClients changed:', sessionClients);
-    setForceUpdate(prev => prev + 1);
   }, [sessionClients]);
 
   const getStatusColor = (status: Client['status']) => {
@@ -82,7 +80,7 @@ const ClientSelector = ({ value, onValueChange, placeholder = "Select client..."
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
-        <Command key={forceUpdate}>
+        <Command>
           <CommandInput placeholder="Search clients..." />
           <CommandList>
             <CommandEmpty>No client found.</CommandEmpty>
