@@ -4,6 +4,7 @@ import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizonta
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Sidebar from "@/components/Sidebar";
 import OverviewCards from "@/components/OverviewCards";
 import RequestsTable from "@/components/RequestsTable";
@@ -74,10 +75,19 @@ const Index = () => {
                   <Plus className="h-4 w-4 mr-2" />
                   New Request
                 </Button>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                  More Actions
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                      More Actions
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => window.location.href = '/requests/edit-stages'}>
+                      Edit Stages
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
             
