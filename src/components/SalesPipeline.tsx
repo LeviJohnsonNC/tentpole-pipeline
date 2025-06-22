@@ -141,10 +141,9 @@ const SalesPipeline = () => {
     // Don't do anything if dropped on itself
     if (activeId === overId) return;
 
-    const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
 
-    if (!activeContainer || !overContainer) return;
+    if (!overContainer) return;
 
     // Handle action zone drops
     if (overContainer.startsWith('action-')) {
@@ -167,6 +166,10 @@ const SalesPipeline = () => {
       }
       return;
     }
+
+    const activeContainer = findContainer(activeId);
+
+    if (!activeContainer) return;
 
     if (activeContainer === overContainer) {
       // Reordering within the same container

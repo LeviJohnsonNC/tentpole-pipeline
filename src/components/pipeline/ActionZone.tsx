@@ -6,11 +6,10 @@ import { Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 interface ActionZoneProps {
   id: string;
   type: 'delete' | 'lost' | 'won';
-  isOver?: boolean;
 }
 
-const ActionZone = ({ id, type, isOver }: ActionZoneProps) => {
-  const { setNodeRef, isOver: isDroppableOver } = useDroppable({
+const ActionZone = ({ id, type }: ActionZoneProps) => {
+  const { setNodeRef, isOver } = useDroppable({
     id,
   });
 
@@ -20,7 +19,7 @@ const ActionZone = ({ id, type, isOver }: ActionZoneProps) => {
         return {
           icon: Trash2,
           label: 'Delete',
-          bgColor: isDroppableOver ? 'bg-gray-600' : 'bg-gray-500',
+          bgColor: isOver ? 'bg-gray-600' : 'bg-gray-500',
           textColor: 'text-white',
           borderColor: 'border-gray-400'
         };
@@ -28,7 +27,7 @@ const ActionZone = ({ id, type, isOver }: ActionZoneProps) => {
         return {
           icon: TrendingDown,
           label: 'Lost',
-          bgColor: isDroppableOver ? 'bg-red-600' : 'bg-red-500',
+          bgColor: isOver ? 'bg-red-600' : 'bg-red-500',
           textColor: 'text-white',
           borderColor: 'border-red-400'
         };
@@ -36,7 +35,7 @@ const ActionZone = ({ id, type, isOver }: ActionZoneProps) => {
         return {
           icon: TrendingUp,
           label: 'Won',
-          bgColor: isDroppableOver ? 'bg-green-600' : 'bg-green-500',
+          bgColor: isOver ? 'bg-green-600' : 'bg-green-500',
           textColor: 'text-white',
           borderColor: 'border-green-400'
         };
@@ -54,7 +53,7 @@ const ActionZone = ({ id, type, isOver }: ActionZoneProps) => {
         ${config.bgColor} ${config.textColor}
         border-2 ${config.borderColor}
         rounded-lg p-4 transition-all duration-200
-        ${isDroppableOver ? 'scale-105 shadow-lg' : 'shadow-md'}
+        ${isOver ? 'scale-105 shadow-lg' : 'shadow-md'}
       `}
     >
       <Icon className="h-6 w-6 mb-2" />
