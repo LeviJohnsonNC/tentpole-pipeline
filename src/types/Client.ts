@@ -1,10 +1,10 @@
 
 export interface Client {
-  id: string; // Maps to client_id
-  name: string; // Maps to display_name
+  id: string;
+  name: string;
   email?: string;
   phone?: string;
-  primaryAddress: string; // Maps to primary_address
+  primaryAddress: string;
   additionalAddresses?: string[];
   tags: string[];
   status: 'Lead' | 'Active' | 'Archived';
@@ -12,9 +12,8 @@ export interface Client {
   jobHistory: string[];
   communicationLog: string[];
   salesperson?: string;
-  sourceInfo?: string; // Maps to source
-  createdAt: string; // Maps to created_at
+  sourceInfo?: string;
+  createdAt: string;
   lastActivity: string;
   subtitle?: string;
-  primaryContact?: string; // Maps to primary_contact
 }
