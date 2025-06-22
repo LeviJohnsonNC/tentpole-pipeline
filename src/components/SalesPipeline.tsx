@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -39,6 +38,7 @@ const SalesPipeline = () => {
   const { stages } = useStagesStore();
   
   const initialDeals = useMemo(() => {
+    console.log('Creating initial deals with clients:', sessionClients.length, 'requests:', sessionRequests.length);
     return createInitialDeals(sessionClients, sessionRequests);
   }, [sessionClients, sessionRequests]);
   
@@ -47,7 +47,10 @@ const SalesPipeline = () => {
 
   // Update deals when session data changes
   React.useEffect(() => {
-    setDeals(createInitialDeals(sessionClients, sessionRequests));
+    console.log('Session data changed. Updating deals...');
+    const newDeals = createInitialDeals(sessionClients, sessionRequests);
+    console.log('New deals count:', newDeals.length);
+    setDeals(newDeals);
   }, [sessionClients, sessionRequests]);
 
   const sensors = useSensors(
@@ -147,6 +150,7 @@ const SalesPipeline = () => {
 
     // Handle action zone drops
     if (overContainer.startsWith('action-')) {
+      console.log('Handling action zone drop:', overContainer, 'for deal:', activeId);
       switch (overContainer) {
         case 'action-delete':
           handleDeleteAction(activeId, removeSessionRequest);

@@ -71,12 +71,18 @@ const getEstimatedAmount = (serviceDetails: string, title: string): number => {
 
 // Convert requests to deals for the pipeline
 const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = []): Deal[] => {
+  console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
+  console.log('Requests with client info:', requestsWithClients.length);
   
   // Only include requests with status 'New' (open requests for pipeline)
-  const openRequests = requestsWithClients.filter(request => request.status === 'New');
+  const openRequests = requestsWithClients.filter(request => {
+    console.log(`Request ${request.id} has status: ${request.status}`);
+    return request.status === 'New';
+  });
+  console.log('Open requests for pipeline:', openRequests.length);
   
-  return openRequests.map((request) => ({
+  const deals = openRequests.map((request) => ({
     id: request.id,
     client: request.client.name,
     title: request.title || 'Service Request',
@@ -86,6 +92,9 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     amount: getEstimatedAmount(request.serviceDetails, request.title),
     status: assignPipelineStage(request.id) // Pipeline status mapping
   }));
+  
+  console.log('Final deals created:', deals.length);
+  return deals;
 };
 
 export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: any[] = []): Deal[] => {
@@ -130,11 +139,14 @@ export const handleWonAction = (
   const request = requestsWithClients.find(r => r.id === dealId);
   
   if (request) {
+    console.log('Found request for won action:', request.id, 'client:', request.clientId);
     // Update request status to Converted
     updateSessionRequest(dealId, { status: 'Converted' });
     
     // Update client status to Active
     updateSessionClient(request.clientId, { status: 'Active' });
+  } else {
+    console.log('Request not found for won action:', dealId);
   }
 };
 
