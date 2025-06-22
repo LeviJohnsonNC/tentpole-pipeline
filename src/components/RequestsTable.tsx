@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RequestWithClient } from "@/utils/dataHelpers";
-import { Search, Filter, MoreHorizontal, Quote, Hammer, Archive, Print, Delete } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Quote, Hammer, Archive, Printer, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface RequestsTableProps {
@@ -132,11 +132,11 @@ const RequestsTable = ({ requests, statusFilter }: RequestsTableProps) => {
                         <span>Archive</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                        <Print className="h-4 w-4 text-gray-600" />
+                        <Printer className="h-4 w-4 text-gray-600" />
                         <span>Print</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-red-600">
-                        <Delete className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                         <span>Delete</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
