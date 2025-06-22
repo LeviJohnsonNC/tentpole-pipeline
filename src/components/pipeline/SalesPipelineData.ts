@@ -1,3 +1,4 @@
+
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -14,7 +15,28 @@ interface Deal {
 }
 
 // Mapping function to assign pipeline stages to "New" requests
-const assignPipelineStage = (requestId: string): string => {
+const assignPipelineStage = (requestId: string, sessionQuotes: any[], stages: any[]): string => {
+  // Check if this request has a quote that's been sent
+  const requestQuote = sessionQuotes.find(quote => quote.requestId === requestId);
+  if (requestQuote && requestQuote.status === 'Awaiting Response') {
+    const awaitingStage = stages.find(stage => 
+      stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
+    );
+    if (awaitingStage) {
+      return awaitingStage.id;
+    }
+  }
+  
+  // Check if this request has a draft quote
+  if (requestQuote && requestQuote.status === 'Draft') {
+    const draftQuoteStage = stages.find(stage => 
+      stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
+    );
+    if (draftQuoteStage) {
+      return draftQuoteStage.id;
+    }
+  }
+  
   // All new session requests should go to 'new-deals'
   if (requestId.startsWith('request-' + Date.now().toString().slice(0, 8))) {
     return 'new-deals';
@@ -49,14 +71,25 @@ const assignPipelineStage = (requestId: string): string => {
 };
 
 // Function to determine pipeline stage for quotes
-const assignQuotePipelineStage = (stages: any[]): string => {
-  // Check if "Draft Quote" stage exists
-  const draftQuoteStage = stages.find(stage => 
-    stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
-  );
+const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
+  // If quote status is 'Awaiting Response', move to quote awaiting response stage
+  if (quote.status === 'Awaiting Response') {
+    const awaitingStage = stages.find(stage => 
+      stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
+    );
+    if (awaitingStage) {
+      return awaitingStage.id;
+    }
+  }
   
-  if (draftQuoteStage) {
-    return draftQuoteStage.id;
+  // Check if "Draft Quote" stage exists for draft quotes
+  if (quote.status === 'Draft') {
+    const draftQuoteStage = stages.find(stage => 
+      stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
+    );
+    if (draftQuoteStage) {
+      return draftQuoteStage.id;
+    }
   }
   
   // Fallback to "New Deals"
@@ -70,19 +103,6 @@ const getMostRecentQuoteForRequest = (requestId: string, quotes: any[]): any | n
   
   // Sort by creation date and return the most recent
   return requestQuotes.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())[0];
-};
-
-// Function to determine if a request should be moved to draft quote stage
-const shouldMoveRequestToDraftQuote = (requestId: string, sessionQuotes: any[], stages: any[]): string | null => {
-  const mostRecentQuote = getMostRecentQuoteForRequest(requestId, sessionQuotes);
-  if (!mostRecentQuote) return null;
-  
-  // Check if "Draft Quote" stage exists
-  const draftQuoteStage = stages.find(stage => 
-    stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
-  );
-  
-  return draftQuoteStage ? draftQuoteStage.id : null;
 };
 
 // Sample pricing based on service type
@@ -121,9 +141,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
   console.log('Open requests for pipeline:', openRequests.length);
   
   const deals = openRequests.map((request) => {
-    // Check if this request should be moved to draft quote stage
-    const draftQuoteStageId = shouldMoveRequestToDraftQuote(request.id, sessionQuotes, stages);
-    const pipelineStage = draftQuoteStageId || assignPipelineStage(request.id);
+    const pipelineStage = assignPipelineStage(request.id, sessionQuotes, stages);
     
     // If there's a quote for this request, use the most recent quote's amount
     const mostRecentQuote = getMostRecentQuoteForRequest(request.id, sessionQuotes);
@@ -152,12 +170,12 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
   const quotesWithClients = getQuotesWithClientInfo(sessionClients, sessionQuotes);
   console.log('Quotes with client info:', quotesWithClients.length);
   
-  // Only include quotes with status 'Draft' that are NOT linked to requests
+  // Only include quotes with status 'Draft' or 'Awaiting Response' that are NOT linked to requests
   const standaloneQuotes = quotesWithClients.filter(quote => {
     console.log(`Quote ${quote.id} has status: ${quote.status}, requestId: ${quote.requestId}`);
-    return quote.status === 'Draft' && !quote.requestId;
+    return (quote.status === 'Draft' || quote.status === 'Awaiting Response') && !quote.requestId;
   });
-  console.log('Standalone draft quotes for pipeline:', standaloneQuotes.length);
+  console.log('Standalone draft/awaiting quotes for pipeline:', standaloneQuotes.length);
   
   const deals = standaloneQuotes.map((quote) => ({
     id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
@@ -167,7 +185,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     contact: [quote.client.phone, quote.client.email].filter(Boolean).join('\n'),
     requested: quote.createdDate,
     amount: quote.amount,
-    status: assignQuotePipelineStage(stages),
+    status: assignQuotePipelineStage(quote, stages),
     type: 'quote' as const,
     quoteId: quote.id
   }));

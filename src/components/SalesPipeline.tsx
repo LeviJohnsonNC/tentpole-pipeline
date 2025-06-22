@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -36,24 +35,28 @@ import {
 } from './pipeline/SalesPipelineData';
 
 const SalesPipeline = () => {
-  const { sessionClients, updateSessionClient } = useClientStore();
-  const { sessionRequests, removeSessionRequest, updateSessionRequest } = useRequestStore();
+  const { sessionClients } = useClientStore();
+  const { sessionRequests } = useRequestStore();
   const { sessionQuotes } = useQuoteStore();
   const { stages } = useStagesStore();
   
+  // Create initial deals and ensure they update when quote store changes
   const initialDeals = useMemo(() => {
     console.log('Creating initial deals with clients:', sessionClients.length, 'requests:', sessionRequests.length, 'quotes:', sessionQuotes.length);
-    return createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    const deals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    console.log('Created deals:', deals.map(d => ({ id: d.id, status: d.status, type: d.type })));
+    return deals;
   }, [sessionClients, sessionRequests, sessionQuotes, stages]);
   
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Update deals when session data changes
+  // Update deals when session data changes, especially quote status changes
   React.useEffect(() => {
     console.log('Session data changed. Updating deals...');
     const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
     console.log('New deals count:', newDeals.length);
+    console.log('New deals:', newDeals.map(d => ({ id: d.id, status: d.status, type: d.type })));
     setDeals(newDeals);
   }, [sessionClients, sessionRequests, sessionQuotes, stages]);
 
@@ -98,7 +101,7 @@ const SalesPipeline = () => {
     return deal?.status || null;
   };
 
-  // Validation function for Jobber stages
+  // Enhanced validation function for Jobber stages
   const canDropInJobberStage = (dealId: string, targetStageId: string): { allowed: boolean; message?: string } => {
     const deal = deals.find(d => d.id === dealId);
     const targetStage = stages.find(s => s.id === targetStageId);
@@ -120,15 +123,25 @@ const SalesPipeline = () => {
       }
     } else if (stageTitle.includes('quote') && stageTitle.includes('awaiting')) {
       // For "Quote Awaiting Response" stage, need quote to be sent
-      if (deal.type !== 'quote') {
-        return { 
-          allowed: false, 
-          message: "Only sent quotes can be moved to Quote Awaiting Response stage. Send the quote first via text or email." 
-        };
+      if (deal.type === 'quote') {
+        // For quote-type deals, check if the quote has been sent
+        const quote = sessionQuotes.find(q => q.id === deal.quoteId);
+        if (!quote || quote.status !== 'Awaiting Response') {
+          return { 
+            allowed: false, 
+            message: "Only sent quotes can be moved to Quote Awaiting Response stage. Send the quote first via text or email." 
+          };
+        }
+      } else {
+        // For request-type deals, check if there's a sent quote for this request
+        const requestQuote = sessionQuotes.find(q => q.requestId === deal.id && q.status === 'Awaiting Response');
+        if (!requestQuote) {
+          return { 
+            allowed: false, 
+            message: "Only deals with sent quotes can be moved to Quote Awaiting Response stage. Send the quote first via text or email." 
+          };
+        }
       }
-      // Additional check: the quote should have been sent (status should be 'Awaiting Response')
-      // This would require checking the actual quote data from the store
-      // For now, we'll allow it but this could be enhanced with more detailed tracking
     } else if (stageTitle.includes('invoice') && stageTitle.includes('sent')) {
       // For "Invoice Sent" stage
       return { 
