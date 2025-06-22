@@ -1,7 +1,6 @@
 
 import { useState, useMemo } from "react";
-import { MoreHorizontal, Mail, Phone, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAllClients } from "@/utils/dataHelpers";
@@ -86,7 +85,6 @@ const ClientsTable = () => {
             >
               Last activity {sortField === 'lastActivity' && (sortDirection === 'asc' ? '↑' : '↓')}
             </TableHead>
-            <TableHead className="text-right font-medium text-gray-700">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -155,11 +153,6 @@ const ClientsTable = () => {
               </TableCell>
               <TableCell className="py-4 text-sm text-gray-600">
                 {new Date(client.lastActivity).toLocaleDateString()}
-              </TableCell>
-              <TableCell className="py-4 text-right">
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
               </TableCell>
             </TableRow>
           ))}
