@@ -22,8 +22,15 @@ const ClientSelector = ({ value, onValueChange, placeholder = "Select client..."
   const { sessionClients } = useClientStore();
   const navigate = useNavigate();
   
-  // Memoize clients to prevent unnecessary recalculations
-  const clients = useMemo(() => getAllClients(sessionClients), [sessionClients]);
+  console.log('ClientSelector sessionClients:', sessionClients);
+  
+  // Memoize clients to prevent unnecessary recalculations, but ensure it updates when sessionClients change
+  const clients = useMemo(() => {
+    const allClients = getAllClients(sessionClients);
+    console.log('ClientSelector all clients:', allClients);
+    return allClients;
+  }, [sessionClients]);
+  
   const selectedClient = useMemo(() => clients.find(client => client.id === value), [clients, value]);
 
   const getStatusColor = (status: Client['status']) => {
