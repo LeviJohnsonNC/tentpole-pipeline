@@ -99,4 +99,43 @@ export const pipelineColumns = [
   { id: "followup", title: "Followup" }
 ];
 
+// Action handlers for the action bar
+export const handleDeleteAction = (
+  dealId: string,
+  removeSessionRequest: (id: string) => void
+) => {
+  console.log('Deleting deal and request:', dealId);
+  removeSessionRequest(dealId);
+};
+
+export const handleLostAction = (
+  dealId: string,
+  updateSessionRequest: (id: string, updates: any) => void
+) => {
+  console.log('Marking deal as lost:', dealId);
+  updateSessionRequest(dealId, { status: 'Archived' });
+};
+
+export const handleWonAction = (
+  dealId: string,
+  updateSessionRequest: (id: string, updates: any) => void,
+  updateSessionClient: (id: string, updates: any) => void,
+  sessionClients: any[],
+  sessionRequests: any[]
+) => {
+  console.log('Marking deal as won:', dealId);
+  
+  // Find the request to get the client ID
+  const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
+  const request = requestsWithClients.find(r => r.id === dealId);
+  
+  if (request) {
+    // Update request status to Converted
+    updateSessionRequest(dealId, { status: 'Converted' });
+    
+    // Update client status to Active
+    updateSessionClient(request.clientId, { status: 'Active' });
+  }
+};
+
 export type { Deal };

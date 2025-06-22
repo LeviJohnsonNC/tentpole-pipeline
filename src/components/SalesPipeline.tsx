@@ -21,14 +21,21 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import PipelineColumn from './pipeline/PipelineColumn';
 import DealCard from './pipeline/DealCard';
+import ActionBar from './pipeline/ActionBar';
 import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
 import { useStagesStore } from "@/store/stagesStore";
-import { createInitialDeals, Deal } from './pipeline/SalesPipelineData';
+import { 
+  createInitialDeals, 
+  Deal, 
+  handleDeleteAction, 
+  handleLostAction, 
+  handleWonAction 
+} from './pipeline/SalesPipelineData';
 
 const SalesPipeline = () => {
-  const { sessionClients } = useClientStore();
-  const { sessionRequests } = useRequestStore();
+  const { sessionClients, updateSessionClient } = useClientStore();
+  const { sessionRequests, removeSessionRequest, updateSessionRequest } = useRequestStore();
   const { stages } = useStagesStore();
   
   const initialDeals = useMemo(() => {
@@ -69,7 +76,12 @@ const SalesPipeline = () => {
   };
 
   const findContainer = (id: string) => {
-    // Check if id is a column id first
+    // Check if id is an action zone
+    if (id.startsWith('action-')) {
+      return id;
+    }
+    
+    // Check if id is a column id
     if (stages.some(stage => stage.id === id)) {
       return id;
     }
@@ -99,6 +111,9 @@ const SalesPipeline = () => {
     const overContainer = findContainer(overId);
 
     if (!activeContainer || !overContainer) return;
+
+    // Don't move to action zones during drag over
+    if (overContainer.startsWith('action-')) return;
 
     // Only move between containers, don't reorder within the same container here
     if (activeContainer !== overContainer) {
@@ -131,6 +146,28 @@ const SalesPipeline = () => {
 
     if (!activeContainer || !overContainer) return;
 
+    // Handle action zone drops
+    if (overContainer.startsWith('action-')) {
+      switch (overContainer) {
+        case 'action-delete':
+          handleDeleteAction(activeId, removeSessionRequest);
+          break;
+        case 'action-lost':
+          handleLostAction(activeId, updateSessionRequest);
+          break;
+        case 'action-won':
+          handleWonAction(
+            activeId, 
+            updateSessionRequest, 
+            updateSessionClient, 
+            sessionClients, 
+            sessionRequests
+          );
+          break;
+      }
+      return;
+    }
+
     if (activeContainer === overContainer) {
       // Reordering within the same container
       setDeals((prevDeals) => {
@@ -161,7 +198,7 @@ const SalesPipeline = () => {
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
 
   return (
-    <div className="h-full">
+    <div className="h-full relative">
       {/* Pipeline Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
@@ -216,6 +253,9 @@ const SalesPipeline = () => {
             <DealCard deal={activeItem} isDragging />
           ) : null}
         </DragOverlay>
+
+        {/* Action Bar - shows when dragging */}
+        <ActionBar isVisible={!!activeId} />
       </DndContext>
     </div>
   );
