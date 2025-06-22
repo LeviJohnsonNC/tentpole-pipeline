@@ -1,4 +1,3 @@
-
 import { Request } from '@/types/Request';
 
 export const requestsData: Request[] = [
@@ -32,7 +31,7 @@ export const requestsData: Request[] = [
     title: 'Large Oak Tree Removal',
     serviceDetails: 'Safe removal of 60ft oak tree that is threatening power lines. Includes stump grinding and debris removal.',
     requestDate: '2025-06-12',
-    status: 'New',
+    status: 'Converted',
     assignedTeamMember: 'Mike Johnson',
     urgency: 'High',
     preferredTime: 'ASAP',
@@ -56,7 +55,7 @@ export const requestsData: Request[] = [
     title: 'Courtyard Garden Renovation',
     serviceDetails: 'Complete renovation of nursing home courtyard including new flower beds, walking paths, and accessible seating areas.',
     requestDate: '2025-06-11',
-    status: 'New',
+    status: 'Converted',
     assignedTeamMember: 'Mike Johnson',
     urgency: 'Low',
     preferredTime: 'Fall installation',
@@ -152,7 +151,7 @@ export const requestsData: Request[] = [
     title: 'Pool Deck Restoration',
     serviceDetails: 'Strip old paint from concrete pool deck, repair cracks, apply new non-slip coating. 600 sq ft deck area.',
     requestDate: '2025-06-19',
-    status: 'New',
+    status: 'Converted',
     assignedTeamMember: 'Mike Johnson',
     urgency: 'High',
     preferredTime: 'Before pool opening',
@@ -164,13 +163,12 @@ export const requestsData: Request[] = [
     title: 'Summer Flower Bed Installation',
     serviceDetails: 'Install seasonal flower displays in 12 planter boxes throughout condo complex. Include colorful annuals and maintenance plan.',
     requestDate: '2025-06-20',
-    status: 'New',
+    status: 'Converted',
     assignedTeamMember: 'Lisa Chen',
     urgency: 'Medium',
     preferredTime: 'Early summer',
     notes: 'Condo board approved budget of $3500'
   },
-  // Converted requests (closed - completed jobs)
   {
     id: 'request-15',
     clientId: 'client-1',
@@ -223,7 +221,6 @@ export const requestsData: Request[] = [
     jobId: 'job-004',
     notes: 'Now on weekly recurring schedule'
   },
-  // Archived requests (closed - cancelled/rejected)
   {
     id: 'request-19',
     clientId: 'client-4',

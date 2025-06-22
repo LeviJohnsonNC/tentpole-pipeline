@@ -1,3 +1,4 @@
+
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -13,42 +14,31 @@ interface Deal {
   quoteId?: string; // Optional field for quote-based deals
 }
 
-// Mapping function to assign pipeline stages to "New" requests that DON'T have quotes
-const assignPipelineStage = (requestId: string, sessionQuotes: any[], stages: any[]): string => {
-  // Check if this request has any quote - if so, don't put the request in pipeline
-  const requestQuote = sessionQuotes.find(quote => quote.requestId === requestId);
-  if (requestQuote) {
-    return null; // Don't include this request in pipeline since its quote will be shown instead
-  }
-  
-  // All new session requests should go to 'new-deals'
-  if (requestId.startsWith('request-' + Date.now().toString().slice(0, 8))) {
-    return 'new-deals';
-  }
-  
+// Mapping function to assign pipeline stages to "New" requests
+const assignPipelineStage = (requestId: string, stages: any[]): string => {
   // Map specific requests to pipeline stages for realistic distribution
   const stageMapping: Record<string, string> = {
-    // New deals (just received) - only those without quotes
+    // New deals (just received)
     'request-1': 'new-deals',
     'request-2': 'new-deals', 
-    'request-3': 'new-deals',
     'request-4': 'new-deals',
+    'request-6': 'new-deals',
     
-    // Contacted (initial contact made) - only those without quotes
-    'request-5': 'contacted',
-    'request-6': 'contacted',
+    // Contacted (initial contact made)
     'request-7': 'contacted',
+    'request-8': 'contacted',
+    'request-9': 'contacted',
     
-    // Follow-up (awaiting decisions) - only those without quotes
-    'request-12': 'followup',
-    'request-15': 'followup',
-    'request-16': 'followup'
+    // Follow-up (awaiting decisions)
+    'request-10': 'followup',
+    'request-11': 'followup',
+    'request-12': 'followup'
   };
   
   return stageMapping[requestId] || 'new-deals';
 };
 
-// Function to determine pipeline stage for quotes (including those linked to requests)
+// Function to determine pipeline stage for standalone quotes
 const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
   // Map quote status directly to pipeline stages
   if (quote.status === 'Awaiting Response') {
@@ -61,15 +51,10 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
   }
   
   if (quote.status === 'Draft') {
-    const draftQuoteStage = stages.find(stage => 
-      stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
-    );
-    if (draftQuoteStage) {
-      return draftQuoteStage.id;
-    }
+    return 'new-deals'; // Draft quotes start in new deals
   }
   
-  // Approved and Converted quotes shouldn't be in pipeline
+  // Approved and Converted quotes shouldn't be in pipeline (closed won)
   if (quote.status === 'Approved' || quote.status === 'Converted') {
     return null;
   }
@@ -100,30 +85,32 @@ const getEstimatedAmount = (serviceDetails: string, title: string): number => {
   return 800; // Default amount
 };
 
-// Convert requests to deals for the pipeline (ONLY those without quotes)
+// Check if a request has any approved/converted quotes (closed won)
+const isRequestClosedWon = (requestId: string, sessionQuotes: any[]): boolean => {
+  const requestQuotes = sessionQuotes.filter(quote => quote.requestId === requestId);
+  return requestQuotes.some(quote => quote.status === 'Approved' || quote.status === 'Converted');
+};
+
+// Convert requests to deals for the pipeline (ONLY open requests without closed quotes)
 const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
   console.log('Requests with client info:', requestsWithClients.length);
   
-  // Only include requests with status 'New' AND no associated quotes
-  const openRequestsWithoutQuotes = requestsWithClients.filter(request => {
+  // Only include requests with status 'New' AND no closed quotes
+  const openRequests = requestsWithClients.filter(request => {
     console.log(`Request ${request.id} has status: ${request.status}`);
     if (request.status !== 'New') return false;
     
-    // Check if this request has any quote
-    const hasQuote = sessionQuotes.some(quote => quote.requestId === request.id);
-    console.log(`Request ${request.id} has quote: ${hasQuote}`);
-    return !hasQuote;
+    // Check if this request has any approved/converted quotes (closed won)
+    const isClosedWon = isRequestClosedWon(request.id, sessionQuotes);
+    console.log(`Request ${request.id} is closed won: ${isClosedWon}`);
+    return !isClosedWon;
   });
-  console.log('Open requests without quotes for pipeline:', openRequestsWithoutQuotes.length);
+  console.log('Open requests for pipeline:', openRequests.length);
   
-  const deals = openRequestsWithoutQuotes.map((request) => {
-    const pipelineStage = assignPipelineStage(request.id, sessionQuotes, stages);
-    
-    // If pipelineStage is null, don't include this request
-    if (!pipelineStage) return null;
-    
+  const deals = openRequests.map((request) => {
+    const pipelineStage = assignPipelineStage(request.id, stages);
     const amount = getEstimatedAmount(request.serviceDetails, request.title);
     
     return {
@@ -137,29 +124,32 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       status: pipelineStage,
       type: 'request' as const
     };
-  }).filter(Boolean); // Remove null entries
+  });
   
   console.log('Final deals from requests:', deals.length);
   return deals;
 };
 
-// Convert ALL quotes (both linked and standalone) to deals for the pipeline
-const createDealsFromAllQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
-  console.log('Creating deals from all quotes. Session quotes:', sessionQuotes.length);
+// Convert ONLY standalone quotes (not linked to requests) to deals for the pipeline
+const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
+  console.log('Creating deals from standalone quotes. Session quotes:', sessionQuotes.length);
   
-  // Get all quotes using the same data source as the quotes table
-  const allQuotes = getAllQuotes(sessionQuotes);
   const quotesWithClients = getQuotesWithClientInfo(sessionClients, sessionQuotes);
   console.log('All quotes with client info:', quotesWithClients.length);
   
-  // Only include quotes with status 'Draft' or 'Awaiting Response' (active quotes in pipeline)
-  const activeQuotes = quotesWithClients.filter(quote => {
-    console.log(`Quote ${quote.id} has status: ${quote.status}`);
+  // Only include standalone quotes (no requestId) with active statuses
+  const standaloneQuotes = quotesWithClients.filter(quote => {
+    console.log(`Quote ${quote.id} has requestId: ${quote.requestId}, status: ${quote.status}`);
+    
+    // Must be standalone (no requestId)
+    if (quote.requestId) return false;
+    
+    // Must have active status (not closed won)
     return quote.status === 'Draft' || quote.status === 'Awaiting Response';
   });
-  console.log('Active quotes for pipeline:', activeQuotes.length);
+  console.log('Standalone quotes for pipeline:', standaloneQuotes.length);
   
-  const deals = activeQuotes.map((quote) => {
+  const deals = standaloneQuotes.map((quote) => {
     const pipelineStage = assignQuotePipelineStage(quote, stages);
     
     // If pipelineStage is null, don't include this quote
@@ -179,7 +169,7 @@ const createDealsFromAllQuotes = (sessionClients: any[] = [], sessionQuotes: any
     };
   }).filter(Boolean); // Remove null entries
   
-  console.log('Final deals from quotes:', deals.length);
+  console.log('Final deals from standalone quotes:', deals.length);
   return deals;
 };
 
@@ -187,15 +177,15 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
   console.log('\n=== PIPELINE DATA CREATION ===');
   console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
   
-  // Create deals from requests that don't have quotes
+  // Create deals from open requests (no closed quotes)
   const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
   
-  // Create deals from ALL quotes (this will include both standalone and request-linked quotes)
-  const quoteDeals = createDealsFromAllQuotes(sessionClients, sessionQuotes, stages);
+  // Create deals from standalone quotes only
+  const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
   
-  const totalDeals = [...requestDeals, ...quoteDeals];
+  const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
   console.log('Total pipeline deals created:', totalDeals.length);
-  console.log('Request deals:', requestDeals.length, 'Quote deals:', quoteDeals.length);
+  console.log('Request deals:', requestDeals.length, 'Standalone quote deals:', standaloneQuoteDeals.length);
   console.log('Pipeline deals by status:', totalDeals.reduce((acc, deal) => {
     acc[deal.status] = (acc[deal.status] || 0) + 1;
     return acc;
@@ -204,8 +194,6 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
   
   return totalDeals;
 };
-
-// ... keep existing code (pipelineColumns export and action handlers)
 
 export const pipelineColumns = [
   { id: "new-deals", title: "New Deals" },

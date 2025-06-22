@@ -109,7 +109,7 @@ export const getQuotesWithClientInfo = (sessionClients: Client[] = [], sessionQu
   });
 };
 
-// Business logic for quote status changes
+// Enhanced business logic for quote status changes with new rules
 export const handleQuoteStatusChange = (
   quoteId: string, 
   newStatus: Quote['status'],
@@ -123,24 +123,30 @@ export const handleQuoteStatusChange = (
   const quote = getQuoteById(quoteId, sessionQuotes);
   if (!quote) return false;
 
+  console.log('Processing quote status change:', quoteId, 'to:', newStatus);
+
   // If quote is being approved or converted, handle business rules
   if (newStatus === 'Approved' || newStatus === 'Converted') {
-    // Update linked request to 'Converted' if it exists
+    console.log('Quote approved/converted - applying business rules');
+    
+    // 1. Update linked request to 'Converted' if it exists
     if (quote.requestId) {
       const request = getRequestById(quote.requestId, sessionRequests);
       if (request && request.status !== 'Converted') {
+        console.log('Updating linked request to Converted:', quote.requestId);
         updateRequest(quote.requestId, { status: 'Converted' });
       }
     }
 
-    // Update client to 'Active' if they're currently a 'Lead'
+    // 2. Update client to 'Active' if they're currently a 'Lead'
     const client = getClientById(quote.clientId, sessionClients);
     if (client && client.status === 'Lead') {
+      console.log('Updating client from Lead to Active:', quote.clientId);
       updateClient(quote.clientId, { status: 'Active' });
     }
   }
 
-  // Update the quote status
+  // Update the quote status with appropriate timestamps
   const updates: Partial<Quote> = { status: newStatus };
   const now = new Date().toISOString();
   
@@ -153,6 +159,7 @@ export const handleQuoteStatusChange = (
   }
 
   updateQuote(quoteId, updates);
+  console.log('Quote status updated successfully');
   return true;
 };
 

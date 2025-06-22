@@ -66,5 +66,8 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
     }
     
     updateSessionQuote(id, updates);
+    
+    // Note: Business rule handling (updating requests/clients) should be done 
+    // by the component that calls this, using handleQuoteStatusChange from dataHelpers
   },
 }));

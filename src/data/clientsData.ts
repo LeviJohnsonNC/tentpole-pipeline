@@ -1,4 +1,3 @@
-
 import { Client } from '@/types/Client';
 
 export const clientsData: Client[] = [
@@ -84,7 +83,7 @@ export const clientsData: Client[] = [
     phone: '(403) 555-0223',
     primaryAddress: '967 Heritage Lane SW, Calgary, AB T2V 2X9',
     tags: ['Residential', 'Tree Service'],
-    status: 'Lead',
+    status: 'Active',
     lastActivity: 'Mon',
     jobHistory: [],
     communicationLog: ['Inquiry about tree removal and stump grinding'],
@@ -159,7 +158,7 @@ export const clientsData: Client[] = [
     phone: '(403) 555-0323',
     primaryAddress: '4890 Prairie Rose Drive SE, Calgary, AB T2Z 3M1',
     tags: ['Commercial', 'Healthcare'],
-    status: 'Lead',
+    status: 'Active',
     lastActivity: 'Mon',
     jobHistory: [],
     communicationLog: ['Quote requested for courtyard garden renovation'],
