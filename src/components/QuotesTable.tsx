@@ -61,15 +61,7 @@ const QuotesTable = ({
             
           </div>
           
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="all">All Statuses</option>
-            <option value="Draft">Draft</option>
-            <option value="Awaiting Response">Awaiting Response</option>
-            <option value="Changes Requested">Changes Requested</option>
-            <option value="Approved">Approved</option>
-            <option value="Converted">Converted</option>
-            <option value="Archived">Archived</option>
-          </select>
+          
           
           <select value={salespersonFilter} onChange={e => setSalespersonFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="all">All Salespeople</option>
