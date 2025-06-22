@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RequestWithClient } from "@/utils/dataHelpers";
 import { Search, Filter, MoreHorizontal, Quote, Hammer, Archive, Printer, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface RequestsTableProps {
   requests: RequestWithClient[];
@@ -17,6 +16,21 @@ interface RequestsTableProps {
 const RequestsTable = ({ requests, statusFilter }: RequestsTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [salespersonFilter, setSalespersonFilter] = useState<string>("all");
+  const navigate = useNavigate();
+
+  const handleConvertToQuote = (request: RequestWithClient) => {
+    // Navigate to new quote with request data pre-filled
+    navigate('/quotes/new', { 
+      state: { 
+        fromRequest: true,
+        requestId: request.id,
+        clientId: request.clientId,
+        property: request.client.primaryAddress,
+        notes: request.serviceDetails,
+        serviceDetails: request.serviceDetails
+      }
+    });
+  };
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -119,7 +133,10 @@ const RequestsTable = ({ requests, statusFilter }: RequestsTableProps) => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
-                      <DropdownMenuItem className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                      <DropdownMenuItem 
+                        className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleConvertToQuote(request)}
+                      >
                         <Quote className="h-4 w-4 text-gray-600" />
                         <span>Convert to Quote</span>
                       </DropdownMenuItem>

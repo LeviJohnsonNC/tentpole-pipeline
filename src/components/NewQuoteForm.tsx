@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuoteStore } from "@/store/quoteStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import ClientSelectionModal from "./ClientSelectionModal";
 import StarRating from "./StarRating";
@@ -31,6 +31,7 @@ const NewQuoteForm = () => {
   const { addSessionQuote } = useQuoteStore();
   const { sessionClients } = useClientStore();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<QuoteFormData>({
     defaultValues: {
@@ -40,6 +41,26 @@ const NewQuoteForm = () => {
   });
 
   const watchedRating = watch("rating");
+
+  // Handle pre-filled data from request conversion
+  useEffect(() => {
+    if (location.state && location.state.fromRequest) {
+      const { clientId, property, notes, serviceDetails } = location.state;
+      
+      if (clientId) {
+        setSelectedClientId(clientId);
+        setValue("clientId", clientId);
+      }
+      
+      if (property) {
+        setValue("property", property);
+      }
+      
+      if (notes || serviceDetails) {
+        setValue("notes", notes || serviceDetails);
+      }
+    }
+  }, [location.state, setValue]);
 
   // Get all clients and find the selected one
   const allClients = getAllClients(sessionClients);
@@ -54,10 +75,11 @@ const NewQuoteForm = () => {
     const newQuote: Quote = {
       id: crypto.randomUUID(),
       clientId: selectedClientId,
+      requestId: location.state?.requestId, // Link to request if created from request
       quoteNumber: `Q-${Date.now()}`,
       title: data.title,
       property: data.property,
-      status: 'Draft', // Ensure quotes are created with Draft status
+      status: 'Draft',
       amount: data.amount,
       createdDate: new Date().toISOString(),
       notes: data.notes,

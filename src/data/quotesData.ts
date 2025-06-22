@@ -155,5 +155,33 @@ export const quotesData: Quote[] = [
     salesperson: 'Lisa Chen',
     validUntil: '2025-07-21',
     notes: 'Seasonal flower installation for condo complex'
+  },
+  // Standalone quotes (not linked to requests)
+  {
+    id: 'quote-11',
+    clientId: 'client-7',
+    quoteNumber: 'Q-2025-011',
+    title: 'Office Building Window Cleaning',
+    property: '789 Business District Ave',
+    status: 'Awaiting Response',
+    amount: 850.00,
+    createdDate: '2025-06-19',
+    sentDate: '2025-06-20',
+    salesperson: 'Mike Johnson',
+    validUntil: '2025-07-20',
+    notes: 'Monthly window cleaning service for 3-story office building'
+  },
+  {
+    id: 'quote-12',
+    clientId: 'client-12',
+    quoteNumber: 'Q-2025-012',
+    title: 'Emergency Storm Cleanup',
+    property: '456 Maple Street SW',
+    status: 'Draft',
+    amount: 2200.00,
+    createdDate: '2025-06-21',
+    salesperson: 'Lisa Chen',
+    validUntil: '2025-07-21',
+    notes: 'Emergency debris removal and property cleanup after storm damage'
   }
 ];
