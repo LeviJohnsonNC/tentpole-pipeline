@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { QuoteWithClient } from "@/utils/dataHelpers";
 import { Search, Filter, MoreHorizontal, MessageSquareText, Mail } from "lucide-react";
 import { SendQuoteModal } from "./SendQuoteModal";
@@ -32,17 +34,36 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
       case 'Draft':
         return 'bg-gray-100 text-gray-800';
       case 'Awaiting Response':
-        return 'bg-blue-100 text-blue-800';
-      case 'Changes Requested':
         return 'bg-yellow-100 text-yellow-800';
+      case 'Changes Requested':
+        return 'bg-red-100 text-red-800';
       case 'Approved':
         return 'bg-green-100 text-green-800';
       case 'Converted':
-        return 'bg-emerald-100 text-emerald-800';
+        return 'bg-blue-100 text-blue-800';
       case 'Archived':
-        return 'bg-red-100 text-red-800';
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusCircleColor = (status: string) => {
+    switch (status) {
+      case 'Draft':
+        return 'bg-gray-500';
+      case 'Awaiting Response':
+        return 'bg-yellow-500';
+      case 'Changes Requested':
+        return 'bg-red-500';
+      case 'Approved':
+        return 'bg-green-500';
+      case 'Converted':
+        return 'bg-blue-500';
+      case 'Archived':
+        return 'bg-gray-500';
+      default:
+        return 'bg-gray-500';
     }
   };
 
@@ -100,6 +121,11 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
     }
   };
 
+  const handleMarkAsApproved = (quote: QuoteWithClient) => {
+    console.log('Marking quote as approved:', quote.id);
+    updateQuoteStatus(quote.id, 'Approved');
+  };
+
   return (
     <div className="space-y-4">
       {/* Table */}
@@ -130,7 +156,8 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                     <TableCell className="text-sm text-gray-600">{quote.property}</TableCell>
                     <TableCell className="text-sm text-gray-600">{formatDate(quote.createdDate)}</TableCell>
                     <TableCell>
-                      <Badge className={`${getStatusBadgeColor(quote.status)} border-0`}>
+                      <Badge className={`${getStatusBadgeColor(quote.status)} border-0 flex items-center gap-1.5`}>
+                        <div className={`w-2 h-2 rounded-full ${getStatusCircleColor(quote.status)}`}></div>
                         {quote.status}
                       </Badge>
                     </TableCell>
@@ -139,9 +166,9 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                 </HoverCardTrigger>
                 <HoverCardContent 
                   className="w-auto p-2 bg-white border shadow-lg z-50" 
-                  side="top" 
+                  side="bottom" 
                   align="end"
-                  sideOffset={12}
+                  sideOffset={20}
                   alignOffset={0}
                   avoidCollisions={false}
                 >
@@ -164,14 +191,23 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                     >
                       <Mail className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 hover:bg-gray-100"
-                      title="More options"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 hover:bg-gray-100"
+                          title="More options"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-white">
+                        <DropdownMenuItem onClick={() => handleMarkAsApproved(quote)}>
+                          Mark as Approved
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </HoverCardContent>
               </HoverCard>
