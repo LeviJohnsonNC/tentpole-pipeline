@@ -1,10 +1,12 @@
+
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RequestWithClient } from "@/utils/dataHelpers";
-import { Search, Filter, MoreHorizontal } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Quote, Hammer, Archive, Print, Delete } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface RequestsTableProps {
@@ -110,9 +112,35 @@ const RequestsTable = ({ requests, statusFilter }: RequestsTableProps) => {
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
+                      <DropdownMenuItem className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <Quote className="h-4 w-4 text-gray-600" />
+                        <span>Convert to Quote</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <Hammer className="h-4 w-4 text-gray-600" />
+                        <span>Convert to Job</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <Archive className="h-4 w-4 text-gray-600" />
+                        <span>Archive</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <Print className="h-4 w-4 text-gray-600" />
+                        <span>Print</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-red-600">
+                        <Delete className="h-4 w-4" />
+                        <span>Delete</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
