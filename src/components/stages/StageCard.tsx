@@ -70,9 +70,9 @@ const StageCard = ({ stage, onUpdateTitle, onDelete, canDelete = true }: StageCa
     <Card
       ref={setNodeRef}
       style={style}
-      className={`relative ${isDragging ? 'opacity-50' : ''}`}
+      className={`relative h-48 ${isDragging ? 'opacity-50' : ''}`}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-4 h-full flex flex-col">
         <div className="flex items-center space-x-3">
           <div
             {...attributes}
@@ -147,6 +147,11 @@ const StageCard = ({ stage, onUpdateTitle, onDelete, canDelete = true }: StageCa
               </div>
             )}
           </div>
+        </div>
+        
+        {/* Empty space for future content */}
+        <div className="flex-1 mt-4">
+          {/* Content will be added here later */}
         </div>
       </CardContent>
     </Card>
