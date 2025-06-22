@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -153,19 +154,13 @@ const SalesPipeline = () => {
       console.log('Handling action zone drop:', overContainer, 'for deal:', activeId);
       switch (overContainer) {
         case 'action-delete':
-          handleDeleteAction(activeId, removeSessionRequest);
+          handleDeleteAction(activeId, deals, setDeals);
           break;
         case 'action-lost':
-          handleLostAction(activeId, updateSessionRequest);
+          handleLostAction(activeId, deals, setDeals);
           break;
         case 'action-won':
-          handleWonAction(
-            activeId, 
-            updateSessionRequest, 
-            updateSessionClient, 
-            sessionClients, 
-            sessionRequests
-          );
+          handleWonAction(activeId, deals, setDeals);
           break;
       }
       return;
