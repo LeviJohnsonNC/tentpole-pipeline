@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,14 @@ import Sidebar from "@/components/Sidebar";
 import OverviewCards from "@/components/OverviewCards";
 import RequestsTable from "@/components/RequestsTable";
 import SalesPipeline from "@/components/SalesPipeline";
+import { getAllRequests } from "@/utils/dataHelpers";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("all-requests");
+  
+  const totalRequests = useMemo(() => {
+    return getAllRequests().length;
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
@@ -87,7 +92,7 @@ const Index = () => {
                         : "border-transparent text-gray-500 hover:text-gray-700"
                     }`}
                   >
-                    All requests <span className="text-gray-400">(97 results)</span>
+                    All requests <span className="text-gray-400">({totalRequests} results)</span>
                   </button>
                   <button
                     onClick={() => setActiveTab("sales-pipeline")}
