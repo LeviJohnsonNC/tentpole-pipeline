@@ -1,21 +1,19 @@
+
 import { Client } from '@/types/Client';
 import { Request } from '@/types/Request';
 import { clientsData } from '@/data/clientsData';
 import { requestsData } from '@/data/requestsData';
-import { useClientStore } from '@/store/clientStore';
 
 // Client operations
-export const getClientById = (id: string): Client | undefined => {
+export const getClientById = (id: string, sessionClients: Client[] = []): Client | undefined => {
   // Check session clients first
-  const sessionClients = useClientStore.getState().sessionClients;
   const sessionClient = sessionClients.find(client => client.id === id);
   if (sessionClient) return sessionClient;
   
   return clientsData.find(client => client.id === id);
 };
 
-export const getAllClients = (): Client[] => {
-  const sessionClients = useClientStore.getState().sessionClients;
+export const getAllClients = (sessionClients: Client[] = []): Client[] => {
   return [...clientsData, ...sessionClients];
 };
 
@@ -32,10 +30,10 @@ export const getRequestsByClientId = (clientId: string): Request[] => {
   return requestsData.filter(request => request.clientId === clientId);
 };
 
-export const getClientByRequestId = (requestId: string): Client | undefined => {
+export const getClientByRequestId = (requestId: string, sessionClients: Client[] = []): Client | undefined => {
   const request = getRequestById(requestId);
   if (!request) return undefined;
-  return getClientById(request.clientId);
+  return getClientById(request.clientId, sessionClients);
 };
 
 // Combined operations for table display
@@ -43,9 +41,9 @@ export interface RequestWithClient extends Request {
   client: Client;
 }
 
-export const getRequestsWithClientInfo = (): RequestWithClient[] => {
+export const getRequestsWithClientInfo = (sessionClients: Client[] = []): RequestWithClient[] => {
   return requestsData.map(request => {
-    const client = getClientById(request.clientId);
+    const client = getClientById(request.clientId, sessionClients);
     if (!client) {
       throw new Error(`Client not found for request ${request.id}`);
     }
@@ -57,9 +55,9 @@ export const getRequestsWithClientInfo = (): RequestWithClient[] => {
 };
 
 // Validation functions
-export const validateRequestHasClient = (request: Partial<Request>): boolean => {
+export const validateRequestHasClient = (request: Partial<Request>, sessionClients: Client[] = []): boolean => {
   if (!request.clientId) return false;
-  return !!getClientById(request.clientId);
+  return !!getClientById(request.clientId, sessionClients);
 };
 
 export const canDeleteClient = (clientId: string): boolean => {
