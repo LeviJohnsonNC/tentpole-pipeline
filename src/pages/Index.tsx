@@ -9,13 +9,15 @@ import OverviewCards from "@/components/OverviewCards";
 import RequestsTable from "@/components/RequestsTable";
 import SalesPipeline from "@/components/SalesPipeline";
 import { getAllRequests } from "@/utils/dataHelpers";
+import { useRequestStore } from "@/store/requestStore";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("all-requests");
+  const { sessionRequests } = useRequestStore();
   
   const totalRequests = useMemo(() => {
-    return getAllRequests().length;
-  }, []);
+    return getAllRequests(sessionRequests).length;
+  }, [sessionRequests]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
@@ -65,7 +67,10 @@ const Index = () => {
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-semibold text-gray-900">Requests</h1>
               <div className="flex items-center space-x-3">
-                <Button className="bg-[#0B6839] hover:bg-[#0B6839]/90 text-white">
+                <Button 
+                  className="bg-[#0B6839] hover:bg-[#0B6839]/90 text-white"
+                  onClick={() => window.location.href = '/requests/new'}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   New Request
                 </Button>

@@ -14,6 +14,11 @@ interface Deal {
 
 // Mapping function to assign pipeline stages to "New" requests
 const assignPipelineStage = (requestId: string): string => {
+  // All new session requests should go to 'new-deals'
+  if (requestId.startsWith('request-' + Date.now().toString().slice(0, 8))) {
+    return 'new-deals';
+  }
+  
   // Map specific requests to pipeline stages for realistic distribution
   const stageMapping: Record<string, string> = {
     // New deals (just received)
@@ -65,8 +70,8 @@ const getEstimatedAmount = (serviceDetails: string, title: string): number => {
 };
 
 // Convert requests to deals for the pipeline
-const createDealsFromRequests = (): Deal[] => {
-  const requestsWithClients = getRequestsWithClientInfo();
+const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = []): Deal[] => {
+  const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
   
   // Only include requests with status 'New' (open requests for pipeline)
   const openRequests = requestsWithClients.filter(request => request.status === 'New');
@@ -83,7 +88,9 @@ const createDealsFromRequests = (): Deal[] => {
   }));
 };
 
-export const initialDeals: Deal[] = createDealsFromRequests();
+export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: any[] = []): Deal[] => {
+  return createDealsFromRequests(sessionClients, sessionRequests);
+};
 
 export const pipelineColumns = [
   { id: "new-deals", title: "New Deals" },

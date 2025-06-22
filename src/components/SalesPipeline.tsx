@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
   closestCenter, 
@@ -20,11 +19,25 @@ import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PipelineColumn from './pipeline/PipelineColumn';
 import DealCard from './pipeline/DealCard';
-import { initialDeals, pipelineColumns, Deal } from './pipeline/SalesPipelineData';
+import { useClientStore } from "@/store/clientStore";
+import { useRequestStore } from "@/store/requestStore";
+import { createInitialDeals, pipelineColumns, Deal } from './pipeline/SalesPipelineData';
 
 const SalesPipeline = () => {
+  const { sessionClients } = useClientStore();
+  const { sessionRequests } = useRequestStore();
+  
+  const initialDeals = useMemo(() => {
+    return createInitialDeals(sessionClients, sessionRequests);
+  }, [sessionClients, sessionRequests]);
+  
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Update deals when session data changes
+  React.useEffect(() => {
+    setDeals(createInitialDeals(sessionClients, sessionRequests));
+  }, [sessionClients, sessionRequests]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
