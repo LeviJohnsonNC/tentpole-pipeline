@@ -13,10 +13,16 @@ interface ClientStore {
 export const useClientStore = create<ClientStore>((set, get) => ({
   sessionClients: [],
   
-  addSessionClient: (client) => 
-    set((state) => ({ 
-      sessionClients: [...state.sessionClients, client] 
-    })),
+  addSessionClient: (client) => {
+    console.log('Adding client to store:', client);
+    set((state) => {
+      const newState = { 
+        sessionClients: [...state.sessionClients, client] 
+      };
+      console.log('New store state after adding client:', newState);
+      return newState;
+    });
+  },
   
   removeSessionClient: (id) =>
     set((state) => ({

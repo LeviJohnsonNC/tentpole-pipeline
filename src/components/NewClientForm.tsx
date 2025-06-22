@@ -38,8 +38,10 @@ type ClientFormData = z.infer<typeof clientSchema>;
 
 const NewClientForm = () => {
   const navigate = useNavigate();
-  const addSessionClient = useClientStore(state => state.addSessionClient);
+  const { addSessionClient, sessionClients } = useClientStore();
   const { toast } = useToast();
+
+  console.log('NewClientForm - Current sessionClients:', sessionClients);
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -63,6 +65,8 @@ const NewClientForm = () => {
   });
 
   const onSubmit = (data: ClientFormData) => {
+    console.log('Form submission data:', data);
+    
     const primaryAddress: Address = {
       street1: data.street1,
       street2: data.street2 || "",
@@ -101,7 +105,13 @@ const NewClientForm = () => {
       additionalContacts: [],
     };
 
+    console.log('Created new client object:', newClient);
     addSessionClient(newClient);
+    
+    // Force a small delay to ensure store update
+    setTimeout(() => {
+      console.log('Store state after adding client:', useClientStore.getState().sessionClients);
+    }, 100);
     
     toast({
       title: "Client created successfully",
