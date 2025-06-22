@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,16 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import ClientsOverviewCards from "@/components/ClientsOverviewCards";
 import ClientsTable from "@/components/ClientsTable";
+import { getAllClients } from "@/utils/dataHelpers";
+import { useClientStore } from "@/store/clientStore";
 
 const Clients = () => {
   const navigate = useNavigate();
+  const { sessionClients } = useClientStore();
+  
+  const totalClients = useMemo(() => {
+    return getAllClients(sessionClients).length;
+  }, [sessionClients]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
@@ -82,7 +89,7 @@ const Clients = () => {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-medium text-gray-900">
-                  Filtered clients <span className="text-gray-500 font-normal">(592 results)</span>
+                  Filtered clients <span className="text-gray-500 font-normal">({totalClients} results)</span>
                 </h2>
               </div>
               
