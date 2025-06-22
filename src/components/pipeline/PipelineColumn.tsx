@@ -3,12 +3,13 @@ import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DealCard from './DealCard';
 
 interface Deal {
-  id: string; // Changed from number to string
+  id: string;
   client: string;
   title: string;
   property: string;
@@ -43,22 +44,27 @@ const PipelineColumn = ({ id, title, deals, count, totalValue, isOver }: Pipelin
       `}
     >
       {/* Column Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium text-gray-900">{title}</h3>
-          <Badge variant="secondary" className="text-xs">
-            {count}
-          </Badge>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-500">
-            {totalValue}
-          </span>
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
             <MoreHorizontal className="h-3 w-3" />
           </Button>
         </div>
+        
+        {/* Counter and Total Value */}
+        <div className="flex items-center justify-between">
+          <Badge variant="secondary" className="text-xs">
+            {count}
+          </Badge>
+          <span className="text-sm text-gray-500">
+            {totalValue}
+          </span>
+        </div>
       </div>
+
+      {/* Separator */}
+      <Separator className="mb-4" />
 
       {/* Cards Container */}
       <div 
