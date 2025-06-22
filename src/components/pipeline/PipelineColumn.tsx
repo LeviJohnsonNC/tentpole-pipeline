@@ -25,11 +25,10 @@ interface PipelineColumnProps {
   deals: Deal[];
   count: number;
   totalValue: string;
-  isOver?: boolean;
 }
 
-const PipelineColumn = ({ id, title, deals, count, totalValue, isOver }: PipelineColumnProps) => {
-  const { setNodeRef } = useDroppable({
+const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnProps) => {
+  const { setNodeRef, isOver } = useDroppable({
     id,
   });
 
@@ -69,7 +68,7 @@ const PipelineColumn = ({ id, title, deals, count, totalValue, isOver }: Pipelin
       {/* Cards Container */}
       <div 
         ref={setNodeRef}
-        className="flex-1 space-y-2 min-h-[200px]"
+        className="flex-1 space-y-2 min-h-[200px] relative"
       >
         <SortableContext items={dealIds} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (
@@ -85,6 +84,11 @@ const PipelineColumn = ({ id, title, deals, count, totalValue, isOver }: Pipelin
               <p className="text-xs mt-1 text-blue-600">Drop here to move deal</p>
             )}
           </div>
+        )}
+        
+        {/* Drop zone overlay for better UX */}
+        {isOver && deals.length > 0 && (
+          <div className="absolute inset-0 bg-blue-100 bg-opacity-20 rounded border-2 border-dashed border-blue-300 pointer-events-none" />
         )}
       </div>
     </div>

@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 interface Deal {
-  id: string; // Changed from number to string
+  id: string;
   client: string;
   title: string;
   property: string;
@@ -33,7 +33,7 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: transition || 'transform 150ms ease',
+    transition: isDragging ? 'none' : (transition || 'transform 150ms ease'),
   };
 
   const isBeingDragged = isDragging || isSortableDragging;
@@ -50,9 +50,10 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
         transition-all duration-150 ease-out
         hover:shadow-md hover:-translate-y-0.5
         ${isBeingDragged ? 
-          'shadow-lg scale-105 rotate-2 opacity-90 z-50' : 
+          'shadow-lg scale-105 rotate-1 opacity-90 z-50 ring-2 ring-blue-200' : 
           'shadow-sm'
         }
+        ${isDragging ? 'pointer-events-none' : ''}
       `}
     >
       <h4 className="font-medium text-gray-900 text-sm mb-1 truncate">

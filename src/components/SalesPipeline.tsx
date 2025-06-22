@@ -29,7 +29,7 @@ const SalesPipeline = () => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px movement before drag starts
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -52,6 +52,12 @@ const SalesPipeline = () => {
   };
 
   const findContainer = (id: string) => {
+    // Check if id is a column id first
+    if (pipelineColumns.some(col => col.id === id)) {
+      return id;
+    }
+    
+    // Then check if it's a deal id
     const deal = deals.find(deal => deal.id === id);
     return deal?.status || null;
   };
@@ -64,21 +70,23 @@ const SalesPipeline = () => {
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
     
-    if (!over) return;
+    if (!over || !active) return;
 
     const activeId = active.id as string;
-    const overId = over.id;
+    const overId = over.id as string;
 
-    // Find the containers
+    // Don't do anything if we're hovering over the same item
+    if (activeId === overId) return;
+
     const activeContainer = findContainer(activeId);
-    const overContainer = typeof overId === 'string' ? overId : findContainer(String(overId));
+    const overContainer = findContainer(overId);
 
     if (!activeContainer || !overContainer) return;
 
-    // If we're dragging over a different container
+    // Only move between containers, don't reorder within the same container here
     if (activeContainer !== overContainer) {
-      setDeals((deals) => {
-        return deals.map(deal => {
+      setDeals((prevDeals) => {
+        return prevDeals.map(deal => {
           if (deal.id === activeId) {
             return { ...deal, status: overContainer };
           }
@@ -91,36 +99,46 @@ const SalesPipeline = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (!over) {
-      setActiveId(null);
-      return;
-    }
+    setActiveId(null);
+    
+    if (!over || !active) return;
 
     const activeId = active.id as string;
-    const overId = over.id;
+    const overId = over.id as string;
+
+    // Don't do anything if dropped on itself
+    if (activeId === overId) return;
 
     const activeContainer = findContainer(activeId);
-    const overContainer = typeof overId === 'string' ? overId : findContainer(String(overId));
+    const overContainer = findContainer(overId);
 
-    if (!activeContainer || !overContainer) {
-      setActiveId(null);
-      return;
-    }
+    if (!activeContainer || !overContainer) return;
 
     if (activeContainer === overContainer) {
       // Reordering within the same container
-      const containerDeals = deals.filter(deal => deal.status === activeContainer);
-      const activeIndex = containerDeals.findIndex(deal => deal.id === activeId);
-      const overIndex = containerDeals.findIndex(deal => deal.id === overId);
+      setDeals((prevDeals) => {
+        const containerDeals = prevDeals.filter(deal => deal.status === activeContainer);
+        const otherDeals = prevDeals.filter(deal => deal.status !== activeContainer);
+        
+        const activeIndex = containerDeals.findIndex(deal => deal.id === activeId);
+        const overIndex = containerDeals.findIndex(deal => deal.id === overId);
 
-      if (activeIndex !== overIndex) {
-        const newOrder = arrayMove(containerDeals, activeIndex, overIndex);
-        const otherDeals = deals.filter(deal => deal.status !== activeContainer);
-        setDeals([...otherDeals, ...newOrder]);
-      }
+        if (activeIndex === -1 || overIndex === -1) return prevDeals;
+
+        const reorderedDeals = arrayMove(containerDeals, activeIndex, overIndex);
+        return [...otherDeals, ...reorderedDeals];
+      });
+    } else {
+      // Moving between containers - ensure final state is correct
+      setDeals((prevDeals) => {
+        return prevDeals.map(deal => {
+          if (deal.id === activeId) {
+            return { ...deal, status: overContainer };
+          }
+          return deal;
+        });
+      });
     }
-
-    setActiveId(null);
   };
 
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
