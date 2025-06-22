@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { toast } from "sonner";
 import ClientSelectionModal from "./ClientSelectionModal";
 import StarRating from "./StarRating";
 import { Quote } from "@/types/Quote";
+import { getAllClients } from "@/utils/dataHelpers";
+import { useClientStore } from "@/store/clientStore";
 
 interface QuoteFormData {
   title: string;
@@ -26,6 +29,7 @@ const NewQuoteForm = () => {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const { addSessionQuote } = useQuoteStore();
+  const { sessionClients } = useClientStore();
   const navigate = useNavigate();
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<QuoteFormData>({
@@ -36,6 +40,10 @@ const NewQuoteForm = () => {
   });
 
   const watchedRating = watch("rating");
+
+  // Get all clients and find the selected one
+  const allClients = getAllClients(sessionClients);
+  const selectedClient = selectedClientId ? allClients.find(client => client.id === selectedClientId) : null;
 
   const onSubmit = (data: QuoteFormData) => {
     if (!selectedClientId) {
@@ -95,8 +103,8 @@ const NewQuoteForm = () => {
               className="w-full justify-start h-auto p-4 text-left"
               onClick={() => setIsClientModalOpen(true)}
             >
-              {selectedClientId ? (
-                <span className="text-gray-900">Client selected</span>
+              {selectedClient ? (
+                <span className="text-gray-900">{selectedClient.name}</span>
               ) : (
                 <span className="text-gray-500">Select a client</span>
               )}
