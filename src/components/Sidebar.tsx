@@ -43,6 +43,24 @@ const Sidebar = () => {
     { id: "refer", label: "Refer a friend", icon: UserPlus, path: "/refer" },
   ];
 
+  const getIsActive = (item: any) => {
+    // Exact path match
+    if (location.pathname === item.path) {
+      return true;
+    }
+    
+    // Special cases for sub-routes
+    if (item.id === "requests" && (location.pathname.startsWith("/requests") || location.pathname === "/")) {
+      return true;
+    }
+    
+    if (item.id === "clients" && location.pathname.startsWith("/clients")) {
+      return true;
+    }
+    
+    return false;
+  };
+
   return (
     <div className="w-64 bg-[#f8f9fa] border-r border-gray-200 h-screen flex flex-col">
       <div className="p-4 border-b border-gray-200">
@@ -58,7 +76,7 @@ const Sidebar = () => {
         <ul className="space-y-1 px-3">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = getIsActive(item);
             
             return (
               <li key={item.id}>
@@ -66,7 +84,7 @@ const Sidebar = () => {
                   to={item.path}
                   className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                     isActive
-                      ? "bg-[#e8f2ee] text-[#0B6839]"
+                      ? "bg-[#d4edda] text-[#155724]"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
