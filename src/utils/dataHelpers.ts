@@ -1,8 +1,9 @@
-
 import { Client } from '@/types/Client';
 import { Request } from '@/types/Request';
+import { Quote } from '@/types/Quote';
 import { clientsData } from '@/data/clientsData';
 import { requestsData } from '@/data/requestsData';
+import { quotesData } from '@/data/quotesData';
 
 // Client operations
 export const getClientById = (id: string, sessionClients: Client[] = []): Client | undefined => {
@@ -41,6 +42,29 @@ export const getClientByRequestId = (requestId: string, sessionClients: Client[]
   return getClientById(request.clientId, sessionClients);
 };
 
+// Quote operations
+export const getQuoteById = (id: string, sessionQuotes: Quote[] = []): Quote | undefined => {
+  // Check session quotes first
+  const sessionQuote = sessionQuotes.find(quote => quote.id === id);
+  if (sessionQuote) return sessionQuote;
+  
+  return quotesData.find(quote => quote.id === id);
+};
+
+export const getAllQuotes = (sessionQuotes: Quote[] = []): Quote[] => {
+  return [...quotesData, ...sessionQuotes];
+};
+
+export const getQuotesByClientId = (clientId: string, sessionQuotes: Quote[] = []): Quote[] => {
+  const allQuotes = getAllQuotes(sessionQuotes);
+  return allQuotes.filter(quote => quote.clientId === clientId);
+};
+
+export const getQuotesByRequestId = (requestId: string, sessionQuotes: Quote[] = []): Quote[] => {
+  const allQuotes = getAllQuotes(sessionQuotes);
+  return allQuotes.filter(quote => quote.requestId === requestId);
+};
+
 // Combined operations for table display
 export interface RequestWithClient extends Request {
   client: Client;
@@ -58,6 +82,93 @@ export const getRequestsWithClientInfo = (sessionClients: Client[] = [], session
       client
     };
   });
+};
+
+export interface QuoteWithClient extends Quote {
+  client: Client;
+}
+
+export const getQuotesWithClientInfo = (sessionClients: Client[] = [], sessionQuotes: Quote[] = []): QuoteWithClient[] => {
+  const allQuotes = getAllQuotes(sessionQuotes);
+  return allQuotes.map(quote => {
+    const client = getClientById(quote.clientId, sessionClients);
+    if (!client) {
+      throw new Error(`Client not found for quote ${quote.id}`);
+    }
+    return {
+      ...quote,
+      client
+    };
+  });
+};
+
+// Business logic for quote status changes
+export const handleQuoteStatusChange = (
+  quoteId: string, 
+  newStatus: Quote['status'],
+  sessionQuotes: Quote[] = [],
+  sessionRequests: Request[] = [],
+  sessionClients: Client[] = [],
+  updateQuote: (id: string, updates: Partial<Quote>) => void,
+  updateRequest: (id: string, updates: Partial<Request>) => void,
+  updateClient: (id: string, updates: Partial<Client>) => void
+) => {
+  const quote = getQuoteById(quoteId, sessionQuotes);
+  if (!quote) return false;
+
+  // If quote is being approved or converted, handle business rules
+  if (newStatus === 'Approved' || newStatus === 'Converted') {
+    // Update linked request to 'Converted' if it exists
+    if (quote.requestId) {
+      const request = getRequestById(quote.requestId, sessionRequests);
+      if (request && request.status !== 'Converted') {
+        updateRequest(quote.requestId, { status: 'Converted' });
+      }
+    }
+
+    // Update client to 'Active' if they're currently a 'Lead'
+    const client = getClientById(quote.clientId, sessionClients);
+    if (client && client.status === 'Lead') {
+      updateClient(quote.clientId, { status: 'Active' });
+    }
+  }
+
+  // Update the quote status
+  const updates: Partial<Quote> = { status: newStatus };
+  const now = new Date().toISOString();
+  
+  if (newStatus === 'Awaiting Response' && !quote.sentDate) {
+    updates.sentDate = now;
+  } else if (newStatus === 'Approved' && !quote.approvedDate) {
+    updates.approvedDate = now;
+  } else if (newStatus === 'Converted' && !quote.convertedDate) {
+    updates.convertedDate = now;
+  }
+
+  updateQuote(quoteId, updates);
+  return true;
+};
+
+// Quote metrics calculations
+export const calculateQuoteMetrics = (quotes: Quote[]) => {
+  const total = quotes.length;
+  const draft = quotes.filter(q => q.status === 'Draft').length;
+  const awaitingResponse = quotes.filter(q => q.status === 'Awaiting Response').length;
+  const approved = quotes.filter(q => q.status === 'Approved').length;
+  const converted = quotes.filter(q => q.status === 'Converted').length;
+  const sent = quotes.filter(q => q.sentDate).length;
+  
+  const conversionRate = sent > 0 ? Math.round(((approved + converted) / sent) * 100) : 0;
+  
+  return {
+    total,
+    draft,
+    awaitingResponse,
+    approved,
+    converted,
+    sent,
+    conversionRate
+  };
 };
 
 // Validation functions
