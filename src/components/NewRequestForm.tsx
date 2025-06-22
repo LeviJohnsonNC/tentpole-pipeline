@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { useNavigate } from "react-router-dom";
 import { useRequestStore } from "@/store/requestStore";
+import { useClientStore } from "@/store/clientStore";
 import { useToast } from "@/hooks/use-toast";
 import BasicInformationSection from "@/components/FormSections/BasicInformationSection";
 import ServiceDetailsSection from "@/components/FormSections/ServiceDetailsSection";
@@ -25,7 +26,11 @@ type RequestFormData = z.infer<typeof requestSchema>;
 const NewRequestForm = () => {
   const navigate = useNavigate();
   const { addSessionRequest } = useRequestStore();
+  const sessionClients = useClientStore(state => state.sessionClients);
   const { toast } = useToast();
+
+  console.log('NewRequestForm render - sessionClients:', sessionClients);
+  console.log('NewRequestForm render - sessionClients length:', sessionClients.length);
 
   const form = useForm<RequestFormData>({
     resolver: zodResolver(requestSchema),

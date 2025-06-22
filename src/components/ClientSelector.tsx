@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -19,19 +19,23 @@ interface ClientSelectorProps {
 
 const ClientSelector = ({ value, onValueChange, placeholder = "Select client..." }: ClientSelectorProps) => {
   const [open, setOpen] = useState(false);
-  const { sessionClients } = useClientStore();
+  const sessionClients = useClientStore(state => state.sessionClients);
   const navigate = useNavigate();
   
-  console.log('ClientSelector sessionClients:', sessionClients);
+  console.log('ClientSelector render - sessionClients:', sessionClients);
+  console.log('ClientSelector render - sessionClients length:', sessionClients.length);
   
-  // Memoize clients to prevent unnecessary recalculations, but ensure it updates when sessionClients change
-  const clients = useMemo(() => {
-    const allClients = getAllClients(sessionClients);
-    console.log('ClientSelector all clients:', allClients);
-    return allClients;
+  // Get all clients directly without memoization to ensure reactivity
+  const clients = getAllClients(sessionClients);
+  console.log('ClientSelector render - all clients:', clients);
+  console.log('ClientSelector render - all clients length:', clients.length);
+  
+  const selectedClient = clients.find(client => client.id === value);
+
+  // Add effect to log when sessionClients change
+  useEffect(() => {
+    console.log('ClientSelector useEffect - sessionClients changed:', sessionClients);
   }, [sessionClients]);
-  
-  const selectedClient = useMemo(() => clients.find(client => client.id === value), [clients, value]);
 
   const getStatusColor = (status: Client['status']) => {
     switch (status) {
