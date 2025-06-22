@@ -31,61 +31,61 @@ const QuotesOverviewCards = ({ quotes, onStatusFilter, activeFilter }: QuotesOve
 
   return (
     <div className="mb-6">
-      {/* Overview Card */}
-      <Card className="bg-white border border-gray-200 mb-4">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Overview</h3>
-          <div className="space-y-2">
-            <div 
-              className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
-                activeFilter === 'Draft' ? 'bg-blue-50' : ''
-              }`}
-              onClick={() => handleStatusClick('Draft')}
-            >
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                <span className="text-sm text-gray-600">Draft ({metrics.draft})</span>
-              </div>
-            </div>
-            <div 
-              className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
-                activeFilter === 'Awaiting Response' ? 'bg-blue-50' : ''
-              }`}
-              onClick={() => handleStatusClick('Awaiting Response')}
-            >
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Awaiting Response ({metrics.awaitingResponse})</span>
-              </div>
-            </div>
-            <div 
-              className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
-                activeFilter === 'Changes Requested' ? 'bg-blue-50' : ''
-              }`}
-              onClick={() => handleStatusClick('Changes Requested')}
-            >
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Changes Requested ({changesRequested})</span>
-              </div>
-            </div>
-            <div 
-              className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded ${
-                activeFilter === 'Approved' ? 'bg-blue-50' : ''
-              }`}
-              onClick={() => handleStatusClick('Approved')}
-            >
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Approved ({metrics.approved})</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Bottom row - detailed cards */}
+      {/* Single row with Overview card on the left and other cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        {/* Overview Card */}
+        <Card className="bg-white border border-gray-200">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-medium text-gray-600 mb-3">Overview</h3>
+            <div className="space-y-2">
+              <div 
+                className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded ${
+                  activeFilter === 'Draft' ? 'bg-blue-50' : ''
+                }`}
+                onClick={() => handleStatusClick('Draft')}
+              >
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Draft ({metrics.draft})</span>
+                </div>
+              </div>
+              <div 
+                className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded ${
+                  activeFilter === 'Awaiting Response' ? 'bg-blue-50' : ''
+                }`}
+                onClick={() => handleStatusClick('Awaiting Response')}
+              >
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Awaiting Response ({metrics.awaitingResponse})</span>
+                </div>
+              </div>
+              <div 
+                className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded ${
+                  activeFilter === 'Changes Requested' ? 'bg-blue-50' : ''
+                }`}
+                onClick={() => handleStatusClick('Changes Requested')}
+              >
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Changes Requested ({changesRequested})</span>
+                </div>
+              </div>
+              <div 
+                className={`flex items-center justify-between cursor-pointer hover:bg-gray-50 p-1 rounded ${
+                  activeFilter === 'Approved' ? 'bg-blue-50' : ''
+                }`}
+                onClick={() => handleStatusClick('Approved')}
+              >
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Approved ({metrics.approved})</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Conversion Rate Card */}
         <Card className="bg-white border border-gray-200">
           <CardContent className="p-4">
@@ -135,9 +135,6 @@ const QuotesOverviewCards = ({ quotes, onStatusFilter, activeFilter }: QuotesOve
             <p className="text-sm text-gray-500">${convertedValue.toLocaleString()}</p>
           </CardContent>
         </Card>
-
-        {/* Empty placeholders for spacing */}
-        <div></div>
 
         {/* Help Card */}
         <Card className="bg-white border border-gray-200">
