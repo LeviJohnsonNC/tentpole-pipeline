@@ -15,8 +15,22 @@ interface Deal {
 }
 
 // Mapping function to assign pipeline stages to "New" requests
-const assignPipelineStage = (requestId: string, stages: any[]): string => {
-  // Map specific requests to pipeline stages for realistic distribution
+const assignPipelineStage = (requestId: string, stages: any[], sessionQuotes: any[]): string => {
+  // First check if this request has any quotes with "Awaiting Response" status
+  const requestQuotes = sessionQuotes.filter(quote => quote.requestId === requestId);
+  const hasAwaitingResponseQuote = requestQuotes.some(quote => quote.status === 'Awaiting Response');
+  
+  if (hasAwaitingResponseQuote) {
+    // Find the "Quote Awaiting Response" stage
+    const awaitingStage = stages.find(stage => 
+      stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
+    );
+    if (awaitingStage) {
+      return awaitingStage.id;
+    }
+  }
+  
+  // If no awaiting response quotes, use the original mapping for realistic distribution
   const stageMapping: Record<string, string> = {
     // New deals (just received)
     'request-1': 'new-deals',
@@ -110,7 +124,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
   console.log('Open requests for pipeline:', openRequests.length);
   
   const deals = openRequests.map((request) => {
-    const pipelineStage = assignPipelineStage(request.id, stages);
+    const pipelineStage = assignPipelineStage(request.id, stages, sessionQuotes);
     const amount = getEstimatedAmount(request.serviceDetails, request.title);
     
     return {
