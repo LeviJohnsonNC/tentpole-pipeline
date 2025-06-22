@@ -33,11 +33,11 @@ const assignPipelineStage = (requestId: string): string => {
     'request-6': 'contacted',
     'request-7': 'contacted',
     
-    // Quote sent (quotes provided)
-    'request-8': 'quote-sent',
-    'request-9': 'quote-sent',
-    'request-10': 'quote-sent',
-    'request-11': 'quote-sent',
+    // Quote awaiting response (quotes provided)
+    'request-8': 'quote-awaiting-response',
+    'request-9': 'quote-awaiting-response',
+    'request-10': 'quote-awaiting-response',
+    'request-11': 'quote-awaiting-response',
     
     // Follow-up (awaiting decisions)
     'request-12': 'followup',
@@ -189,7 +189,7 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
 export const pipelineColumns = [
   { id: "new-deals", title: "New Deals" },
   { id: "contacted", title: "Contacted" },
-  { id: "quote-sent", title: "Quote Sent" },
+  { id: "quote-awaiting-response", title: "Quote Awaiting Response" },
   { id: "followup", title: "Followup" }
 ];
 

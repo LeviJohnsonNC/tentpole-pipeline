@@ -21,7 +21,7 @@ interface StagesStore {
 const defaultStages: Stage[] = [
   { id: "new-deals", title: "New Deals", order: 0 },
   { id: "contacted", title: "Contacted", order: 1 },
-  { id: "quote-sent", title: "Quote Sent", order: 2, isJobberStage: true },
+  { id: "quote-awaiting-response", title: "Quote Awaiting Response", order: 2, isJobberStage: true },
   { id: "followup", title: "Followup", order: 3 }
 ];
 

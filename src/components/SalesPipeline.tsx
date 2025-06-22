@@ -118,14 +118,17 @@ const SalesPipeline = () => {
           message: "Only deals with drafted quotes can be moved to Draft Quote stage. Create a quote first." 
         };
       }
-    } else if (stageTitle.includes('quote') && stageTitle.includes('sent')) {
-      // For "Quote Sent" stage, need quote to be sent (this would need additional status tracking)
+    } else if (stageTitle.includes('quote') && stageTitle.includes('awaiting')) {
+      // For "Quote Awaiting Response" stage, need quote to be sent
       if (deal.type !== 'quote') {
         return { 
           allowed: false, 
-          message: "Only sent quotes can be moved to Quote Sent stage." 
+          message: "Only sent quotes can be moved to Quote Awaiting Response stage. Send the quote first via text or email." 
         };
       }
+      // Additional check: the quote should have been sent (status should be 'Awaiting Response')
+      // This would require checking the actual quote data from the store
+      // For now, we'll allow it but this could be enhanced with more detailed tracking
     } else if (stageTitle.includes('invoice') && stageTitle.includes('sent')) {
       // For "Invoice Sent" stage
       return { 
