@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { QuoteWithClient } from "@/utils/dataHelpers";
-import { Search, Filter, MoreHorizontal, Copy, MessageSquareText, Mail } from "lucide-react";
+import { Search, Filter, MoreHorizontal, MessageSquareText, Mail } from "lucide-react";
 import { SendQuoteModal } from "./SendQuoteModal";
 import { EmailQuoteModal } from "./EmailQuoteModal";
 import { useQuoteStore } from "@/store/quoteStore";
@@ -117,72 +117,64 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
           </TableHeader>
           <TableBody>
             {filteredQuotes.map(quote => (
-              <TableRow key={quote.id} className="hover:bg-gray-50">
-                <TableCell>
-                  <div>
-                    <div className="font-medium text-gray-900">{quote.client.name}</div>
-                    <div className="text-sm text-gray-500">{quote.title}</div>
+              <HoverCard key={quote.id} openDelay={100} closeDelay={300}>
+                <HoverCardTrigger asChild>
+                  <TableRow className="hover:bg-gray-50 cursor-pointer">
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-gray-900">{quote.client.name}</div>
+                        <div className="text-sm text-gray-500">{quote.title}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{quote.quoteNumber}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{quote.property}</TableCell>
+                    <TableCell className="text-sm text-gray-600">{formatDate(quote.createdDate)}</TableCell>
+                    <TableCell>
+                      <Badge className={`${getStatusBadgeColor(quote.status)} border-0`}>
+                        {quote.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(quote.amount)}</TableCell>
+                  </TableRow>
+                </HoverCardTrigger>
+                <HoverCardContent 
+                  className="w-auto p-2 bg-white border shadow-lg z-50" 
+                  side="top" 
+                  align="end"
+                  sideOffset={12}
+                  alignOffset={0}
+                  avoidCollisions={false}
+                >
+                  <div className="flex items-center space-x-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
+                      title="Send as text message"
+                      onClick={() => handleSendQuoteText(quote)}
+                    >
+                      <MessageSquareText className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
+                      title="Send as email"
+                      onClick={() => handleSendQuoteEmail(quote)}
+                    >
+                      <Mail className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
+                      title="More options"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
                   </div>
-                </TableCell>
-                <TableCell className="font-mono text-sm">{quote.quoteNumber}</TableCell>
-                <TableCell className="text-sm text-gray-600">{quote.property}</TableCell>
-                <TableCell className="text-sm text-gray-600">{formatDate(quote.createdDate)}</TableCell>
-                <TableCell>
-                  <Badge className={`${getStatusBadgeColor(quote.status)} border-0`}>
-                    {quote.status}
-                  </Badge>
-                </TableCell>
-                <HoverCard openDelay={100} closeDelay={300}>
-                  <HoverCardTrigger asChild>
-                    <TableCell className="text-right font-medium cursor-pointer">{formatCurrency(quote.amount)}</TableCell>
-                  </HoverCardTrigger>
-                  <HoverCardContent 
-                    className="w-auto p-2 bg-white border shadow-lg z-50" 
-                    side="top" 
-                    align="end"
-                    sideOffset={8}
-                    alignOffset={0}
-                    avoidCollisions={false}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        title="Send as text message"
-                        onClick={() => handleSendQuoteText(quote)}
-                      >
-                        <MessageSquareText className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        title="Send as email"
-                        onClick={() => handleSendQuoteEmail(quote)}
-                      >
-                        <Mail className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        title="Copy"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 hover:bg-gray-100"
-                        title="More options"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              </TableRow>
+                </HoverCardContent>
+              </HoverCard>
             ))}
             {filteredQuotes.length === 0 && (
               <TableRow>
