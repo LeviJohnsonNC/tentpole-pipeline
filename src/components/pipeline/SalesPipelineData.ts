@@ -188,6 +188,12 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
     console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none');
     
+    // AUTO CLOSED-WON LOGIC: Exclude deals with approved/converted quotes
+    if (newestQuote && (newestQuote.status === 'Approved' || newestQuote.status === 'Converted')) {
+      console.log(`Request ${request.id} excluded from pipeline - newest quote ${newestQuote.id} is ${newestQuote.status} (auto closed-won)`);
+      return null;
+    }
+    
     // Determine pipeline stage based on newest quote or request alone
     const pipelineStage = assignPipelineStage(request, newestQuote, stages);
     
@@ -232,7 +238,13 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     // Must be standalone (no requestId)
     if (quote.requestId) return false;
     
-    // Must have active status (not closed won or archived)
+    // AUTO CLOSED-WON LOGIC: Exclude approved/converted quotes
+    if (quote.status === 'Approved' || quote.status === 'Converted') {
+      console.log(`Standalone quote ${quote.id} excluded from pipeline - status is ${quote.status} (auto closed-won)`);
+      return false;
+    }
+    
+    // Must have active status (not archived)
     return quote.status === 'Draft' || quote.status === 'Awaiting Response' || quote.status === 'Changes Requested';
   });
   console.log('Standalone quotes for pipeline:', standaloneQuotes.length);

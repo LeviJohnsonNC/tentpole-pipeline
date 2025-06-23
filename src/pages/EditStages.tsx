@@ -1,5 +1,11 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, GripVertical, Trash2, Plus, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
+import { useStagesStore, Stage } from "@/store/stagesStore";
+import { toast } from "sonner";
 import {
   DndContext,
   closestCenter,
@@ -13,59 +19,114 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  horizontalListSortingStrategy,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Search, Bell, MessageCircle, Settings, Plus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import Sidebar from "@/components/Sidebar";
-import StageCard from "@/components/stages/StageCard";
-import { useStagesStore } from "@/store/stagesStore";
-import { useNavigate, useLocation } from "react-router-dom";
 
-const jobberStageOptions = [
-  "Assessment Complete",
-  "Draft Quote", 
-  "Quote Awaiting Response",
-  "Quote Changes Requested"
-];
+interface SortableStageProps {
+  stage: Stage;
+  onTitleChange: (id: string, title: string) => void;
+  onDelete: (id: string) => void;
+}
+
+const SortableStage = ({ stage, onTitleChange, onDelete }: SortableStageProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: stage.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-white border border-gray-200 rounded-lg p-4 ${
+        isDragging ? 'opacity-50' : ''
+      } ${stage.isImmutable ? 'bg-gray-50' : ''}`}
+    >
+      <div className="flex items-center space-x-3">
+        <div
+          {...attributes}
+          {...listeners}
+          className={`cursor-move text-gray-400 hover:text-gray-600 ${
+            stage.isImmutable ? 'cursor-not-allowed opacity-50' : ''
+          }`}
+        >
+          <GripVertical className="h-5 w-5" />
+        </div>
+        
+        {stage.isImmutable && (
+          <Lock className="h-4 w-4 text-gray-400" />
+        )}
+        
+        <div className="flex-1">
+          <Input
+            value={stage.title}
+            onChange={(e) => onTitleChange(stage.id, e.target.value)}
+            className={`border-none px-0 font-medium focus-visible:ring-0 focus-visible:ring-offset-0 ${
+              stage.isImmutable ? 'bg-gray-50 cursor-not-allowed' : ''
+            }`}
+            disabled={stage.isImmutable}
+            placeholder="Stage name"
+          />
+        </div>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onDelete(stage.id)}
+          className={`text-gray-400 hover:text-red-600 ${
+            stage.isImmutable ? 'cursor-not-allowed opacity-50' : ''
+          }`}
+          disabled={stage.isImmutable}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      {stage.isJobberStage && (
+        <div className="mt-2">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            Jobber Stage
+          </span>
+        </div>
+      )}
+      
+      {stage.isImmutable && (
+        <div className="mt-2">
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+            <Lock className="h-3 w-3 mr-1" />
+            Locked Stage
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const EditStages = () => {
-  const { stages, updateStageTitle, reorderStages, addCustomStage, addJobberStage, deleteStage, getUsedJobberStages } = useStagesStore();
-  const [showJobberDropdown, setShowJobberDropdown] = useState(false);
-  const [referrerTab, setReferrerTab] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
+  const { stages, updateStageTitle, reorderStages, addCustomStage, deleteStage } = useStagesStore();
+  const [localStages, setLocalStages] = useState<Stage[]>(stages);
 
   useEffect(() => {
-    // Check if we have state from navigation that tells us which tab was active
-    if (location.state && location.state.fromTab) {
-      setReferrerTab(location.state.fromTab);
-    }
-  }, [location.state]);
-
-  const usedJobberStages = getUsedJobberStages();
-  const availableJobberStages = jobberStageOptions.filter(option => !usedJobberStages.includes(option));
+    setLocalStages(stages);
+  }, [stages]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
+    useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -75,43 +136,58 @@ const EditStages = () => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = stages.findIndex((stage) => stage.id === active.id);
-      const newIndex = stages.findIndex((stage) => stage.id === over.id);
-
-      const reorderedStages = arrayMove(stages, oldIndex, newIndex);
-      reorderStages(reorderedStages);
-    }
-  };
-
-  const handleJobberStageSelect = (stageTitle: string) => {
-    addJobberStage(stageTitle);
-    setShowJobberDropdown(false);
-  };
-
-  const handleDeleteStage = (id: string) => {
-    deleteStage(id);
-  };
-
-  const handleClose = () => {
-    try {
-      // If we know which tab the user came from, navigate accordingly
-      if (referrerTab === 'sales-pipeline') {
-        navigate('/', { state: { activeTab: 'sales-pipeline' } });
-      } else if (referrerTab === 'all-requests') {
-        navigate('/', { state: { activeTab: 'all-requests' } });
-      } else {
-        // Try to go back, with fallback to home
-        if (window.history.length > 1) {
-          navigate(-1);
-        } else {
-          navigate('/');
-        }
+      const oldIndex = localStages.findIndex((stage) => stage.id === active.id);
+      const newIndex = localStages.findIndex((stage) => stage.id === over.id);
+      
+      // Prevent moving immutable stages
+      const activeStage = localStages[oldIndex];
+      if (activeStage?.isImmutable) {
+        toast.error("Cannot reorder locked stages");
+        return;
       }
-    } catch (error) {
-      console.error('Navigation error:', error);
-      // Fallback to home page
-      navigate('/');
+      
+      // Prevent moving other stages to the first position if "New Lead" exists
+      const hasImmutableFirst = localStages.some(stage => stage.isImmutable && stage.id === "new-deals");
+      if (hasImmutableFirst && newIndex === 0) {
+        toast.error("Cannot move stages before the locked 'New Lead' stage");
+        return;
+      }
+
+      const newStages = arrayMove(localStages, oldIndex, newIndex);
+      setLocalStages(newStages);
+      reorderStages(newStages);
     }
+  };
+
+  const handleTitleChange = (id: string, title: string) => {
+    const stage = localStages.find(s => s.id === id);
+    if (stage?.isImmutable) {
+      toast.error("Cannot edit locked stage titles");
+      return;
+    }
+    
+    setLocalStages(prev => 
+      prev.map(stage => 
+        stage.id === id ? { ...stage, title } : stage
+      )
+    );
+    updateStageTitle(id, title);
+  };
+
+  const handleDelete = (id: string) => {
+    const stage = localStages.find(s => s.id === id);
+    if (stage?.isImmutable) {
+      toast.error("Cannot delete locked stages");
+      return;
+    }
+    
+    deleteStage(id);
+    toast.success("Stage deleted successfully");
+  };
+
+  const handleAddStage = () => {
+    addCustomStage();
+    toast.success("New stage added");
   };
 
   return (
@@ -123,34 +199,14 @@ const EditStages = () => {
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="text-sm font-medium text-gray-600">GROW QA 1</div>
-            </div>
-            
-            <div className="flex-1 max-w-md mx-8">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input 
-                  placeholder="Search" 
-                  className="pl-10 bg-gray-50 border-gray-200 focus:bg-white"
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
-                  /
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" className="p-2">
-                <MessageCircle className="h-4 w-4 text-gray-600" />
-              </Button>
-              <Button variant="ghost" size="sm" className="p-2 relative">
-                <Bell className="h-4 w-4 text-gray-600" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 text-xs bg-red-500 text-white rounded-full flex items-center justify-center p-0">
-                  20
-                </Badge>
-              </Button>
-              <Button variant="ghost" size="sm" className="p-2">
-                <Settings className="h-4 w-4 text-gray-600" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/')}
+                className="flex items-center space-x-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Pipeline</span>
               </Button>
             </div>
           </div>
@@ -158,110 +214,54 @@ const EditStages = () => {
         
         {/* Main Content */}
         <main className="flex-1 p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900">Edit Stages</h1>
-            <p className="text-gray-600 mt-2">Customize your sales pipeline stages. Click on a stage name to edit it, or drag to reorder.</p>
-          </div>
-          
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-2">Pipeline Stages</h2>
-              <p className="text-sm text-gray-500">
-                These stages represent your sales pipeline. You can rename them and reorder them to match your workflow.
+          <div className="max-w-2xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-2xl font-semibold text-gray-900 mb-2">Edit Pipeline Stages</h1>
+              <p className="text-gray-600">
+                Customize your sales pipeline by adding, removing, or reordering stages. 
+                Locked stages cannot be modified and maintain their position.
               </p>
             </div>
 
-            <div className="flex items-start space-x-4">
+            <div className="space-y-4">
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={stages.map(stage => stage.id)}
-                  strategy={horizontalListSortingStrategy}
+                  items={localStages.map(stage => stage.id)}
+                  strategy={verticalListSortingStrategy}
                 >
-                  <div className="flex space-x-4 flex-1">
-                    {stages
-                      .sort((a, b) => a.order - b.order)
-                      .map((stage) => (
-                        <div key={stage.id} className="flex-1 min-w-0">
-                          <StageCard
-                            stage={stage}
-                            onUpdateTitle={updateStageTitle}
-                            onDelete={handleDeleteStage}
-                            canDelete={stages.length > 1}
-                          />
-                        </div>
-                      ))}
-                  </div>
+                  {localStages
+                    .sort((a, b) => a.order - b.order)
+                    .map((stage) => (
+                      <SortableStage
+                        key={stage.id}
+                        stage={stage}
+                        onTitleChange={handleTitleChange}
+                        onDelete={handleDelete}
+                      />
+                    ))}
                 </SortableContext>
               </DndContext>
-
-              <div className="flex flex-col space-y-3 ml-6">
-                <Button 
-                  onClick={addCustomStage}
-                  variant="outline" 
-                  size="sm"
-                  className="whitespace-nowrap"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Custom Stage
-                </Button>
-                
-                <Popover open={showJobberDropdown} onOpenChange={setShowJobberDropdown}>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="whitespace-nowrap"
-                      disabled={availableJobberStages.length === 0}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Jobber Stage
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-0">
-                    <div className="p-2">
-                      <div className="text-sm font-medium text-gray-900 mb-2 px-2">
-                        Select a Jobber stage:
-                      </div>
-                      {availableJobberStages.length > 0 ? (
-                        availableJobberStages.map((option) => (
-                          <Button
-                            key={option}
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-start text-left"
-                            onClick={() => handleJobberStageSelect(option)}
-                          >
-                            {option}
-                          </Button>
-                        ))
-                      ) : (
-                        <div className="px-2 py-3 text-sm text-gray-500">
-                          All Jobber stages have been added
-                        </div>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
-              <p className="text-xs text-gray-500">
-                Changes are automatically saved and will be reflected in your sales pipeline.
-              </p>
+              
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="text-gray-500 hover:text-gray-700"
+                variant="outline"
+                onClick={handleAddStage}
+                className="w-full border-dashed border-2 h-16 text-gray-500 hover:text-gray-700 hover:border-gray-400"
               >
-                <X className="h-4 w-4 mr-2" />
-                Close
+                <Plus className="h-5 w-5 mr-2" />
+                Add New Stage
               </Button>
+            </div>
+
+            <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-medium text-blue-900 mb-2">About Locked Stages</h3>
+              <p className="text-sm text-blue-700">
+                Locked stages (like "New Lead") are core to the pipeline workflow and cannot be renamed, moved, or deleted. 
+                These stages ensure consistent deal flow and automatic business logic.
+              </p>
             </div>
           </div>
         </main>

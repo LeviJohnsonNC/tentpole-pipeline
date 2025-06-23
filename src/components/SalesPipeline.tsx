@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -35,7 +36,7 @@ import {
 } from './pipeline/SalesPipelineData';
 
 const SalesPipeline = () => {
-  const { sessionClients } = useClientStore();
+  const { sessionClients, updateSessionClient } = useClientStore();
   const { sessionRequests } = useRequestStore();
   const { sessionQuotes } = useQuoteStore();
   const { stages } = useStagesStore();
@@ -51,14 +52,33 @@ const SalesPipeline = () => {
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Update deals when session data changes, especially quote status changes
+  // Auto Closed-Won Logic: Monitor quote status changes and remove deals
   React.useEffect(() => {
     console.log('Session data changed. Updating deals...');
     const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    
+    // Check for quotes that were approved/converted and trigger auto closed-won
+    sessionQuotes.forEach(quote => {
+      if (quote.status === 'Approved' || quote.status === 'Converted') {
+        console.log('Auto Closed-Won triggered for quote:', quote.id, 'status:', quote.status);
+        
+        // Update client status to Active if they are currently a Lead
+        const client = sessionClients.find(c => c.id === quote.clientId);
+        if (client && client.status === 'Lead') {
+          console.log('Updating client status from Lead to Active:', client.id);
+          updateSessionClient(client.id, { status: 'Active' });
+          toast.success(`Deal won! Client ${client.name} is now Active.`);
+        }
+        
+        // Remove the deal from pipeline (it's automatically excluded in createInitialDeals)
+        console.log('Deal automatically removed from pipeline due to quote approval/conversion');
+      }
+    });
+    
     console.log('New deals count:', newDeals.length);
     console.log('New deals:', newDeals.map(d => ({ id: d.id, status: d.status, type: d.type })));
     setDeals(newDeals);
-  }, [sessionClients, sessionRequests, sessionQuotes, stages]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -232,7 +252,7 @@ const SalesPipeline = () => {
 
     if (!overContainer) return;
 
-    // Handle action zone drops
+    // Handle action zone drops with enhanced closed-won logic
     if (overContainer.startsWith('action-')) {
       console.log('Handling action zone drop:', overContainer, 'for deal:', activeId);
       switch (overContainer) {
@@ -243,6 +263,16 @@ const SalesPipeline = () => {
           handleLostAction(activeId, deals, setDeals);
           break;
         case 'action-won':
+          // Enhanced won action with client status update
+          const deal = deals.find(d => d.id === activeId);
+          if (deal) {
+            const client = sessionClients.find(c => c.name === deal.client);
+            if (client && client.status === 'Lead') {
+              console.log('Manually marking deal as won - updating client status to Active:', client.id);
+              updateSessionClient(client.id, { status: 'Active' });
+              toast.success(`Deal won! Client ${client.name} is now Active.`);
+            }
+          }
           handleWonAction(activeId, deals, setDeals);
           break;
       }

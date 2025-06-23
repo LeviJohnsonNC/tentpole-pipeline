@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface Stage {
@@ -6,6 +5,7 @@ export interface Stage {
   title: string;
   order: number;
   isJobberStage?: boolean;
+  isImmutable?: boolean; // New field to mark stages that cannot be modified
 }
 
 interface StagesState {
@@ -20,7 +20,7 @@ interface StagesState {
 }
 
 const defaultStages: Stage[] = [
-  { id: "new-deals", title: "New Deals", order: 1 },
+  { id: "new-deals", title: "New Lead", order: 1, isImmutable: true }, // Made immutable
   { id: "contacted", title: "Contacted", order: 2 },
   { id: "draft-quote", title: "Draft Quote", order: 3, isJobberStage: true },
   { id: "quote-awaiting-response", title: "Quote Awaiting Response", order: 4, isJobberStage: true },
@@ -32,17 +32,34 @@ export const useStagesStore = create<StagesState>((set, get) => ({
   updateStages: (stages) => set({ stages }),
   
   updateStageTitle: (id, title) => set((state) => ({
-    stages: state.stages.map(stage => 
-      stage.id === id ? { ...stage, title } : stage
-    )
+    stages: state.stages.map(stage => {
+      // Prevent updating immutable stages
+      if (stage.isImmutable && stage.id === id) {
+        console.warn(`Cannot update title of immutable stage: ${id}`);
+        return stage;
+      }
+      return stage.id === id ? { ...stage, title } : stage;
+    })
   })),
   
   reorderStages: (reorderedStages) => {
-    const stagesWithUpdatedOrder = reorderedStages.map((stage, index) => ({
-      ...stage,
-      order: index + 1
-    }));
-    set({ stages: stagesWithUpdatedOrder });
+    // Ensure immutable stages maintain their position
+    const stagesWithUpdatedOrder = reorderedStages.map((stage, index) => {
+      if (stage.isImmutable && stage.id === "new-deals") {
+        // Keep "New Lead" at position 1
+        return { ...stage, order: 1 };
+      }
+      return { ...stage, order: index + 1 };
+    });
+    
+    // Sort to ensure "New Lead" is always first
+    const sortedStages = stagesWithUpdatedOrder.sort((a, b) => {
+      if (a.isImmutable && a.id === "new-deals") return -1;
+      if (b.isImmutable && b.id === "new-deals") return 1;
+      return a.order - b.order;
+    });
+    
+    set({ stages: sortedStages });
   },
   
   addCustomStage: () => set((state) => {
@@ -68,9 +85,17 @@ export const useStagesStore = create<StagesState>((set, get) => ({
     return { stages: [...state.stages, newStage] };
   }),
   
-  deleteStage: (id) => set((state) => ({
-    stages: state.stages.filter(stage => stage.id !== id)
-  })),
+  deleteStage: (id) => set((state) => {
+    // Prevent deletion of immutable stages
+    const stageToDelete = state.stages.find(stage => stage.id === id);
+    if (stageToDelete?.isImmutable) {
+      console.warn(`Cannot delete immutable stage: ${id}`);
+      return state;
+    }
+    return {
+      stages: state.stages.filter(stage => stage.id !== id)
+    };
+  }),
   
   getUsedJobberStages: () => {
     const stages = get().stages;
