@@ -7,7 +7,7 @@ interface Deal {
   property: string;
   contact: string;
   requested: string;
-  amount: number;
+  amount?: number; // Made optional - only present when there's a quote
   status: string; // Pipeline status, not request status
   type: 'request' | 'quote'; // New field to distinguish between requests and quotes
   quoteId?: string; // Optional field for quote-based deals
@@ -145,33 +145,6 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
   return 'draft-quote';
 };
 
-// Sample pricing based on service type
-const getEstimatedAmount = (serviceDetails: string, title: string): number => {
-  const details = serviceDetails.toLowerCase();
-  const titleLower = title.toLowerCase();
-  
-  if (details.includes('tree removal') || titleLower.includes('tree removal')) return 2500;
-  if (details.includes('landscaping') || details.includes('renovation')) return 4500;
-  if (details.includes('deck') && details.includes('restoration')) return 3200;
-  if (details.includes('pressure wash') && details.includes('building')) return 1800;
-  if (details.includes('parking lot')) return 2200;
-  if (details.includes('playground')) return 950;
-  if (details.includes('garden') && details.includes('renovation')) return 5500;
-  if (details.includes('hedge trimming')) return 350;
-  if (details.includes('fence')) return 420;
-  if (details.includes('sprinkler')) return 280;
-  if (details.includes('pool deck')) return 1600;
-  if (details.includes('flower bed')) return 850;
-  if (details.includes('cleanup')) return 650;
-  if (details.includes('assessment')) return 1200;
-  if (details.includes('emergency') || details.includes('storm')) return 1800;
-  if (details.includes('ramp') || details.includes('wheelchair')) return 3500;
-  if (details.includes('resealing') || details.includes('seal coating')) return 2800;
-  if (details.includes('winter prep') || details.includes('seasonal')) return 600;
-  
-  return 800; // Default amount
-};
-
 // Convert requests to deals for the pipeline (with newest quote logic)
 const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
@@ -205,8 +178,8 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       return null;
     }
     
-    // Use quote amount if available, otherwise estimate from request
-    const amount = newestQuote ? newestQuote.amount : getEstimatedAmount(request.serviceDetails, request.title);
+    // Only include amount if there's a quote - no estimated amounts for requests without quotes
+    const amount = newestQuote ? newestQuote.amount : undefined;
     
     return {
       id: request.id,
@@ -215,7 +188,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       property: request.client.primaryAddress,
       contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
       requested: request.requestDate,
-      amount: amount,
+      amount: amount, // Only present if there's a quote
       status: pipelineStage,
       type: 'request' as const,
       quoteId: newestQuote?.id
@@ -267,7 +240,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
       property: quote.property,
       contact: [quote.client.phone, quote.client.email].filter(Boolean).join('\n'),
       requested: quote.createdDate,
-      amount: quote.amount,
+      amount: quote.amount, // Always present for quotes
       status: pipelineStage,
       type: 'quote' as const,
       quoteId: quote.id

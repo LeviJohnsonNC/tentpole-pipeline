@@ -10,7 +10,7 @@ interface Deal {
   property: string;
   contact: string;
   requested: string;
-  amount: number;
+  amount?: number; // Made optional
   status: string;
 }
 
@@ -38,6 +38,10 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
 
   const isBeingDragged = isDragging || isSortableDragging;
 
+  const formatAmount = (amount: number) => {
+    return `$ ${amount.toLocaleString()}.00`;
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -60,6 +64,11 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
         {deal.client}
       </h4>
       <p className="text-xs text-gray-600 truncate">{deal.title}</p>
+      {deal.amount && (
+        <p className="text-xs text-green-600 font-medium mt-1">
+          {formatAmount(deal.amount)}
+        </p>
+      )}
     </div>
   );
 };
