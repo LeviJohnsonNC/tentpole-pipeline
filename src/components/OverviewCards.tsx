@@ -4,7 +4,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const OverviewCards = () => {
+interface OverviewCardsProps {
+  onStatusFilter?: (status: string | null) => void;
+  activeStatusFilter?: string | null;
+}
+
+const OverviewCards = ({ onStatusFilter, activeStatusFilter }: OverviewCardsProps) => {
+  const handleStatusClick = (status: string) => {
+    if (onStatusFilter) {
+      // If clicking the same status, clear the filter; otherwise set the new filter
+      onStatusFilter(activeStatusFilter === status ? null : status);
+    }
+  };
+
+  const getStatusButtonClass = (status: string) => {
+    const isActive = activeStatusFilter === status;
+    return `cursor-pointer transition-colors ${
+      isActive ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
+    }`;
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       {/* Overview Card */}
@@ -12,25 +31,37 @@ const OverviewCards = () => {
         <CardContent className="p-4">
           <h3 className="font-medium text-gray-900 mb-3">Overview</h3>
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div 
+              className={`flex items-center justify-between p-2 rounded ${getStatusButtonClass('New')}`}
+              onClick={() => handleStatusClick('New')}
+            >
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span className="text-sm text-gray-600">New (22)</span>
               </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div 
+              className={`flex items-center justify-between p-2 rounded ${getStatusButtonClass('Assessment complete')}`}
+              onClick={() => handleStatusClick('Assessment complete')}
+            >
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="text-sm text-gray-600">Assessment complete (4)</span>
               </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div 
+              className={`flex items-center justify-between p-2 rounded ${getStatusButtonClass('Overdue')}`}
+              onClick={() => handleStatusClick('Overdue')}
+            >
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                 <span className="text-sm text-gray-600">Overdue (2)</span>
               </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div 
+              className={`flex items-center justify-between p-2 rounded ${getStatusButtonClass('Unscheduled')}`}
+              onClick={() => handleStatusClick('Unscheduled')}
+            >
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                 <span className="text-sm text-gray-600">Unscheduled (2)</span>

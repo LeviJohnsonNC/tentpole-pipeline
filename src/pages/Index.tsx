@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("all-requests");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const { sessionRequests } = useRequestStore();
   const { sessionClients } = useClientStore();
   const location = useLocation();
@@ -47,6 +48,10 @@ const Index = () => {
   const handleResetSampleData = () => {
     resetToSampleData();
     toast.success("Sample data has been reset to original state");
+  };
+
+  const handleStatusFilter = (status: string | null) => {
+    setStatusFilter(status);
   };
 
   return (
@@ -129,7 +134,12 @@ const Index = () => {
               </div>
             </div>
             
-            {activeTab === "all-requests" && <OverviewCards />}
+            {activeTab === "all-requests" && (
+              <OverviewCards 
+                onStatusFilter={handleStatusFilter}
+                activeStatusFilter={statusFilter}
+              />
+            )}
           </div>
           
           {/* Tabs and Content */}
@@ -166,7 +176,7 @@ const Index = () => {
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600">Status</span>
                       <Button variant="outline" size="sm" className="h-8">
-                        All <ChevronDown className="h-3 w-3 ml-1" />
+                        {statusFilter || 'All'} <ChevronDown className="h-3 w-3 ml-1" />
                       </Button>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -191,7 +201,7 @@ const Index = () => {
             {/* Content */}
             <div className="p-4">
               {activeTab === "all-requests" ? (
-                <RequestsTable requests={allRequests} />
+                <RequestsTable requests={allRequests} statusFilter={statusFilter} />
               ) : activeTab === "sales-pipeline" ? (
                 <SalesPipeline />
               ) : (
