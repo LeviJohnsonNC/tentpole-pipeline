@@ -25,17 +25,19 @@ const ClientSelector = ({ value, onValueChange, placeholder = "Select client..."
   console.log('ClientSelector render - sessionClients:', sessionClients);
   console.log('ClientSelector render - sessionClients length:', sessionClients.length);
   
+  // Force re-render when sessionClients change
+  const [, forceUpdate] = useState({});
+  useEffect(() => {
+    console.log('ClientSelector useEffect - sessionClients changed:', sessionClients.length);
+    forceUpdate({});
+  }, [sessionClients]);
+  
   // Get all clients directly without memoization to ensure reactivity
   const clients = getAllClients(sessionClients);
   console.log('ClientSelector render - all clients:', clients);
   console.log('ClientSelector render - all clients length:', clients.length);
   
   const selectedClient = clients.find(client => client.id === value);
-
-  // Add effect to log when sessionClients change
-  useEffect(() => {
-    console.log('ClientSelector useEffect - sessionClients changed:', sessionClients);
-  }, [sessionClients]);
 
   const getStatusColor = (status: Client['status']) => {
     switch (status) {

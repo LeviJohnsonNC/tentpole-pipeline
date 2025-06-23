@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,15 @@ interface ClientSelectionModalProps {
 
 const ClientSelectionModal = ({ isOpen, onClose, onClientSelect }: ClientSelectionModalProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { sessionClients } = useClientStore();
+  const sessionClients = useClientStore(state => state.sessionClients);
   const navigate = useNavigate();
+  
+  // Force re-render when sessionClients change
+  const [, forceUpdate] = useState({});
+  useEffect(() => {
+    console.log('ClientSelectionModal - sessionClients changed:', sessionClients.length);
+    forceUpdate({});
+  }, [sessionClients]);
   
   const clients = getAllClients(sessionClients);
   
