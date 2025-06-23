@@ -244,5 +244,101 @@ export const requestsData: Request[] = [
     urgency: 'Low',
     preferredTime: 'Cancelled',
     notes: 'Business permanently closed'
+  },
+  {
+    id: 'request-21',
+    clientId: 'client-1',
+    title: 'Rooftop Garden Assessment',
+    serviceDetails: 'Comprehensive assessment of rooftop garden feasibility including structural analysis, irrigation planning, and plant selection.',
+    requestDate: '2025-06-01',
+    status: 'Assessment complete',
+    assignedTeamMember: 'Lisa Chen',
+    urgency: 'Medium',
+    preferredTime: 'Fall installation',
+    notes: 'Assessment completed, waiting for board approval'
+  },
+  {
+    id: 'request-22',
+    clientId: 'client-3',
+    title: 'Kitchen Grease Trap Cleaning',
+    serviceDetails: 'Professional cleaning and maintenance of restaurant grease trap system, including disposal compliance.',
+    requestDate: '2025-05-28',
+    status: 'Assessment complete',
+    assignedTeamMember: 'Mike Johnson',
+    urgency: 'High',
+    preferredTime: 'After business hours',
+    notes: 'Assessment shows monthly service needed'
+  },
+  {
+    id: 'request-23',
+    clientId: 'client-6',
+    title: 'Property Line Fence Installation',
+    serviceDetails: 'Install 200ft privacy fence along property line including gate installation and landscape restoration.',
+    requestDate: '2025-06-03',
+    status: 'Assessment complete',
+    assignedTeamMember: 'Lisa Chen',
+    urgency: 'Low',
+    preferredTime: 'Summer months',
+    notes: 'Permits obtained, material selection finalized'
+  },
+  {
+    id: 'request-24',
+    clientId: 'client-9',
+    title: 'Athletic Field Renovation',
+    serviceDetails: 'Complete renovation of school athletic field including new turf, drainage system, and perimeter fencing.',
+    requestDate: '2025-05-25',
+    status: 'Assessment complete',
+    assignedTeamMember: 'Mike Johnson',
+    urgency: 'Medium',
+    preferredTime: 'Summer break',
+    notes: 'Engineering assessment complete, budget approved'
+  },
+  {
+    id: 'request-25',
+    clientId: 'client-5',
+    title: 'Emergency Storm Cleanup',
+    serviceDetails: 'Urgent cleanup of storm damage including fallen branches, debris removal, and safety hazard elimination.',
+    requestDate: '2025-05-20',
+    status: 'Overdue',
+    assignedTeamMember: 'Mike Johnson',
+    urgency: 'High',
+    preferredTime: 'ASAP',
+    notes: 'Originally scheduled for last week, customer calling daily'
+  },
+  {
+    id: 'request-26',
+    clientId: 'client-11',
+    title: 'Wheelchair Ramp Installation',
+    serviceDetails: 'Install ADA-compliant wheelchair ramp at main entrance including handrails and non-slip surface.',
+    requestDate: '2025-05-18',
+    status: 'Overdue',
+    assignedTeamMember: 'Lisa Chen',
+    urgency: 'High',
+    preferredTime: 'ASAP',
+    notes: 'Delayed due to permit issues, resident needs access urgently'
+  },
+  {
+    id: 'request-27',
+    clientId: 'client-7',
+    title: 'Office Parking Lot Resealing',
+    serviceDetails: 'Seal coating and crack repair for 50-space office building parking lot including line repainting.',
+    requestDate: '2025-06-05',
+    status: 'Unscheduled',
+    assignedTeamMember: 'Mike Johnson',
+    urgency: 'Low',
+    preferredTime: 'Fall season',
+    notes: 'Waiting for optimal weather conditions for sealing'
+  },
+  {
+    id: 'request-28',
+    clientId: 'client-12',
+    title: 'Winter Prep Landscape Service',
+    serviceDetails: 'Seasonal preparation including mulching, pruning, winterization of irrigation system, and lawn treatments.',
+    requestDate: '2025-06-07',
+    status: 'Unscheduled',
+    assignedTeamMember: 'Lisa Chen',
+    urgency: 'Low',
+    preferredTime: 'Late fall',
+    notes: 'Scheduled for October-November timeframe'
   }
 ];

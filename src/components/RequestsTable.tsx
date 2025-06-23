@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -24,6 +23,12 @@ const RequestsTable = ({ requests, statusFilter }: RequestsTableProps) => {
         return 'bg-green-100 text-green-800';
       case 'Archived':
         return 'bg-red-100 text-red-800';
+      case 'Assessment complete':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'Overdue':
+        return 'bg-red-100 text-red-800';
+      case 'Unscheduled':
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }

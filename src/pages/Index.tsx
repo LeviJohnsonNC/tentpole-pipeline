@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from "react";
 import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -138,6 +137,7 @@ const Index = () => {
               <OverviewCards 
                 onStatusFilter={handleStatusFilter}
                 activeStatusFilter={statusFilter}
+                requests={allRequests}
               />
             )}
           </div>

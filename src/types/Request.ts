@@ -7,7 +7,7 @@ export interface Request {
   requestDate: string;
   customFields?: Record<string, any>;
   assignedTeamMember?: string;
-  status: 'New' | 'Converted' | 'Archived';
+  status: 'New' | 'Converted' | 'Archived' | 'Assessment complete' | 'Overdue' | 'Unscheduled';
   quoteId?: string;
   jobId?: string;
   attachments?: string[];

@@ -1,4 +1,3 @@
-
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -64,7 +63,28 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     }
   }
   
-  // If no quote, use original mapping for realistic distribution
+  // Handle new status types for requests without quotes
+  if (request.status === 'Assessment complete') {
+    // Check if there's an "Assessment complete" stage in the pipeline
+    const assessmentStage = stages.find(stage => 
+      stage.title.toLowerCase().includes('assessment') && stage.title.toLowerCase().includes('complete')
+    );
+    if (assessmentStage) {
+      return assessmentStage.id;
+    }
+    // If no assessment stage exists, put in draft-quote stage
+    return 'draft-quote';
+  }
+  
+  if (request.status === 'Overdue') {
+    return 'followup'; // Overdue requests go to followup
+  }
+  
+  if (request.status === 'Unscheduled') {
+    return 'contacted'; // Unscheduled requests go to contacted
+  }
+  
+  // If no quote, use original mapping for realistic distribution of New requests
   const stageMapping: Record<string, string> = {
     'request-1': 'new-deals',
     'request-2': 'new-deals', 
@@ -141,6 +161,11 @@ const getEstimatedAmount = (serviceDetails: string, title: string): number => {
   if (details.includes('pool deck')) return 1600;
   if (details.includes('flower bed')) return 850;
   if (details.includes('cleanup')) return 650;
+  if (details.includes('assessment')) return 1200;
+  if (details.includes('emergency') || details.includes('storm')) return 1800;
+  if (details.includes('ramp') || details.includes('wheelchair')) return 3500;
+  if (details.includes('resealing') || details.includes('seal coating')) return 2800;
+  if (details.includes('winter prep') || details.includes('seasonal')) return 600;
   
   return 800; // Default amount
 };
@@ -151,10 +176,10 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
   console.log('Requests with client info:', requestsWithClients.length);
   
-  // Only include requests with status 'New'
+  // Include requests with statuses that should appear in pipeline
   const openRequests = requestsWithClients.filter(request => {
     console.log(`Request ${request.id} has status: ${request.status}`);
-    return request.status === 'New';
+    return ['New', 'Assessment complete', 'Overdue', 'Unscheduled'].includes(request.status);
   });
   console.log('Open requests for pipeline:', openRequests.length);
   
