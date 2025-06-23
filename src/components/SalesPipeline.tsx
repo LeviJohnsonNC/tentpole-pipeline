@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -50,6 +51,47 @@ const SalesPipeline = () => {
   
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const formatAmount = (amount: number) => {
+    return `$ ${amount.toLocaleString()}.00`;
+  };
+
+  const getColumnDeals = (columnId: string) => {
+    return deals.filter(deal => deal.status === columnId);
+  };
+
+  const getColumnTotalValue = (columnId: string) => {
+    const columnDeals = getColumnDeals(columnId);
+    const total = columnDeals.reduce((sum, deal) => sum + deal.amount, 0);
+    return formatAmount(total);
+  };
+
+  const findContainer = (id: string) => {
+    // Check if id is an action zone
+    if (id.startsWith('action-')) {
+      return id;
+    }
+    
+    // Check if id is a column id
+    if (stages.some(stage => stage.id === id)) {
+      return id;
+    }
+    
+    // Then check if it's a deal id
+    const deal = deals.find(deal => deal.id === id);
+    return deal?.status || null;
+  };
 
   // Calculate fixed height based on the column with the most cards
   const fixedColumnHeight = useMemo(() => {
