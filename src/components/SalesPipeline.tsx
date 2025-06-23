@@ -19,10 +19,12 @@ const SalesPipeline = () => {
     updateSessionClient
   } = useClientStore();
   const {
-    sessionRequests
+    sessionRequests,
+    updateSessionRequest
   } = useRequestStore();
   const {
-    sessionQuotes
+    sessionQuotes,
+    updateSessionQuote
   } = useQuoteStore();
   const {
     stages
@@ -258,30 +260,18 @@ const SalesPipeline = () => {
     const overContainer = findContainer(overId);
     if (!overContainer) return;
 
-    // Handle action zone drops with enhanced closed-won logic
+    // Handle action zone drops with enhanced store updates
     if (overContainer.startsWith('action-')) {
       console.log('Handling action zone drop:', overContainer, 'for deal:', activeId);
       switch (overContainer) {
         case 'action-delete':
-          handleDeleteAction(activeId, deals, setDeals);
+          handleDeleteAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote);
           break;
         case 'action-lost':
-          handleLostAction(activeId, deals, setDeals);
+          handleLostAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote);
           break;
         case 'action-won':
-          // Enhanced won action with client status update
-          const deal = deals.find(d => d.id === activeId);
-          if (deal) {
-            const client = sessionClients.find(c => c.name === deal.client);
-            if (client && client.status === 'Lead') {
-              console.log('Manually marking deal as won - updating client status to Active:', client.id);
-              updateSessionClient(client.id, {
-                status: 'Active'
-              });
-              toast.success(`Deal won! Client ${client.name} is now Active.`);
-            }
-          }
-          handleWonAction(activeId, deals, setDeals);
+          handleWonAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote, updateSessionClient, sessionClients);
           break;
       }
       return;

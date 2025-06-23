@@ -300,7 +300,85 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
   return totalDeals;
 };
 
-// ... keep existing code (pipelineColumns and action handlers)
+// Enhanced action handlers that update source data instead of just local state
+export const handleDeleteAction = (
+  dealId: string, 
+  deals: Deal[], 
+  setDeals: (deals: Deal[]) => void,
+  updateSessionRequest: (id: string, updates: Partial<any>) => void,
+  updateSessionQuote: (id: string, updates: Partial<any>) => void
+) => {
+  console.log('Deleting deal:', dealId);
+  
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) return;
+  
+  // Update source data to archived status
+  if (deal.type === 'request') {
+    updateSessionRequest(dealId, { status: 'Archived' });
+  } else if (deal.type === 'quote' && deal.quoteId) {
+    updateSessionQuote(deal.quoteId, { status: 'Archived' });
+  }
+  
+  // Local state will be updated by the pipeline regeneration
+  console.log('Deal archived in source data, pipeline will regenerate');
+};
+
+export const handleLostAction = (
+  dealId: string, 
+  deals: Deal[], 
+  setDeals: (deals: Deal[]) => void,
+  updateSessionRequest: (id: string, updates: Partial<any>) => void,
+  updateSessionQuote: (id: string, updates: Partial<any>) => void
+) => {
+  console.log('Marking deal as lost:', dealId);
+  
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) return;
+  
+  // Update source data to archived status (lost deals are archived)
+  if (deal.type === 'request') {
+    updateSessionRequest(dealId, { status: 'Archived' });
+  } else if (deal.type === 'quote' && deal.quoteId) {
+    updateSessionQuote(deal.quoteId, { status: 'Archived' });
+  }
+  
+  console.log('Deal marked as lost in source data, pipeline will regenerate');
+};
+
+export const handleWonAction = (
+  dealId: string, 
+  deals: Deal[], 
+  setDeals: (deals: Deal[]) => void,
+  updateSessionRequest: (id: string, updates: Partial<any>) => void,
+  updateSessionQuote: (id: string, updates: Partial<any>) => void,
+  updateSessionClient: (id: string, updates: Partial<any>) => void,
+  sessionClients: any[]
+) => {
+  console.log('Marking deal as won:', dealId);
+  
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) return;
+  
+  // Update source data to converted/approved status
+  if (deal.type === 'request') {
+    updateSessionRequest(dealId, { status: 'Converted' });
+  } else if (deal.type === 'quote' && deal.quoteId) {
+    updateSessionQuote(deal.quoteId, { status: 'Approved' });
+  }
+  
+  // Update client status to Active if they're currently a Lead
+  const client = sessionClients.find(c => c.name === deal.client);
+  if (client && client.status === 'Lead') {
+    console.log('Updating client status from Lead to Active:', client.id);
+    updateSessionClient(client.id, { status: 'Active' });
+  }
+  
+  console.log('Deal marked as won in source data, pipeline will regenerate');
+};
+
+export type { Deal };
+
 export const pipelineColumns = [
   { id: "new-deals", title: "New Deals" },
   { id: "contacted", title: "Contacted" },
@@ -308,24 +386,3 @@ export const pipelineColumns = [
   { id: "quote-awaiting-response", title: "Quote Awaiting Response" },
   { id: "followup", title: "Followup" }
 ];
-
-// Action handlers that work directly with deals state
-export const handleDeleteAction = (dealId: string, deals: Deal[], setDeals: (deals: Deal[]) => void) => {
-  console.log('Deleting deal:', dealId);
-  const updatedDeals = deals.filter(deal => deal.id !== dealId);
-  setDeals(updatedDeals);
-};
-
-export const handleLostAction = (dealId: string, deals: Deal[], setDeals: (deals: Deal[]) => void) => {
-  console.log('Marking deal as lost:', dealId);
-  const updatedDeals = deals.filter(deal => deal.id !== dealId);
-  setDeals(updatedDeals);
-};
-
-export const handleWonAction = (dealId: string, deals: Deal[], setDeals: (deals: Deal[]) => void) => {
-  console.log('Marking deal as won:', dealId);
-  const updatedDeals = deals.filter(deal => deal.id !== dealId);
-  setDeals(updatedDeals);
-};
-
-export type { Deal };
