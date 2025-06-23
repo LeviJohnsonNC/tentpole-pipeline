@@ -13,6 +13,7 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction } from './pipeline/SalesPipelineData';
+
 const SalesPipeline = () => {
   const {
     sessionClients,
@@ -58,7 +59,10 @@ const SalesPipeline = () => {
   };
   const getColumnTotalValue = (columnId: string) => {
     const columnDeals = getColumnDeals(columnId);
-    const total = columnDeals.reduce((sum, deal) => sum + deal.amount, 0);
+    const total = columnDeals.reduce((sum, deal) => {
+      // Only add to total if deal has an amount (i.e., has a quote)
+      return sum + (deal.amount || 0);
+    }, 0);
     return formatAmount(total);
   };
   const findContainer = (id: string) => {
