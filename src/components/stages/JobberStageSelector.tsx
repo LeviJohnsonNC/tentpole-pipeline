@@ -10,15 +10,12 @@ interface JobberStageSelectorProps {
 }
 
 const jobberStages = [
-  "Quote Requested",
-  "Quote Sent", 
-  "Quote Approved",
-  "Quote Rejected",
-  "Job Scheduled",
-  "Job In Progress",
-  "Job Completed",
-  "Invoice Sent",
-  "Payment Received"
+  "Draft Quote",
+  "Quote Awaiting Response", 
+  "Unscheduled Assessment",
+  "Overdue Assessment",
+  "Assessment Completed",
+  "Quote Changes Requested"
 ];
 
 const JobberStageSelector = ({ onSelect, onClose }: JobberStageSelectorProps) => {

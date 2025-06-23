@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -121,47 +122,45 @@ const EditStages = () => {
               </p>
             </div>
 
-            <div className="flex gap-6">
-              {/* Stages - Single Row with Horizontal Scroll */}
-              <div className="flex-1 overflow-x-auto">
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={localStages.map(stage => stage.id)} strategy={horizontalListSortingStrategy}>
-                    <div className="flex gap-4 min-w-max pb-4">
-                      {localStages.sort((a, b) => a.order - b.order).map(stage => (
-                        <div key={stage.id} className="w-32 flex-shrink-0">
-                          <StageCard 
-                            stage={stage} 
-                            onUpdateTitle={handleTitleChange} 
-                            onDelete={handleDelete} 
-                            canDelete={!stage.isImmutable} 
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              </div>
+            {/* Stages - Single Row with Horizontal Scroll */}
+            <div className="overflow-x-auto mb-6">
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={localStages.map(stage => stage.id)} strategy={horizontalListSortingStrategy}>
+                  <div className="flex gap-4 min-w-max pb-4">
+                    {localStages.sort((a, b) => a.order - b.order).map(stage => (
+                      <div key={stage.id} className="w-20 flex-shrink-0">
+                        <StageCard 
+                          stage={stage} 
+                          onUpdateTitle={handleTitleChange} 
+                          onDelete={handleDelete} 
+                          canDelete={!stage.isImmutable} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="w-64 space-y-4 flex-shrink-0">
-                <Button 
-                  onClick={handleAddStage} 
-                  className="w-full h-16 border-dashed border-2 border-gray-300 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-400 hover:bg-gray-50" 
-                  variant="outline"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Add Custom Stage
-                </Button>
-                
-                <Button 
-                  onClick={() => setShowJobberSelector(true)} 
-                  className="w-full h-16 border-dashed border-2 border-blue-300 bg-blue-50 text-blue-600 hover:text-blue-700 hover:border-blue-400 hover:bg-blue-100" 
-                  variant="outline"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Add Jobber Stage
-                </Button>
-              </div>
+            {/* Action Buttons - Below Cards */}
+            <div className="flex gap-4 justify-center">
+              <Button 
+                onClick={handleAddStage} 
+                className="h-12 px-6 border-dashed border-2 border-gray-300 bg-white text-gray-600 hover:text-gray-800 hover:border-gray-400 hover:bg-gray-50" 
+                variant="outline"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Custom Stage
+              </Button>
+              
+              <Button 
+                onClick={() => setShowJobberSelector(true)} 
+                className="h-12 px-6 border-dashed border-2 border-gray-400 bg-gray-100 text-gray-700 hover:text-gray-900 hover:border-gray-500 hover:bg-gray-200" 
+                variant="outline"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Jobber Stage
+              </Button>
             </div>
           </div>
         </main>
