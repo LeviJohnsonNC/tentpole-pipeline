@@ -19,6 +19,12 @@ export const useClientStore = create<ClientStore>((set, get) => ({
   isInitialized: false,
   
   initializeWithStaticData: () => {
+    const { isInitialized } = get();
+    if (isInitialized) {
+      console.log('Client store already initialized, skipping static data initialization');
+      return;
+    }
+    
     console.log('Initializing client store with static data:', clientsData.length, 'clients');
     set({
       sessionClients: [...clientsData],

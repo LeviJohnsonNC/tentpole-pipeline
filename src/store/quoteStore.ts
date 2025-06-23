@@ -19,6 +19,12 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
   isInitialized: false,
   
   initializeWithStaticData: () => {
+    const { isInitialized } = get();
+    if (isInitialized) {
+      console.log('Quote store already initialized, skipping static data initialization');
+      return;
+    }
+    
     console.log('Initializing quote store with static data:', quotesData.length, 'quotes');
     set({
       sessionQuotes: [...quotesData],
@@ -33,10 +39,12 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
     });
   },
   
-  addSessionQuote: (quote) =>
+  addSessionQuote: (quote) => {
+    console.log('Adding new quote to store:', quote.id, quote.title);
     set((state) => ({
       sessionQuotes: [...state.sessionQuotes, quote],
-    })),
+    }));
+  },
   
   removeSessionQuote: (id) =>
     set((state) => ({

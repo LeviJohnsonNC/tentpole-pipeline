@@ -18,6 +18,12 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
   isInitialized: false,
   
   initializeWithStaticData: () => {
+    const { isInitialized } = get();
+    if (isInitialized) {
+      console.log('Request store already initialized, skipping static data initialization');
+      return;
+    }
+    
     console.log('Initializing request store with static data:', requestsData.length, 'requests');
     set({
       sessionRequests: [...requestsData],

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import QuotesOverviewCards from "@/components/QuotesOverviewCards";
@@ -15,13 +16,18 @@ import { Badge } from "@/components/ui/badge";
 const Quotes = () => {
   const { sessionClients } = useClientStore();
   const { sessionRequests } = useRequestStore();
-  const { sessionQuotes, initializeWithStaticData } = useQuoteStore();
+  const { sessionQuotes, isInitialized, initializeWithStaticData } = useQuoteStore();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   
-  // Ensure store is initialized
+  // Only initialize if not already initialized
   useEffect(() => {
-    initializeWithStaticData();
-  }, [initializeWithStaticData]);
+    if (!isInitialized) {
+      console.log('Quotes page: Initializing quote store (not yet initialized)');
+      initializeWithStaticData();
+    } else {
+      console.log('Quotes page: Store already initialized, skipping initialization');
+    }
+  }, [isInitialized, initializeWithStaticData]);
   
   console.log('Quotes page rendering with session quotes:', sessionQuotes.length);
   
