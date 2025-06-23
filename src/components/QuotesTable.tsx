@@ -168,7 +168,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                   className="w-auto p-2 bg-white border shadow-lg z-50" 
                   side="bottom" 
                   align="end"
-                  sideOffset={-154}
+                  sideOffset={-82}
                   alignOffset={0}
                   avoidCollisions={false}
                 >
