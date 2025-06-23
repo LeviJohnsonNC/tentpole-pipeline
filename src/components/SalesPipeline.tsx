@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Calendar } from "lucide-react";
+import { Calendar, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import PipelineColumn from './pipeline/PipelineColumn';
 import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
+import FeedbackModal from './FeedbackModal';
 import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
@@ -44,6 +45,8 @@ const SalesPipeline = () => {
   }, [sessionClients, sessionRequests, sessionQuotes, stages]);
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
       distance: 8
@@ -334,7 +337,16 @@ const SalesPipeline = () => {
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   return <div className="h-full relative">
       {/* Pipeline Header */}
-      
+      <div className="flex justify-end mb-4">
+        <Button 
+          variant="outline" 
+          onClick={() => setIsFeedbackModalOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <MessageSquare className="h-4 w-4" />
+          Submit Feedback
+        </Button>
+      </div>
 
       {/* Pipeline Columns with Horizontal Scroll */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
@@ -357,6 +369,12 @@ const SalesPipeline = () => {
         {/* Action Bar - shows when dragging */}
         <ActionBar isVisible={!!activeId} />
       </DndContext>
+
+      {/* Feedback Modal */}
+      <FeedbackModal 
+        isOpen={isFeedbackModalOpen} 
+        onClose={() => setIsFeedbackModalOpen(false)} 
+      />
     </div>;
 };
 export default SalesPipeline;
