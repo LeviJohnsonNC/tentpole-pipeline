@@ -2,6 +2,7 @@
 import { useRequestStore } from '@/store/requestStore';
 import { useClientStore } from '@/store/clientStore';
 import { useQuoteStore } from '@/store/quoteStore';
+import { useStagesStore } from '@/store/stagesStore';
 
 export const resetToSampleData = () => {
   console.log('Resetting all data to original sample data...');
@@ -10,11 +11,22 @@ export const resetToSampleData = () => {
   const { clearAllRequests, initializeWithStaticData: initRequests } = useRequestStore.getState();
   const { clearAllClients, initializeWithStaticData: initClients } = useClientStore.getState();
   const { clearAllQuotes, initializeWithStaticData: initQuotes } = useQuoteStore.getState();
+  const { updateStages } = useStagesStore.getState();
   
   // Clear all existing data first
   clearAllRequests();
   clearAllClients();
   clearAllQuotes();
+  
+  // Reset stages to default state
+  const defaultStages = [
+    { id: "new-deals", title: "New Lead", order: 1, isImmutable: true },
+    { id: "contacted", title: "Contacted", order: 2 },
+    { id: "draft-quote", title: "Draft Quote", order: 3, isJobberStage: true },
+    { id: "quote-awaiting-response", title: "Quote Awaiting Response", order: 4, isJobberStage: true },
+    { id: "followup", title: "Followup", order: 5 }
+  ];
+  updateStages(defaultStages);
   
   // Reinitialize with original sample data
   initClients();
