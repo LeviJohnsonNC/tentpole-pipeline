@@ -78,7 +78,7 @@ const StageCard = ({ stage, onUpdateTitle, onDelete, canDelete = true }: StageCa
       ref={setNodeRef}
       style={style}
       className={`relative h-48 ${isDragging ? 'opacity-50' : ''} ${
-        stage.isJobberStage ? 'bg-blue-50 border-blue-200' : 'bg-white'
+        stage.isJobberStage ? 'bg-gray-100 border-gray-300' : 'bg-white'
       } ${stage.isImmutable ? 'bg-gray-50 border-gray-300' : ''}`}
     >
       <CardContent className="p-4 h-full flex flex-col">

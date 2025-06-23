@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, GripVertical, Trash2, Plus, Lock } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useStagesStore, Stage } from "@/store/stagesStore";
 import { toast } from "sonner";
@@ -10,6 +9,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalList
 import StageCard from "@/components/stages/StageCard";
 import Sidebar from "@/components/Sidebar";
 import JobberStageSelector from "@/components/stages/JobberStageSelector";
+
 const EditStages = () => {
   const navigate = useNavigate();
   const {
@@ -22,12 +22,15 @@ const EditStages = () => {
   } = useStagesStore();
   const [localStages, setLocalStages] = useState<Stage[]>(stages);
   const [showJobberSelector, setShowJobberSelector] = useState(false);
+
   useEffect(() => {
     setLocalStages(stages);
   }, [stages]);
+
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates
   }));
+
   const handleDragEnd = (event: DragEndEvent) => {
     const {
       active,
@@ -55,6 +58,7 @@ const EditStages = () => {
       reorderStages(newStages);
     }
   };
+
   const handleTitleChange = (id: string, title: string) => {
     const stage = localStages.find(s => s.id === id);
     if (stage?.isImmutable) {
@@ -67,6 +71,7 @@ const EditStages = () => {
     } : stage));
     updateStageTitle(id, title);
   };
+
   const handleDelete = (id: string) => {
     const stage = localStages.find(s => s.id === id);
     if (stage?.isImmutable) {
@@ -76,16 +81,20 @@ const EditStages = () => {
     deleteStage(id);
     toast.success("Stage deleted successfully");
   };
+
   const handleAddStage = () => {
     addCustomStage();
     toast.success("New stage added");
   };
+
   const handleAddJobberStage = (stageName: string) => {
     addJobberStage(stageName);
     setShowJobberSelector(false);
     toast.success("Jobber stage added");
   };
-  return <div className="min-h-screen bg-gray-50 flex w-full">
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex w-full">
       <Sidebar />
       
       <div className="flex-1 flex flex-col">
@@ -118,9 +127,16 @@ const EditStages = () => {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={localStages.map(stage => stage.id)} strategy={horizontalListSortingStrategy}>
                     <div className="flex gap-4 min-w-max pb-4">
-                      {localStages.sort((a, b) => a.order - b.order).map(stage => <div key={stage.id} className="w-64 flex-shrink-0">
-                            <StageCard stage={stage} onUpdateTitle={handleTitleChange} onDelete={handleDelete} canDelete={!stage.isImmutable} />
-                          </div>)}
+                      {localStages.sort((a, b) => a.order - b.order).map(stage => (
+                        <div key={stage.id} className="w-32 flex-shrink-0">
+                          <StageCard 
+                            stage={stage} 
+                            onUpdateTitle={handleTitleChange} 
+                            onDelete={handleDelete} 
+                            canDelete={!stage.isImmutable} 
+                          />
+                        </div>
+                      ))}
                     </div>
                   </SortableContext>
                 </DndContext>
@@ -128,24 +144,37 @@ const EditStages = () => {
 
               {/* Action Buttons */}
               <div className="w-64 space-y-4 flex-shrink-0">
-                <Button onClick={handleAddStage} className="w-full h-16 border-dashed border-2 border-gray-300 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-400 hover:bg-gray-50" variant="outline">
+                <Button 
+                  onClick={handleAddStage} 
+                  className="w-full h-16 border-dashed border-2 border-gray-300 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-400 hover:bg-gray-50" 
+                  variant="outline"
+                >
                   <Plus className="h-5 w-5 mr-2" />
                   Add Custom Stage
                 </Button>
                 
-                <Button onClick={() => setShowJobberSelector(true)} className="w-full h-16 border-dashed border-2 border-blue-300 bg-blue-50 text-blue-600 hover:text-blue-700 hover:border-blue-400 hover:bg-blue-100" variant="outline">
+                <Button 
+                  onClick={() => setShowJobberSelector(true)} 
+                  className="w-full h-16 border-dashed border-2 border-blue-300 bg-blue-50 text-blue-600 hover:text-blue-700 hover:border-blue-400 hover:bg-blue-100" 
+                  variant="outline"
+                >
                   <Plus className="h-5 w-5 mr-2" />
                   Add Jobber Stage
                 </Button>
               </div>
             </div>
-
-            
           </div>
         </main>
       </div>
 
-      {showJobberSelector && <JobberStageSelector onSelect={handleAddJobberStage} onClose={() => setShowJobberSelector(false)} />}
-    </div>;
+      {showJobberSelector && (
+        <JobberStageSelector 
+          onSelect={handleAddJobberStage} 
+          onClose={() => setShowJobberSelector(false)} 
+        />
+      )}
+    </div>
+  );
 };
+
 export default EditStages;
