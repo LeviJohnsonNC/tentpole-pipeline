@@ -340,23 +340,7 @@ const SalesPipeline = () => {
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   return <div className="h-full relative">
       {/* Pipeline Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            
-            <Button variant="outline" size="sm" className="h-8">
-              Days in stage
-            </Button>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <Button variant="outline" size="sm" className="h-8">
-              Filter by date
-            </Button>
-          </div>
-          <span className="text-sm text-gray-500">({deals.length} results)</span>
-        </div>
-      </div>
+      
 
       {/* Pipeline Columns with Horizontal Scroll */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
