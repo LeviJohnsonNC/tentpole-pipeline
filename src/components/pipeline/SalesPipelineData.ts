@@ -22,7 +22,7 @@ const getNewestQuoteForRequest = (requestId: string, sessionQuotes: any[]): any 
   return requestQuotes.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())[0];
 };
 
-// Mapping function to assign pipeline stages based on quote status or request state
+// FIXED: Enhanced mapping function to ensure only deals with quotes go to quote stages
 const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
   // CRITICAL: If there's a newest quote, use its status to determine stage
   if (newestQuote) {
@@ -34,27 +34,33 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
       return null; // Don't include in pipeline - this is the key fix!
     }
     
-    if (newestQuote.status === 'Draft') {
-      const draftStage = stages.find(stage => 
-        stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
-      );
-      if (draftStage) {
-        return draftStage.id;
+    // Only allow quote stages if there's actually a valid quote with amount
+    if (typeof newestQuote.amount === 'number' && newestQuote.amount > 0) {
+      if (newestQuote.status === 'Draft') {
+        const draftStage = stages.find(stage => 
+          stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
+        );
+        if (draftStage) {
+          return draftStage.id;
+        }
+        return 'draft-quote'; // Fallback to default draft quote stage ID
       }
-      return 'draft-quote'; // Fallback to default draft quote stage ID
-    }
-    
-    if (newestQuote.status === 'Awaiting Response') {
-      const awaitingStage = stages.find(stage => 
-        stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
-      );
-      if (awaitingStage) {
-        return awaitingStage.id;
+      
+      if (newestQuote.status === 'Awaiting Response') {
+        const awaitingStage = stages.find(stage => 
+          stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
+        );
+        if (awaitingStage) {
+          return awaitingStage.id;
+        }
       }
-    }
-    
-    if (newestQuote.status === 'Changes Requested') {
-      return 'followup'; // Changes requested goes to followup
+      
+      if (newestQuote.status === 'Changes Requested') {
+        return 'followup'; // Changes requested goes to followup
+      }
+    } else {
+      console.log(`Request ${request.id} has quote but invalid amount, placing in contacted stage`);
+      return 'contacted'; // If quote exists but amount is invalid, place in contacted stage
     }
     
     // Archived quotes should also be excluded
@@ -64,17 +70,11 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     }
   }
   
-  // Handle new status types for requests without quotes
+  // FIXED: Handle requests without quotes - they can NEVER go to quote stages
+  // All requests without quotes should only be in pre-quote stages
   if (request.status === 'Assessment complete') {
-    // Check if there's an "Assessment complete" stage in the pipeline
-    const assessmentStage = stages.find(stage => 
-      stage.title.toLowerCase().includes('assessment') && stage.title.toLowerCase().includes('complete')
-    );
-    if (assessmentStage) {
-      return assessmentStage.id;
-    }
-    // If no assessment stage exists, put in draft-quote stage
-    return 'draft-quote';
+    // Assessment complete but no quote - should be in contacted, ready for quote creation
+    return 'contacted';
   }
   
   if (request.status === 'Overdue') {
@@ -85,21 +85,28 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     return 'contacted'; // Unscheduled requests go to contacted
   }
   
-  // If no quote, use original mapping for realistic distribution of New requests
-  const stageMapping: Record<string, string> = {
-    'request-1': 'new-deals',
-    'request-2': 'new-deals', 
-    'request-4': 'new-deals',
-    'request-6': 'new-deals',
-    'request-7': 'contacted',
-    'request-8': 'contacted',
-    'request-9': 'contacted',
-    'request-10': 'followup',
-    'request-11': 'followup',
-    'request-12': 'followup'
-  };
+  // FIXED: Removed hardcoded mappings that put requests in quote stages
+  // All new requests without quotes should start in appropriate pre-quote stages
+  if (request.status === 'New') {
+    // Distribute new requests between new-deals and contacted for realistic pipeline
+    const distributionMapping: Record<string, string> = {
+      'request-1': 'new-deals',
+      'request-2': 'new-deals', 
+      'request-4': 'new-deals',
+      'request-6': 'new-deals',
+      'request-7': 'contacted',
+      'request-8': 'contacted',
+      'request-9': 'contacted',
+      'request-10': 'followup',
+      'request-11': 'followup',
+      'request-12': 'followup'
+    };
+    
+    return distributionMapping[request.id] || 'new-deals';
+  }
   
-  return stageMapping[request.id] || 'new-deals';
+  // Default fallback for any other status
+  return 'new-deals';
 };
 
 // Function to determine pipeline stage for standalone quotes
@@ -110,6 +117,12 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
   if (quote.status === 'Approved' || quote.status === 'Converted') {
     console.log(`Standalone quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status} (AUTO CLOSED-WON)`);
     return null; // Don't include in pipeline - this is the key fix!
+  }
+  
+  // VALIDATION: Only quotes with valid amounts should be in quote stages
+  if (typeof quote.amount !== 'number' || quote.amount <= 0) {
+    console.log(`Standalone quote ${quote.id} has invalid amount, excluding from pipeline`);
+    return null;
   }
   
   if (quote.status === 'Draft') {
@@ -178,8 +191,8 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       return null;
     }
     
-    // Only include amount if there's a quote - and ensure it's a valid number
-    const amount = newestQuote && typeof newestQuote.amount === 'number' ? newestQuote.amount : undefined;
+    // FIXED: Only include amount if there's a quote with valid numeric amount
+    const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
     
     return {
       id: request.id,
