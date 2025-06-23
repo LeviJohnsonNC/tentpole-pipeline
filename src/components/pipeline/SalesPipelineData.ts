@@ -1,3 +1,4 @@
+
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -28,6 +29,12 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   if (newestQuote) {
     console.log(`Request ${request.id} has newest quote ${newestQuote.id} with status: ${newestQuote.status}`);
     
+    // Approved and Converted quotes should NOT be in pipeline (closed won)
+    if (newestQuote.status === 'Approved' || newestQuote.status === 'Converted') {
+      console.log(`Request ${request.id} excluded from pipeline - quote ${newestQuote.id} is ${newestQuote.status}`);
+      return null; // Don't include in pipeline
+    }
+    
     if (newestQuote.status === 'Draft') {
       const draftStage = stages.find(stage => 
         stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
@@ -51,9 +58,9 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
       return 'followup'; // Changes requested goes to followup
     }
     
-    // Approved and Converted quotes shouldn't be in pipeline (closed won)
-    if (newestQuote.status === 'Approved' || newestQuote.status === 'Converted') {
-      return null; // Don't include in pipeline
+    // Archived quotes should also be excluded
+    if (newestQuote.status === 'Archived') {
+      return null;
     }
   }
   
@@ -78,6 +85,12 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
 const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
   console.log(`Standalone quote ${quote.id} has status: ${quote.status}`);
   
+  // Approved and Converted quotes shouldn't be in pipeline (closed won)
+  if (quote.status === 'Approved' || quote.status === 'Converted') {
+    console.log(`Standalone quote ${quote.id} excluded from pipeline - status is ${quote.status}`);
+    return null;
+  }
+  
   if (quote.status === 'Draft') {
     const draftStage = stages.find(stage => 
       stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
@@ -101,12 +114,12 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
     return 'followup'; // Changes requested goes to followup
   }
   
-  // Approved and Converted quotes shouldn't be in pipeline (closed won)
-  if (quote.status === 'Approved' || quote.status === 'Converted') {
+  // Archived quotes should also be excluded
+  if (quote.status === 'Archived') {
     return null;
   }
   
-  // Fallback to "draft-quote" for draft-like quotes
+  // Fallback to "draft-quote" for other statuses
   return 'draft-quote';
 };
 
@@ -153,9 +166,9 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     // Determine pipeline stage based on newest quote or request alone
     const pipelineStage = assignPipelineStage(request, newestQuote, stages);
     
-    // If pipeline stage is null (closed won), don't include in pipeline
+    // If pipeline stage is null (closed won or excluded), don't include in pipeline
     if (!pipelineStage) {
-      console.log(`Request ${request.id} excluded from pipeline (closed won)`);
+      console.log(`Request ${request.id} excluded from pipeline`);
       return null;
     }
     
