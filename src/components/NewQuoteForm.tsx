@@ -30,11 +30,31 @@ const NewQuoteForm = () => {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const { addSessionQuote } = useQuoteStore();
-  const { sessionClients } = useClientStore();
+  const { sessionClients, initializeWithStaticData } = useClientStore();
   const { sessionRequests } = useRequestStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  
+  // Ensure client store is initialized in this component as well
+  useEffect(() => {
+    console.log('NewQuoteForm - ensuring client store initialization');
+    initializeWithStaticData();
+  }, [initializeWithStaticData]);
+  
+  // Debug client state
+  useEffect(() => {
+    console.log('NewQuoteForm - sessionClients changed:', {
+      sessionClientsCount: sessionClients.length,
+      sessionClients: sessionClients.map(c => ({ id: c.id, name: c.name }))
+    });
+    
+    const allClients = getAllClients(sessionClients);
+    console.log('NewQuoteForm - getAllClients result:', {
+      totalClientsCount: allClients.length,
+      allClients: allClients.map(c => ({ id: c.id, name: c.name }))
+    });
+  }, [sessionClients]);
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<QuoteFormData>({
     defaultValues: {
@@ -121,6 +141,7 @@ const NewQuoteForm = () => {
   };
 
   const handleClientSelect = (clientId: string) => {
+    console.log('NewQuoteForm - client selected:', clientId);
     setSelectedClientId(clientId);
     setValue("clientId", clientId);
     setIsClientModalOpen(false);

@@ -5,8 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Sidebar from "@/components/Sidebar";
 import NewRequestForm from "@/components/NewRequestForm";
+import { useEffect } from "react";
+import { useClientStore } from "@/store/clientStore";
 
 const NewRequest = () => {
+  const { initializeWithStaticData } = useClientStore();
+
+  // Ensure client store is initialized when entering this page
+  useEffect(() => {
+    console.log('NewRequest page - initializing client store');
+    initializeWithStaticData();
+  }, [initializeWithStaticData]);
+
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
       <Sidebar />
