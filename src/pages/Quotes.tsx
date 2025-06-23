@@ -1,6 +1,6 @@
+
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
 import QuotesOverviewCards from "@/components/QuotesOverviewCards";
 import QuotesTable from "@/components/QuotesTable";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,9 @@ import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { getQuotesWithClientInfo, getAllQuotes } from "@/utils/dataHelpers";
-import { Search, Plus, Filter, MoreHorizontal, Calendar } from "lucide-react";
+import { Search, Plus, Filter, MoreHorizontal, Calendar, MessageCircle, Bell, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 const Quotes = () => {
   const { sessionClients } = useClientStore();
@@ -54,7 +55,42 @@ const Quotes = () => {
       <Sidebar />
       
       <div className="flex-1 flex flex-col">
-        <Header />
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="text-sm font-medium text-gray-600">GROW QA 1</div>
+            </div>
+            
+            <div className="flex-1 max-w-md mx-8">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input 
+                  placeholder="Search" 
+                  className="pl-10 bg-gray-50 border-gray-200 focus:bg-white"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                  /
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <Button variant="ghost" size="sm" className="p-2">
+                <MessageCircle className="h-4 w-4 text-gray-600" />
+              </Button>
+              <Button variant="ghost" size="sm" className="p-2 relative">
+                <Bell className="h-4 w-4 text-gray-600" />
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 text-xs bg-red-500 text-white rounded-full flex items-center justify-center p-0">
+                  20
+                </Badge>
+              </Button>
+              <Button variant="ghost" size="sm" className="p-2">
+                <Settings className="h-4 w-4 text-gray-600" />
+              </Button>
+            </div>
+          </div>
+        </header>
 
         {/* Main Content */}
         <main className="flex-1 p-6">
