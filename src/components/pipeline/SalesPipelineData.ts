@@ -23,15 +23,15 @@ const getNewestQuoteForRequest = (requestId: string, sessionQuotes: any[]): any 
 };
 
 // Mapping function to assign pipeline stages based on quote status or request state
-const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string => {
-  // If there's a newest quote, use its status to determine stage
+const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
+  // CRITICAL: If there's a newest quote, use its status to determine stage
   if (newestQuote) {
     console.log(`Request ${request.id} has newest quote ${newestQuote.id} with status: ${newestQuote.status}`);
     
-    // Approved and Converted quotes should NOT be in pipeline (closed won)
+    // ENHANCED AUTO CLOSED-WON: Approved and Converted quotes should NOT be in pipeline (closed won)
     if (newestQuote.status === 'Approved' || newestQuote.status === 'Converted') {
-      console.log(`Request ${request.id} excluded from pipeline - quote ${newestQuote.id} is ${newestQuote.status}`);
-      return null; // Don't include in pipeline
+      console.log(`Request ${request.id} EXCLUDED from pipeline - quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
+      return null; // Don't include in pipeline - this is the key fix!
     }
     
     if (newestQuote.status === 'Draft') {
@@ -59,6 +59,7 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     
     // Archived quotes should also be excluded
     if (newestQuote.status === 'Archived') {
+      console.log(`Request ${request.id} EXCLUDED from pipeline - quote ${newestQuote.id} is archived`);
       return null;
     }
   }
@@ -102,13 +103,13 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
 };
 
 // Function to determine pipeline stage for standalone quotes
-const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
+const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
   console.log(`Standalone quote ${quote.id} has status: ${quote.status}`);
   
-  // Approved and Converted quotes shouldn't be in pipeline (closed won)
+  // ENHANCED AUTO CLOSED-WON: Approved and Converted quotes shouldn't be in pipeline (closed won)
   if (quote.status === 'Approved' || quote.status === 'Converted') {
-    console.log(`Standalone quote ${quote.id} excluded from pipeline - status is ${quote.status}`);
-    return null;
+    console.log(`Standalone quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status} (AUTO CLOSED-WON)`);
+    return null; // Don't include in pipeline - this is the key fix!
   }
   
   if (quote.status === 'Draft') {
@@ -136,6 +137,7 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string => {
   
   // Archived quotes should also be excluded
   if (quote.status === 'Archived') {
+    console.log(`Standalone quote ${quote.id} EXCLUDED from pipeline - status is archived`);
     return null;
   }
   
@@ -188,10 +190,10 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
     console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none');
     
-    // AUTO CLOSED-WON LOGIC: Exclude deals with approved/converted quotes
+    // ENHANCED AUTO CLOSED-WON LOGIC: Exclude deals with approved/converted quotes
     if (newestQuote && (newestQuote.status === 'Approved' || newestQuote.status === 'Converted')) {
-      console.log(`Request ${request.id} excluded from pipeline - newest quote ${newestQuote.id} is ${newestQuote.status} (auto closed-won)`);
-      return null;
+      console.log(`Request ${request.id} EXCLUDED from pipeline - newest quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
+      return null; // This ensures the deal won't appear in the pipeline
     }
     
     // Determine pipeline stage based on newest quote or request alone
@@ -199,7 +201,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     
     // If pipeline stage is null (closed won or excluded), don't include in pipeline
     if (!pipelineStage) {
-      console.log(`Request ${request.id} excluded from pipeline`);
+      console.log(`Request ${request.id} EXCLUDED from pipeline - no valid stage`);
       return null;
     }
     
@@ -238,10 +240,10 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     // Must be standalone (no requestId)
     if (quote.requestId) return false;
     
-    // AUTO CLOSED-WON LOGIC: Exclude approved/converted quotes
+    // ENHANCED AUTO CLOSED-WON LOGIC: Exclude approved/converted quotes
     if (quote.status === 'Approved' || quote.status === 'Converted') {
-      console.log(`Standalone quote ${quote.id} excluded from pipeline - status is ${quote.status} (auto closed-won)`);
-      return false;
+      console.log(`Standalone quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status} (AUTO CLOSED-WON)`);
+      return false; // This ensures approved/converted quotes won't appear in pipeline
     }
     
     // Must have active status (not archived)
@@ -254,7 +256,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     
     // If pipelineStage is null, don't include this quote
     if (!pipelineStage) {
-      console.log(`Standalone quote ${quote.id} excluded from pipeline (closed won)`);
+      console.log(`Standalone quote ${quote.id} EXCLUDED from pipeline (closed won)`);
       return null;
     }
     
@@ -277,13 +279,13 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
 };
 
 export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
-  console.log('\n=== PIPELINE DATA CREATION ===');
+  console.log('\n=== ENHANCED PIPELINE DATA CREATION (AUTO CLOSED-WON) ===');
   console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
   
-  // Create deals from open requests (using newest quote logic)
+  // Create deals from open requests (using newest quote logic with AUTO CLOSED-WON)
   const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
   
-  // Create deals from standalone quotes only
+  // Create deals from standalone quotes only (with AUTO CLOSED-WON)
   const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
   
   const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
@@ -293,11 +295,12 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
     acc[deal.status] = (acc[deal.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>));
-  console.log('=== END PIPELINE DATA CREATION ===\n');
+  console.log('=== END ENHANCED PIPELINE DATA CREATION ===\n');
   
   return totalDeals;
 };
 
+// ... keep existing code (pipelineColumns and action handlers)
 export const pipelineColumns = [
   { id: "new-deals", title: "New Deals" },
   { id: "contacted", title: "Contacted" },

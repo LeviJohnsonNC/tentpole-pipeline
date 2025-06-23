@@ -41,7 +41,7 @@ const SalesPipeline = () => {
   const { sessionQuotes } = useQuoteStore();
   const { stages } = useStagesStore();
   
-  // Create initial deals and ensure they update when quote store changes
+  // Create initial deals and ensure they update when data changes
   const initialDeals = useMemo(() => {
     console.log('Creating initial deals with clients:', sessionClients.length, 'requests:', sessionRequests.length, 'quotes:', sessionQuotes.length);
     const deals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
@@ -52,15 +52,20 @@ const SalesPipeline = () => {
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Auto Closed-Won Logic: Monitor quote status changes and remove deals
+  // Enhanced Auto Closed-Won Logic: Monitor quote status changes and remove deals immediately
   React.useEffect(() => {
-    console.log('Session data changed. Updating deals...');
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    console.log('Session data changed. Checking for auto closed-won triggers...');
     
-    // Check for quotes that were approved/converted and trigger auto closed-won
-    sessionQuotes.forEach(quote => {
-      if (quote.status === 'Approved' || quote.status === 'Converted') {
-        console.log('Auto Closed-Won triggered for quote:', quote.id, 'status:', quote.status);
+    // Check each quote for approved/converted status
+    const approvedOrConvertedQuotes = sessionQuotes.filter(quote => 
+      quote.status === 'Approved' || quote.status === 'Converted'
+    );
+    
+    console.log('Found approved/converted quotes:', approvedOrConvertedQuotes.length);
+    
+    if (approvedOrConvertedQuotes.length > 0) {
+      approvedOrConvertedQuotes.forEach(quote => {
+        console.log('Processing auto closed-won for quote:', quote.id, 'status:', quote.status);
         
         // Update client status to Active if they are currently a Lead
         const client = sessionClients.find(c => c.id === quote.clientId);
@@ -69,14 +74,13 @@ const SalesPipeline = () => {
           updateSessionClient(client.id, { status: 'Active' });
           toast.success(`Deal won! Client ${client.name} is now Active.`);
         }
-        
-        // Remove the deal from pipeline (it's automatically excluded in createInitialDeals)
-        console.log('Deal automatically removed from pipeline due to quote approval/conversion');
-      }
-    });
+      });
+    }
     
-    console.log('New deals count:', newDeals.length);
-    console.log('New deals:', newDeals.map(d => ({ id: d.id, status: d.status, type: d.type })));
+    // Always regenerate deals from fresh data to ensure auto-exclusion works
+    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    console.log('Updated deals count:', newDeals.length);
+    console.log('Updated deals:', newDeals.map(d => ({ id: d.id, status: d.status, type: d.type })));
     setDeals(newDeals);
   }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient]);
 
