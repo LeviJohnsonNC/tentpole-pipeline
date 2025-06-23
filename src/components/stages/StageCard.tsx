@@ -111,9 +111,7 @@ const StageCard = ({
                 
                 {stage.isJobberStage}
                 
-                {stage.isImmutable && <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    Locked Stage
-                  </div>}
+                {stage.isImmutable}
               </div>}
           </div>
         </div>
