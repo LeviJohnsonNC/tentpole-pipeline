@@ -1,5 +1,6 @@
+
 import { useState, useMemo, useEffect } from "react";
-import { ChevronDown, Plus, MoreHorizontal } from "lucide-react";
+import { ChevronDown, Plus, MoreHorizontal, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -36,6 +37,10 @@ const Index = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  const handleStatusFilter = (status: string | null) => {
+    setStatusFilter(status);
+  };
 
   const handleEditStages = () => {
     navigate('/requests/edit-stages', { 

@@ -1,5 +1,6 @@
+
 import { useState, useMemo } from "react";
-import { ChevronDown, Plus, MoreHorizontal } from "lucide-react";
+import { ChevronDown, Plus, MoreHorizontal, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
