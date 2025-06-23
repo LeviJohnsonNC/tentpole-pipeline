@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -93,20 +92,22 @@ const SalesPipeline = () => {
     return deal?.status || null;
   };
 
-  // Calculate fixed height based on the column with the most cards
+  // Calculate fixed height based on the column with the most cards - more compact sizing
   const fixedColumnHeight = useMemo(() => {
     const maxDeals = Math.max(...stages.map(stage => 
       getColumnDeals(stage.id).length
     ), 1); // Minimum of 1 to avoid 0 height
     
-    // Base height for header + separator + padding + minimum space
-    const baseHeight = 120;
-    // Height per card (approximate)
-    const cardHeight = 100;
-    // Add some extra space for spacing and scroll
-    const extraSpace = 60;
+    // More precise measurements:
+    const headerHeight = 80; // Header + counter/value + separator + padding
+    const cardHeight = 65; // More realistic card height based on actual size
+    const cardSpacing = 8; // space-y-2 = 8px spacing between cards
+    const bufferSpace = 20; // Minimal buffer for scroll and breathing room
     
-    return baseHeight + (maxDeals * cardHeight) + extraSpace;
+    // Calculate total spacing needed (n-1 spaces between n cards)
+    const totalSpacing = maxDeals > 1 ? (maxDeals - 1) * cardSpacing : 0;
+    
+    return headerHeight + (maxDeals * cardHeight) + totalSpacing + bufferSpace;
   }, [deals, stages]);
 
   // Enhanced Auto Closed-Won Logic: Monitor quote status changes and remove deals immediately
