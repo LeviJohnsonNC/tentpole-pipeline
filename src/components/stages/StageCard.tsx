@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Check, X, Trash2 } from 'lucide-react';
+import { GripVertical, Check, X, Trash2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -66,27 +66,36 @@ const StageCard = ({ stage, onUpdateTitle, onDelete, canDelete = true }: StageCa
     onDelete(stage.id);
   };
 
+  const handleEditClick = () => {
+    if (stage.isImmutable) {
+      return;
+    }
+    setIsEditing(true);
+  };
+
   return (
     <Card
       ref={setNodeRef}
       style={style}
       className={`relative h-48 ${isDragging ? 'opacity-50' : ''} ${
-        stage.isJobberStage ? 'bg-gray-100 border-gray-300' : ''
-      }`}
+        stage.isJobberStage ? 'bg-blue-50 border-blue-200' : 'bg-white'
+      } ${stage.isImmutable ? 'bg-gray-50 border-gray-300' : ''}`}
     >
       <CardContent className="p-4 h-full flex flex-col">
-        <div className="flex items-center space-x-3">
+        <div className="flex items-start space-x-2">
           <div
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+            className={`cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 mt-1 ${
+              stage.isImmutable ? 'cursor-not-allowed opacity-50' : ''
+            }`}
           >
-            <GripVertical className="h-5 w-5" />
+            <GripVertical className="h-4 w-4" />
           </div>
           
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {isEditing ? (
-              <div className="flex items-center space-x-2">
+              <div className="space-y-2">
                 <Input
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
@@ -94,57 +103,84 @@ const StageCard = ({ stage, onUpdateTitle, onDelete, canDelete = true }: StageCa
                   className="h-8 text-sm"
                   autoFocus
                 />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleSave}
-                  className="h-8 w-8 p-0"
-                >
-                  <Check className="h-4 w-4 text-green-600" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleCancel}
-                  className="h-8 w-8 p-0"
-                >
-                  <X className="h-4 w-4 text-red-600" />
-                </Button>
+                <div className="flex space-x-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleSave}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Check className="h-3 w-3 text-green-600" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleCancel}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-3 w-3 text-red-600" />
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between">
-                <div
-                  onClick={() => setIsEditing(true)}
-                  className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded text-sm font-medium flex-1"
-                >
-                  {stage.title}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div
+                    onClick={handleEditClick}
+                    className={`text-sm font-medium truncate flex-1 ${
+                      stage.isImmutable 
+                        ? 'cursor-not-allowed text-gray-500' 
+                        : 'cursor-pointer hover:bg-gray-50 px-2 py-1 rounded'
+                    }`}
+                    title={stage.title}
+                  >
+                    {stage.title}
+                  </div>
+                  
+                  <div className="flex items-center space-x-1 ml-2">
+                    {stage.isImmutable && (
+                      <Lock className="h-3 w-3 text-gray-400" />
+                    )}
+                    {canDelete && !stage.isImmutable && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-gray-400 hover:text-red-600"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Stage</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete the "{stage.title}" stage? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 </div>
-                {canDelete && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Stage</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete the "{stage.title}" stage? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                
+                {stage.isJobberStage && (
+                  <div className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                    Jobber Stage
+                  </div>
+                )}
+                
+                {stage.isImmutable && (
+                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    Locked Stage
+                  </div>
                 )}
               </div>
             )}

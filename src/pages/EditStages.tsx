@@ -19,15 +19,17 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
+  horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import StageCard from "@/components/stages/StageCard";
 import Sidebar from "@/components/Sidebar";
+import JobberStageSelector from "@/components/stages/JobberStageSelector";
 
 const EditStages = () => {
   const navigate = useNavigate();
-  const { stages, updateStageTitle, reorderStages, addCustomStage, deleteStage } = useStagesStore();
+  const { stages, updateStageTitle, reorderStages, addCustomStage, addJobberStage, deleteStage } = useStagesStore();
   const [localStages, setLocalStages] = useState<Stage[]>(stages);
+  const [showJobberSelector, setShowJobberSelector] = useState(false);
 
   useEffect(() => {
     setLocalStages(stages);
@@ -98,6 +100,12 @@ const EditStages = () => {
     toast.success("New stage added");
   };
 
+  const handleAddJobberStage = (stageName: string) => {
+    addJobberStage(stageName);
+    setShowJobberSelector(false);
+    toast.success("Jobber stage added");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
       <Sidebar />
@@ -122,7 +130,7 @@ const EditStages = () => {
         
         {/* Main Content */}
         <main className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-full mx-auto">
             <div className="mb-8">
               <h1 className="text-2xl font-semibold text-gray-900 mb-2">Edit Pipeline Stages</h1>
               <p className="text-gray-600">
@@ -132,8 +140,8 @@ const EditStages = () => {
             </div>
 
             <div className="flex gap-6">
-              {/* Stages Grid */}
-              <div className="flex-1">
+              {/* Stages - Single Row with Horizontal Scroll */}
+              <div className="flex-1 overflow-x-auto">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -141,19 +149,20 @@ const EditStages = () => {
                 >
                   <SortableContext
                     items={localStages.map(stage => stage.id)}
-                    strategy={verticalListSortingStrategy}
+                    strategy={horizontalListSortingStrategy}
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex gap-4 min-w-max pb-4">
                       {localStages
                         .sort((a, b) => a.order - b.order)
                         .map((stage) => (
-                          <StageCard
-                            key={stage.id}
-                            stage={stage}
-                            onUpdateTitle={handleTitleChange}
-                            onDelete={handleDelete}
-                            canDelete={!stage.isImmutable}
-                          />
+                          <div key={stage.id} className="w-64 flex-shrink-0">
+                            <StageCard
+                              stage={stage}
+                              onUpdateTitle={handleTitleChange}
+                              onDelete={handleDelete}
+                              canDelete={!stage.isImmutable}
+                            />
+                          </div>
                         ))}
                     </div>
                   </SortableContext>
@@ -161,7 +170,7 @@ const EditStages = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="w-64 space-y-4">
+              <div className="w-64 space-y-4 flex-shrink-0">
                 <Button
                   onClick={handleAddStage}
                   className="w-full h-16 border-dashed border-2 border-gray-300 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-400 hover:bg-gray-50"
@@ -169,6 +178,15 @@ const EditStages = () => {
                 >
                   <Plus className="h-5 w-5 mr-2" />
                   Add Custom Stage
+                </Button>
+                
+                <Button
+                  onClick={() => setShowJobberSelector(true)}
+                  className="w-full h-16 border-dashed border-2 border-blue-300 bg-blue-50 text-blue-600 hover:text-blue-700 hover:border-blue-400 hover:bg-blue-100"
+                  variant="outline"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Add Jobber Stage
                 </Button>
               </div>
             </div>
@@ -183,6 +201,13 @@ const EditStages = () => {
           </div>
         </main>
       </div>
+
+      {showJobberSelector && (
+        <JobberStageSelector
+          onSelect={handleAddJobberStage}
+          onClose={() => setShowJobberSelector(false)}
+        />
+      )}
     </div>
   );
 };
