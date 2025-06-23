@@ -9,7 +9,7 @@ const NewQuote = () => {
       <Sidebar />
       
       <div className="flex-1 flex flex-col">
-        <CommonHeader />
+        <CommonHeader showResetButton={true} />
         
         {/* Main Content */}
         <main className="flex-1 p-6">
