@@ -21,14 +21,10 @@ const ClientSelectionModal = ({ isOpen, onClose, onClientSelect }: ClientSelecti
   const sessionClients = useClientStore(state => state.sessionClients);
   const navigate = useNavigate();
   
-  // Force re-render when sessionClients change
-  const [, forceUpdate] = useState({});
-  useEffect(() => {
-    console.log('ClientSelectionModal - sessionClients changed:', sessionClients.length);
-    forceUpdate({});
-  }, [sessionClients]);
+  console.log('ClientSelectionModal render - sessionClients count:', sessionClients.length);
   
   const clients = getAllClients(sessionClients);
+  console.log('ClientSelectionModal render - total clients:', clients.length);
   
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -52,6 +48,7 @@ const ClientSelectionModal = ({ isOpen, onClose, onClientSelect }: ClientSelecti
   };
 
   const handleClientSelect = (clientId: string) => {
+    console.log('ClientSelectionModal - selecting client:', clientId);
     onClientSelect(clientId);
     setSearchTerm("");
   };

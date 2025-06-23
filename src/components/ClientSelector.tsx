@@ -22,20 +22,10 @@ const ClientSelector = ({ value, onValueChange, placeholder = "Select client..."
   const sessionClients = useClientStore(state => state.sessionClients);
   const navigate = useNavigate();
   
-  console.log('ClientSelector render - sessionClients:', sessionClients);
-  console.log('ClientSelector render - sessionClients length:', sessionClients.length);
+  console.log('ClientSelector render - sessionClients count:', sessionClients.length);
   
-  // Force re-render when sessionClients change
-  const [, forceUpdate] = useState({});
-  useEffect(() => {
-    console.log('ClientSelector useEffect - sessionClients changed:', sessionClients.length);
-    forceUpdate({});
-  }, [sessionClients]);
-  
-  // Get all clients directly without memoization to ensure reactivity
   const clients = getAllClients(sessionClients);
-  console.log('ClientSelector render - all clients:', clients);
-  console.log('ClientSelector render - all clients length:', clients.length);
+  console.log('ClientSelector render - total clients:', clients.length);
   
   const selectedClient = clients.find(client => client.id === value);
 
@@ -51,6 +41,12 @@ const ClientSelector = ({ value, onValueChange, placeholder = "Select client..."
   const handleNewClient = () => {
     setOpen(false);
     navigate('/clients/new');
+  };
+
+  const handleClientSelect = (clientId: string) => {
+    console.log('ClientSelector - selecting client:', clientId);
+    onValueChange(clientId);
+    setOpen(false);
   };
 
   return (
@@ -95,10 +91,7 @@ const ClientSelector = ({ value, onValueChange, placeholder = "Select client..."
                 <CommandItem
                   key={client.id}
                   value={`${client.name} ${client.primaryAddress} ${client.phone} ${client.email}`}
-                  onSelect={() => {
-                    onValueChange(client.id);
-                    setOpen(false);
-                  }}
+                  onSelect={() => handleClientSelect(client.id)}
                   className="p-3"
                 >
                   <Check
