@@ -1,6 +1,6 @@
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal } from "lucide-react";
+import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,8 @@ import { getRequestsWithClientInfo } from "@/utils/dataHelpers";
 import { useRequestStore } from "@/store/requestStore";
 import { useClientStore } from "@/store/clientStore";
 import { useLocation, useNavigate } from "react-router-dom";
+import { resetToSampleData } from "@/utils/resetSampleData";
+import { toast } from "sonner";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("all-requests");
@@ -42,6 +44,11 @@ const Index = () => {
     });
   };
 
+  const handleResetSampleData = () => {
+    resetToSampleData();
+    toast.success("Sample data has been reset to original state");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
       <Sidebar />
@@ -68,6 +75,15 @@ const Index = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleResetSampleData}
+                className="flex items-center gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset Sample Data
+              </Button>
               <Button variant="ghost" size="sm" className="p-2">
                 <MessageCircle className="h-4 w-4 text-gray-600" />
               </Button>
