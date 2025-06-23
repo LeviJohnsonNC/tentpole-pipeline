@@ -5,18 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Bell, MessageCircle, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useEffect } from "react";
-import { useClientStore } from "@/store/clientStore";
 
 const NewQuote = () => {
-  const { initializeWithStaticData } = useClientStore();
-
-  // Ensure client store is initialized when entering this page
-  useEffect(() => {
-    console.log('NewQuote page - initializing client store');
-    initializeWithStaticData();
-  }, [initializeWithStaticData]);
-
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
       <Sidebar />

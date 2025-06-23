@@ -55,6 +55,10 @@ const Index = () => {
     setStatusFilter(status);
   };
 
+  const handleNewRequest = () => {
+    navigate('/requests/new');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
       <Sidebar />
@@ -114,7 +118,7 @@ const Index = () => {
               <div className="flex items-center space-x-3">
                 <Button 
                   className="bg-[#0B6839] hover:bg-[#0B6839]/90 text-white"
-                  onClick={() => window.location.href = '/requests/new'}
+                  onClick={handleNewRequest}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New Request
