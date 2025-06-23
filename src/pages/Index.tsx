@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from "react";
 import { Search, Bell, MessageCircle, Settings, ChevronDown, Plus, MoreHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 const Index = () => {
   const [activeTab, setActiveTab] = useState("all-requests");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const { sessionRequests } = useRequestStore();
   const { sessionClients } = useClientStore();
   const location = useLocation();
@@ -190,6 +192,8 @@ const Index = () => {
                         <Input 
                           placeholder="Search requests..." 
                           className="pl-9 h-8 text-sm"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </div>
                     </div>
@@ -201,7 +205,12 @@ const Index = () => {
             {/* Content */}
             <div className="p-4">
               {activeTab === "all-requests" ? (
-                <RequestsTable requests={allRequests} statusFilter={statusFilter} />
+                <RequestsTable 
+                  requests={allRequests} 
+                  statusFilter={statusFilter}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                />
               ) : activeTab === "sales-pipeline" ? (
                 <SalesPipeline />
               ) : (

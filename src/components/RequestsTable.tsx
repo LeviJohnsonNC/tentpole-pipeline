@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -9,10 +10,11 @@ import { Link } from "react-router-dom";
 interface RequestsTableProps {
   requests: RequestWithClient[];
   statusFilter?: string | null;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
 }
 
-const RequestsTable = ({ requests, statusFilter }: RequestsTableProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
+const RequestsTable = ({ requests, statusFilter, searchTerm, onSearchChange }: RequestsTableProps) => {
   const [salespersonFilter, setSalespersonFilter] = useState<string>("all");
 
   const getStatusBadgeColor = (status: string) => {
@@ -43,7 +45,8 @@ const RequestsTable = ({ requests, statusFilter }: RequestsTableProps) => {
   };
 
   const filteredRequests = requests.filter(request => {
-    const matchesSearch = request.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = searchTerm === "" ||
+      request.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || request.status === statusFilter;
     const matchesSalesperson = salespersonFilter === "all" || request.assignedTeamMember === salespersonFilter;

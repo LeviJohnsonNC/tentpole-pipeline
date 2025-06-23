@@ -14,6 +14,7 @@ import { useClientStore } from "@/store/clientStore";
 const Clients = () => {
   const navigate = useNavigate();
   const { sessionClients } = useClientStore();
+  const [searchTerm, setSearchTerm] = useState("");
   
   const totalClients = useMemo(() => {
     return getAllClients(sessionClients).length;
@@ -116,12 +117,14 @@ const Clients = () => {
                     <Input 
                       placeholder="Search filtered client..." 
                       className="pl-10 h-9 text-sm"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                 </div>
               </div>
               
-              <ClientsTable />
+              <ClientsTable searchTerm={searchTerm} onSearchChange={setSearchTerm} />
             </div>
           </div>
         </main>

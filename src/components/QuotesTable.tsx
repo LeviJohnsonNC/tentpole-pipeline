@@ -15,10 +15,11 @@ import { useQuoteStore } from "@/store/quoteStore";
 interface QuotesTableProps {
   quotes: QuoteWithClient[];
   statusFilter?: string | null;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
 }
 
-const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
+const QuotesTable = ({ quotes, statusFilter, searchTerm, onSearchChange }: QuotesTableProps) => {
   const [salespersonFilter, setSalespersonFilter] = useState<string>("all");
   const [selectedQuoteForText, setSelectedQuoteForText] = useState<QuoteWithClient | null>(null);
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = useState<QuoteWithClient | null>(null);
@@ -83,10 +84,11 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
   };
 
   const filteredQuotes = quotes.filter(quote => {
-    const matchesSearch = quote.client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         quote.quoteNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         quote.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         quote.property.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchTerm === "" || 
+      quote.client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      quote.quoteNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      quote.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      quote.property.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || quote.status === statusFilter;
     const matchesSalesperson = salespersonFilter === "all" || quote.salesperson === salespersonFilter;
     

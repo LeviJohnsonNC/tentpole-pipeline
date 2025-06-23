@@ -6,15 +6,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getAllClients } from "@/utils/dataHelpers";
 import { useClientStore } from "@/store/clientStore";
 
-const ClientsTable = () => {
+interface ClientsTableProps {
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+}
+
+const ClientsTable = ({ searchTerm, onSearchChange }: ClientsTableProps) => {
   const { sessionClients } = useClientStore();
   const [sortField, setSortField] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const allClients = useMemo(() => getAllClients(sessionClients), [sessionClients]);
 
+  const filteredClients = useMemo(() => {
+    return allClients.filter(client => {
+      if (searchTerm === "") return true;
+      
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        client.name.toLowerCase().includes(searchLower) ||
+        client.email?.toLowerCase().includes(searchLower) ||
+        client.phone?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [allClients, searchTerm]);
+
   const sortedClients = useMemo(() => {
-    return [...allClients].sort((a, b) => {
+    return [...filteredClients].sort((a, b) => {
       const aValue = a[sortField as keyof typeof a] || '';
       const bValue = b[sortField as keyof typeof b] || '';
       
@@ -24,7 +42,7 @@ const ClientsTable = () => {
         return bValue.toString().localeCompare(aValue.toString());
       }
     });
-  }, [allClients, sortField, sortDirection]);
+  }, [filteredClients, sortField, sortDirection]);
 
   const handleSort = (field: string) => {
     if (sortField === field) {

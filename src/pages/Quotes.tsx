@@ -18,6 +18,7 @@ const Quotes = () => {
   const { sessionRequests } = useRequestStore();
   const { sessionQuotes, isInitialized, initializeWithStaticData } = useQuoteStore();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   
   // Only initialize if not already initialized
   useEffect(() => {
@@ -163,12 +164,19 @@ const Quotes = () => {
                 <Input
                   placeholder="Search quotes..."
                   className="pl-10 w-64"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
           </div>
           
-          <QuotesTable quotes={quotesWithClients} statusFilter={statusFilter} />
+          <QuotesTable 
+            quotes={quotesWithClients} 
+            statusFilter={statusFilter} 
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
         </main>
       </div>
     </div>
