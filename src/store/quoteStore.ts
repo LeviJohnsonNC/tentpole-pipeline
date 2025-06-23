@@ -11,6 +11,7 @@ interface QuoteStore {
   updateSessionQuote: (id: string, updates: Partial<Quote>) => void;
   updateQuoteStatus: (id: string, status: Quote['status']) => void;
   initializeWithStaticData: () => void;
+  clearAllQuotes: () => void;
 }
 
 export const useQuoteStore = create<QuoteStore>((set, get) => ({
@@ -18,14 +19,18 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
   isInitialized: false,
   
   initializeWithStaticData: () => {
-    const { isInitialized } = get();
-    if (!isInitialized) {
-      console.log('Initializing quote store with static data:', quotesData.length, 'quotes');
-      set({
-        sessionQuotes: [...quotesData],
-        isInitialized: true
-      });
-    }
+    console.log('Initializing quote store with static data:', quotesData.length, 'quotes');
+    set({
+      sessionQuotes: [...quotesData],
+      isInitialized: true
+    });
+  },
+  
+  clearAllQuotes: () => {
+    set({
+      sessionQuotes: [],
+      isInitialized: false
+    });
   },
   
   addSessionQuote: (quote) =>

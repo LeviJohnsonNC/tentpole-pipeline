@@ -1,39 +1,28 @@
+
 import { Client } from '@/types/Client';
 import { Request } from '@/types/Request';
 import { Quote } from '@/types/Quote';
-import { clientsData } from '@/data/clientsData';
-import { requestsData } from '@/data/requestsData';
-import { quotesData } from '@/data/quotesData';
 
-// Client operations
+// Client operations - now using ONLY session store data
 export const getClientById = (id: string, sessionClients: Client[] = []): Client | undefined => {
-  // Check session clients first
-  const sessionClient = sessionClients.find(client => client.id === id);
-  if (sessionClient) return sessionClient;
-  
-  return clientsData.find(client => client.id === id);
+  return sessionClients.find(client => client.id === id);
 };
 
 export const getAllClients = (sessionClients: Client[] = []): Client[] => {
-  return [...clientsData, ...sessionClients];
+  return sessionClients;
 };
 
-// Request operations
+// Request operations - now using ONLY session store data
 export const getRequestById = (id: string, sessionRequests: Request[] = []): Request | undefined => {
-  // Check session requests first
-  const sessionRequest = sessionRequests.find(request => request.id === id);
-  if (sessionRequest) return sessionRequest;
-  
-  return requestsData.find(request => request.id === id);
+  return sessionRequests.find(request => request.id === id);
 };
 
 export const getAllRequests = (sessionRequests: Request[] = []): Request[] => {
-  return [...requestsData, ...sessionRequests];
+  return sessionRequests;
 };
 
 export const getRequestsByClientId = (clientId: string, sessionRequests: Request[] = []): Request[] => {
-  const allRequests = getAllRequests(sessionRequests);
-  return allRequests.filter(request => request.clientId === clientId);
+  return sessionRequests.filter(request => request.clientId === clientId);
 };
 
 export const getClientByRequestId = (requestId: string, sessionClients: Client[] = [], sessionRequests: Request[] = []): Client | undefined => {
@@ -42,34 +31,21 @@ export const getClientByRequestId = (requestId: string, sessionClients: Client[]
   return getClientById(request.clientId, sessionClients);
 };
 
-// Quote operations
+// Quote operations - now using ONLY session store data
 export const getQuoteById = (id: string, sessionQuotes: Quote[] = []): Quote | undefined => {
-  // Check session quotes first - they override static data
-  const sessionQuote = sessionQuotes.find(quote => quote.id === id);
-  if (sessionQuote) return sessionQuote;
-  
-  return quotesData.find(quote => quote.id === id);
+  return sessionQuotes.find(quote => quote.id === id);
 };
 
 export const getAllQuotes = (sessionQuotes: Quote[] = []): Quote[] => {
-  // Create a map of session quotes for efficient lookup
-  const sessionQuoteMap = new Map(sessionQuotes.map(quote => [quote.id, quote]));
-  
-  // Start with static quotes but replace any that exist in session
-  const staticQuotesFiltered = quotesData.filter(quote => !sessionQuoteMap.has(quote.id));
-  
-  // Combine: session quotes take priority, then non-overridden static quotes
-  return [...sessionQuotes, ...staticQuotesFiltered];
+  return sessionQuotes;
 };
 
 export const getQuotesByClientId = (clientId: string, sessionQuotes: Quote[] = []): Quote[] => {
-  const allQuotes = getAllQuotes(sessionQuotes);
-  return allQuotes.filter(quote => quote.clientId === clientId);
+  return sessionQuotes.filter(quote => quote.clientId === clientId);
 };
 
 export const getQuotesByRequestId = (requestId: string, sessionQuotes: Quote[] = []): Quote[] => {
-  const allQuotes = getAllQuotes(sessionQuotes);
-  return allQuotes.filter(quote => quote.requestId === requestId);
+  return sessionQuotes.filter(quote => quote.requestId === requestId);
 };
 
 // Combined operations for table display
@@ -78,8 +54,7 @@ export interface RequestWithClient extends Request {
 }
 
 export const getRequestsWithClientInfo = (sessionClients: Client[] = [], sessionRequests: Request[] = []): RequestWithClient[] => {
-  const allRequests = getAllRequests(sessionRequests);
-  return allRequests.map(request => {
+  return sessionRequests.map(request => {
     const client = getClientById(request.clientId, sessionClients);
     if (!client) {
       console.warn(`Client not found for request ${request.id}`);
@@ -97,8 +72,7 @@ export interface QuoteWithClient extends Quote {
 }
 
 export const getQuotesWithClientInfo = (sessionClients: Client[] = [], sessionQuotes: Quote[] = []): QuoteWithClient[] => {
-  const allQuotes = getAllQuotes(sessionQuotes);
-  return allQuotes.map(quote => {
+  return sessionQuotes.map(quote => {
     const client = getClientById(quote.clientId, sessionClients);
     if (!client) {
       console.warn(`Client not found for quote ${quote.id}`);
@@ -114,13 +88,11 @@ export const getQuotesWithClientInfo = (sessionClients: Client[] = [], sessionQu
 // Validation functions for data integrity
 export const validateRequestQuoteConsistency = (sessionRequests: Request[] = [], sessionQuotes: Quote[] = []): string[] => {
   const issues: string[] = [];
-  const allRequests = getAllRequests(sessionRequests);
-  const allQuotes = getAllQuotes(sessionQuotes);
   
   // Check for quotes referencing non-existent requests
-  allQuotes.forEach(quote => {
+  sessionQuotes.forEach(quote => {
     if (quote.requestId) {
-      const request = allRequests.find(r => r.id === quote.requestId);
+      const request = sessionRequests.find(r => r.id === quote.requestId);
       if (!request) {
         issues.push(`Quote ${quote.id} references non-existent request ${quote.requestId}`);
       }
@@ -128,9 +100,9 @@ export const validateRequestQuoteConsistency = (sessionRequests: Request[] = [],
   });
   
   // Check for requests with converted status but no approved/converted quotes
-  allRequests.forEach(request => {
+  sessionRequests.forEach(request => {
     if (request.status === 'Converted') {
-      const requestQuotes = allQuotes.filter(q => q.requestId === request.id);
+      const requestQuotes = sessionQuotes.filter(q => q.requestId === request.id);
       const hasConvertedQuote = requestQuotes.some(q => q.status === 'Approved' || q.status === 'Converted');
       if (!hasConvertedQuote) {
         issues.push(`Request ${request.id} is marked as Converted but has no approved/converted quotes`);
@@ -143,21 +115,18 @@ export const validateRequestQuoteConsistency = (sessionRequests: Request[] = [],
 
 export const validateClientReferences = (sessionClients: Client[] = [], sessionRequests: Request[] = [], sessionQuotes: Quote[] = []): string[] => {
   const issues: string[] = [];
-  const allClients = getAllClients(sessionClients);
-  const allRequests = getAllRequests(sessionRequests);
-  const allQuotes = getAllQuotes(sessionQuotes);
   
   // Check for requests referencing non-existent clients
-  allRequests.forEach(request => {
-    const client = allClients.find(c => c.id === request.clientId);
+  sessionRequests.forEach(request => {
+    const client = sessionClients.find(c => c.id === request.clientId);
     if (!client) {
       issues.push(`Request ${request.id} references non-existent client ${request.clientId}`);
     }
   });
   
   // Check for quotes referencing non-existent clients
-  allQuotes.forEach(quote => {
-    const client = allClients.find(c => c.id === quote.clientId);
+  sessionQuotes.forEach(quote => {
+    const client = sessionClients.find(c => c.id === quote.clientId);
     if (!client) {
       issues.push(`Quote ${quote.id} references non-existent client ${quote.clientId}`);
     }
