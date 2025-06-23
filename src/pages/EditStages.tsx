@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -128,7 +129,7 @@ const EditStages = () => {
                 <SortableContext items={localStages.map(stage => stage.id)} strategy={horizontalListSortingStrategy}>
                   <div className="flex gap-4 min-w-max pb-4">
                     {localStages.sort((a, b) => a.order - b.order).map(stage => (
-                      <div key={stage.id} className="w-20 flex-shrink-0">
+                      <div key={stage.id} className="w-40 flex-shrink-0">
                         <StageCard 
                           stage={stage} 
                           onUpdateTitle={handleTitleChange} 
@@ -177,3 +178,4 @@ const EditStages = () => {
 };
 
 export default EditStages;
+
