@@ -7,6 +7,7 @@ import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStagesStore } from "@/store/stagesStore";
 import DealCard from './DealCard';
+
 interface Deal {
   id: string;
   client: string;
@@ -14,9 +15,10 @@ interface Deal {
   property: string;
   contact: string;
   requested: string;
-  amount: number;
+  amount?: number; // Made optional to match SalesPipelineData.ts
   status: string;
 }
+
 interface PipelineColumnProps {
   id: string;
   title: string;
@@ -25,6 +27,7 @@ interface PipelineColumnProps {
   totalValue: string;
   fixedHeight: number;
 }
+
 const PipelineColumn = ({
   id,
   title,
@@ -94,4 +97,5 @@ const PipelineColumn = ({
       </div>
     </div>;
 };
+
 export default PipelineColumn;
