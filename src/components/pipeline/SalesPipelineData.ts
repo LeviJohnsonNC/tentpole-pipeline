@@ -178,8 +178,8 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       return null;
     }
     
-    // Only include amount if there's a quote - no estimated amounts for requests without quotes
-    const amount = newestQuote ? newestQuote.amount : undefined;
+    // Only include amount if there's a quote - and ensure it's a valid number
+    const amount = newestQuote && typeof newestQuote.amount === 'number' ? newestQuote.amount : undefined;
     
     return {
       id: request.id,
@@ -188,7 +188,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       property: request.client.primaryAddress,
       contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
       requested: request.requestDate,
-      amount: amount, // Only present if there's a quote
+      amount: amount, // Only present if there's a valid quote amount
       status: pipelineStage,
       type: 'request' as const,
       quoteId: newestQuote?.id
@@ -208,7 +208,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
   
   // Only include standalone quotes (no requestId) with active statuses
   const standaloneQuotes = quotesWithClients.filter(quote => {
-    console.log(`Quote ${quote.id} has requestId: ${quote.requestId}, status: ${quote.status}`);
+    console.log(`Quote ${quote.id} has requestId: ${quote.requestId}, status: ${quote.status}, amount: ${quote.amount}`);
     
     // Must be standalone (no requestId)
     if (quote.requestId) return false;
@@ -219,8 +219,9 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
       return false; // This ensures approved/converted quotes won't appear in pipeline
     }
     
-    // Must have active status (not archived)
-    return quote.status === 'Draft' || quote.status === 'Awaiting Response' || quote.status === 'Changes Requested';
+    // Must have active status (not archived) and valid amount
+    return (quote.status === 'Draft' || quote.status === 'Awaiting Response' || quote.status === 'Changes Requested') && 
+           typeof quote.amount === 'number' && quote.amount > 0;
   });
   console.log('Standalone quotes for pipeline:', standaloneQuotes.length);
   
@@ -240,7 +241,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
       property: quote.property,
       contact: [quote.client.phone, quote.client.email].filter(Boolean).join('\n'),
       requested: quote.createdDate,
-      amount: quote.amount, // Always present for quotes
+      amount: quote.amount, // Always present for quotes and validated above
       status: pipelineStage,
       type: 'quote' as const,
       quoteId: quote.id

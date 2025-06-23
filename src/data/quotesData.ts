@@ -9,7 +9,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-001',
     title: 'Restaurant Patio Deep Clean',
     property: '2847 Mountain View Rd',
-    status: 'Draft', // Changed from 'Awaiting Response' to match request status 'New'
+    status: 'Draft',
     amount: 1250.00,
     createdDate: '2025-06-10',
     salesperson: 'Mike Johnson',
@@ -35,9 +35,9 @@ export const quotesData: Quote[] = [
     clientId: 'client-6',
     requestId: 'request-3',
     quoteNumber: 'Q-2025-003',
-    title: 'Large Oak Tree Removal',
+    title: 'Large Oak Tree Removal', 
     property: '967 Heritage Lane SW',
-    status: 'Converted', // Keep as converted since request-3 is 'Converted'
+    status: 'Converted',
     amount: 2850.00,
     createdDate: '2025-06-13',
     sentDate: '2025-06-14',
@@ -54,7 +54,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-004',
     title: 'Playground Safety Surface Cleaning',
     property: '725 School Avenue NE',
-    status: 'Draft', // Changed from 'Changes Requested' to match request status 'New'
+    status: 'Draft',
     amount: 975.00,
     createdDate: '2025-06-08',
     salesperson: 'Lisa Chen',
@@ -68,7 +68,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-005',
     title: 'Courtyard Garden Renovation',
     property: '4890 Prairie Rose Drive SE',
-    status: 'Converted', // Keep as converted since request-5 is 'Converted'
+    status: 'Converted',
     amount: 12500.00,
     createdDate: '2025-06-05',
     sentDate: '2025-06-06',
@@ -85,7 +85,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-006',
     title: 'Deck Staining and Sealing',
     property: '8542 Scenic Drive SW',
-    status: 'Awaiting Response', // Keep as awaiting response for variety
+    status: 'Awaiting Response',
     amount: 1875.00,
     createdDate: '2025-06-15',
     sentDate: '2025-06-16',
@@ -114,7 +114,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-008',
     title: 'Pool Deck Restoration',
     property: '3654 Parkdale Boulevard SW',
-    status: 'Converted', // Keep as converted since request-13 is 'Converted'
+    status: 'Converted',
     amount: 2950.00,
     createdDate: '2025-06-18',
     sentDate: '2025-06-19',
@@ -131,7 +131,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-009',
     title: 'Hedge Trimming and Shaping',
     property: '3421 Hillview Crescent NW',
-    status: 'Changes Requested', // Keep as changes requested for variety
+    status: 'Changes Requested',
     amount: 425.00,
     createdDate: '2025-06-04',
     sentDate: '2025-06-05',
@@ -146,7 +146,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-010',
     title: 'Summer Flower Bed Installation',
     property: '150 Green Valley Dr',
-    status: 'Converted', // Keep as converted since request-14 is 'Converted'
+    status: 'Converted',
     amount: 3500.00,
     createdDate: '2025-06-20',
     sentDate: '2025-06-21',
@@ -194,7 +194,7 @@ export const quotesData: Quote[] = [
     property: '1245 Riverside Crescent NE',
     status: 'Awaiting Response',
     amount: 9200.00,
-    createdDate: '2025-06-15', // Newer than quote-2
+    createdDate: '2025-06-15',
     sentDate: '2025-06-16',
     salesperson: 'Lisa Chen',
     validUntil: '2025-07-16',
@@ -209,7 +209,7 @@ export const quotesData: Quote[] = [
     property: '725 School Avenue NE',
     status: 'Changes Requested',
     amount: 1150.00,
-    createdDate: '2025-06-12', // Newer than quote-4
+    createdDate: '2025-06-12',
     sentDate: '2025-06-13',
     salesperson: 'Lisa Chen',
     validUntil: '2025-07-13',
