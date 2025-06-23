@@ -130,8 +130,10 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
       stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
     );
     if (draftStage) {
+      console.log(`Standalone quote ${quote.id} assigned to stage: ${draftStage.id}`);
       return draftStage.id;
     }
+    console.log(`Standalone quote ${quote.id} using fallback draft-quote stage`);
     return 'draft-quote'; // Fallback to default draft quote stage ID
   }
   
@@ -215,8 +217,34 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
 // Convert ONLY standalone quotes (not linked to requests) to deals for the pipeline
 const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
   console.log('Creating deals from standalone quotes. Session quotes:', sessionQuotes.length);
+  console.log('Session clients available:', sessionClients.length);
   
-  const quotesWithClients = getQuotesWithClientInfo(sessionClients, sessionQuotes);
+  // Enhanced logging to debug quote-12 specifically
+  const quote12 = sessionQuotes.find(q => q.id === 'quote-12');
+  if (quote12) {
+    console.log('Found quote-12 in session quotes:', quote12);
+    console.log('Quote-12 details - requestId:', quote12.requestId, 'status:', quote12.status, 'amount:', quote12.amount, 'clientId:', quote12.clientId);
+    
+    // Check if client exists
+    const client = sessionClients.find(c => c.id === quote12.clientId);
+    console.log('Client for quote-12:', client ? 'FOUND' : 'NOT FOUND', client?.name);
+  } else {
+    console.log('Quote-12 NOT found in session quotes!');
+  }
+  
+  // Get quotes with client info, but handle missing clients gracefully
+  const quotesWithClients = sessionQuotes.map(quote => {
+    const client = sessionClients.find(c => c.id === quote.clientId);
+    if (!client) {
+      console.warn(`Client not found for quote ${quote.id}, skipping quote`);
+      return null;
+    }
+    return {
+      ...quote,
+      client
+    };
+  }).filter(Boolean); // Remove null entries
+  
   console.log('All quotes with client info:', quotesWithClients.length);
   
   // Only include standalone quotes (no requestId) with active statuses
@@ -224,7 +252,10 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     console.log(`Quote ${quote.id} has requestId: ${quote.requestId}, status: ${quote.status}, amount: ${quote.amount}`);
     
     // Must be standalone (no requestId)
-    if (quote.requestId) return false;
+    if (quote.requestId) {
+      console.log(`Quote ${quote.id} EXCLUDED - has requestId: ${quote.requestId}`);
+      return false;
+    }
     
     // ENHANCED AUTO CLOSED-WON LOGIC: Exclude approved/converted quotes
     if (quote.status === 'Approved' || quote.status === 'Converted') {
@@ -233,10 +264,15 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     }
     
     // Must have active status (not archived) and valid amount
-    return (quote.status === 'Draft' || quote.status === 'Awaiting Response' || quote.status === 'Changes Requested') && 
-           typeof quote.amount === 'number' && quote.amount > 0;
+    const isValidStatus = (quote.status === 'Draft' || quote.status === 'Awaiting Response' || quote.status === 'Changes Requested');
+    const hasValidAmount = typeof quote.amount === 'number' && quote.amount > 0;
+    
+    console.log(`Quote ${quote.id} validation - validStatus: ${isValidStatus}, validAmount: ${hasValidAmount}`);
+    
+    return isValidStatus && hasValidAmount;
   });
   console.log('Standalone quotes for pipeline:', standaloneQuotes.length);
+  standaloneQuotes.forEach(q => console.log(`- Standalone quote: ${q.id} (${q.status}, $${q.amount})`));
   
   const deals = standaloneQuotes.map((quote) => {
     const pipelineStage = assignQuotePipelineStage(quote, stages);
@@ -246,6 +282,8 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
       console.log(`Standalone quote ${quote.id} EXCLUDED from pipeline (closed won)`);
       return null;
     }
+    
+    console.log(`Creating deal for standalone quote ${quote.id} in stage ${pipelineStage}`);
     
     return {
       id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
@@ -262,6 +300,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
   }).filter(Boolean); // Remove null entries
   
   console.log('Final deals from standalone quotes:', deals.length);
+  deals.forEach(d => console.log(`- Deal created: ${d.id} (${d.status}, $${d.amount})`));
   return deals;
 };
 
