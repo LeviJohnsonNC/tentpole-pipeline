@@ -26,9 +26,10 @@ interface PipelineColumnProps {
   deals: Deal[];
   count: number;
   totalValue: string;
+  fixedHeight: number;
 }
 
-const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnProps) => {
+const PipelineColumn = ({ id, title, deals, count, totalValue, fixedHeight }: PipelineColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({
     id,
   });
@@ -50,9 +51,10 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
         ${isJobberStage ? 'bg-gray-100' : 'bg-gray-50'}
         ${isOver ? (isJobberStage ? 'bg-gray-200 ring-2 ring-gray-300 ring-opacity-50' : 'bg-blue-50 ring-2 ring-blue-200 ring-opacity-50') : ''}
       `}
+      style={{ height: `${fixedHeight}px` }}
     >
       {/* Column Header */}
-      <div className="mb-3">
+      <div className="mb-3 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium text-gray-900 text-sm truncate">{title}</h3>
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
@@ -74,12 +76,12 @@ const PipelineColumn = ({ id, title, deals, count, totalValue }: PipelineColumnP
       </div>
 
       {/* Separator */}
-      <Separator className="mb-3" />
+      <Separator className="mb-3 flex-shrink-0" />
 
       {/* Cards Container */}
       <div 
         ref={setNodeRef}
-        className="flex-1 space-y-2 min-h-[200px] relative"
+        className="flex-1 space-y-2 relative overflow-y-auto"
       >
         <SortableContext items={dealIds} strategy={verticalListSortingStrategy}>
           {deals.map((deal) => (

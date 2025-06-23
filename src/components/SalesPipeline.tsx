@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { 
   DndContext, 
@@ -52,6 +51,22 @@ const SalesPipeline = () => {
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  // Calculate fixed height based on the column with the most cards
+  const fixedColumnHeight = useMemo(() => {
+    const maxDeals = Math.max(...stages.map(stage => 
+      getColumnDeals(stage.id).length
+    ), 1); // Minimum of 1 to avoid 0 height
+    
+    // Base height for header + separator + padding + minimum space
+    const baseHeight = 120;
+    // Height per card (approximate)
+    const cardHeight = 100;
+    // Add some extra space for spacing and scroll
+    const extraSpace = 60;
+    
+    return baseHeight + (maxDeals * cardHeight) + extraSpace;
+  }, [deals, stages]);
+
   // Enhanced Auto Closed-Won Logic: Monitor quote status changes and remove deals immediately
   React.useEffect(() => {
     console.log('Session data changed. Checking for auto closed-won triggers...');
@@ -83,47 +98,6 @@ const SalesPipeline = () => {
     console.log('Updated deals:', newDeals.map(d => ({ id: d.id, status: d.status, type: d.type })));
     setDeals(newDeals);
   }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const formatAmount = (amount: number) => {
-    return `$ ${amount.toLocaleString()}.00`;
-  };
-
-  const getColumnDeals = (columnId: string) => {
-    return deals.filter(deal => deal.status === columnId);
-  };
-
-  const getColumnTotalValue = (columnId: string) => {
-    const columnDeals = getColumnDeals(columnId);
-    const total = columnDeals.reduce((sum, deal) => sum + deal.amount, 0);
-    return formatAmount(total);
-  };
-
-  const findContainer = (id: string) => {
-    // Check if id is an action zone
-    if (id.startsWith('action-')) {
-      return id;
-    }
-    
-    // Check if id is a column id
-    if (stages.some(stage => stage.id === id)) {
-      return id;
-    }
-    
-    // Then check if it's a deal id
-    const deal = deals.find(deal => deal.id === id);
-    return deal?.status || null;
-  };
 
   // Enhanced validation function for Jobber stages
   const canDropInJobberStage = (dealId: string, targetStageId: string): { allowed: boolean; message?: string } => {
@@ -379,6 +353,7 @@ const SalesPipeline = () => {
                       deals={columnDeals}
                       count={columnDeals.length}
                       totalValue={getColumnTotalValue(stage.id)}
+                      fixedHeight={fixedColumnHeight}
                     />
                   </div>
                 );
