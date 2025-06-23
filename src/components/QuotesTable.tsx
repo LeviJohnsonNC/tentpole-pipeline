@@ -143,7 +143,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
           </TableHeader>
           <TableBody>
             {filteredQuotes.map(quote => (
-              <HoverCard key={quote.id} openDelay={100} closeDelay={300}>
+              <HoverCard key={quote.id} openDelay={200} closeDelay={500}>
                 <HoverCardTrigger asChild>
                   <TableRow className="hover:bg-gray-50 cursor-pointer">
                     <TableCell>
@@ -168,7 +168,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                   className="w-auto p-2 bg-white border shadow-lg z-50" 
                   side="bottom" 
                   align="end"
-                  sideOffset={-10}
+                  sideOffset={-154}
                   alignOffset={0}
                   avoidCollisions={false}
                 >
@@ -202,7 +202,7 @@ const QuotesTable = ({ quotes, statusFilter }: QuotesTableProps) => {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-white">
+                      <DropdownMenuContent align="end" className="bg-white" onCloseAutoFocus={(e) => e.preventDefault()}>
                         <DropdownMenuItem onClick={() => handleMarkAsApproved(quote)}>
                           Mark as Approved
                         </DropdownMenuItem>
