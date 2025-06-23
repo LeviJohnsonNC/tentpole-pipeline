@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -7,6 +6,7 @@ import {
   Calendar, 
   Users, 
   FileText, 
+  CircleDollarSign,
   DollarSign, 
   Briefcase, 
   Receipt, 
@@ -30,6 +30,7 @@ const Sidebar = () => {
     { id: "schedule", label: "Schedule", icon: Calendar, badge: "New", path: "/schedule", active: false },
     { id: "clients", label: "Clients", icon: Users, path: "/clients", active: true },
     { id: "requests", label: "Requests", icon: FileText, path: "/", active: true },
+    { id: "sales", label: "Sales", icon: CircleDollarSign, path: "/sales", active: true },
     { id: "quotes", label: "Quotes", icon: DollarSign, path: "/quotes", active: true },
     { id: "jobs", label: "Jobs", icon: Briefcase, path: "/jobs", active: false },
     { id: "invoices", label: "Invoices", icon: Receipt, path: "/invoices", active: false },
@@ -58,6 +59,14 @@ const Sidebar = () => {
     }
     
     if (item.id === "clients" && location.pathname.startsWith("/clients")) {
+      return true;
+    }
+    
+    if (item.id === "sales" && location.pathname.startsWith("/sales")) {
+      return true;
+    }
+    
+    if (item.id === "quotes" && location.pathname.startsWith("/quotes")) {
       return true;
     }
     
