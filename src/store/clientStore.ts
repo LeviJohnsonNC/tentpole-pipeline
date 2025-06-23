@@ -28,8 +28,13 @@ export const useClientStore = create<ClientStore>((set, get) => ({
       staticDataCount: clientsData.length
     });
     
-    if (isInitialized) {
-      console.log('Client store already initialized, skipping static data initialization');
+    // Only initialize if store is completely empty (no clients at all)
+    if (sessionClients.length > 0) {
+      console.log('Client store has existing clients, skipping static data initialization');
+      // Ensure we mark as initialized if we have clients
+      if (!isInitialized) {
+        set({ isInitialized: true });
+      }
       return;
     }
     
@@ -59,12 +64,14 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     console.log('Adding client to store:', client);
     set((state) => {
       const newState = { 
-        sessionClients: [...state.sessionClients, client] 
+        sessionClients: [...state.sessionClients, client],
+        isInitialized: true // Ensure we stay initialized when adding clients
       };
       console.log('New store state after adding client:', {
         clientsCount: newState.sessionClients.length,
         newClientId: client.id,
-        newClientName: client.name
+        newClientName: client.name,
+        isInitialized: newState.isInitialized
       });
       return newState;
     });
@@ -73,7 +80,8 @@ export const useClientStore = create<ClientStore>((set, get) => ({
   removeSessionClient: (id) => {
     console.log('Removing client from store:', id);
     set((state) => ({
-      sessionClients: state.sessionClients.filter(c => c.id !== id)
+      sessionClients: state.sessionClients.filter(c => c.id !== id),
+      isInitialized: true // Maintain initialized state
     }));
   },
   
@@ -82,7 +90,8 @@ export const useClientStore = create<ClientStore>((set, get) => ({
     set((state) => ({
       sessionClients: state.sessionClients.map(c => 
         c.id === id ? { ...c, ...updates } : c
-      )
+      ),
+      isInitialized: true // Maintain initialized state
     }));
   },
   
