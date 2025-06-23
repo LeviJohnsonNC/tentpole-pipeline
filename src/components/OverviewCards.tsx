@@ -54,11 +54,11 @@ const OverviewCards = ({ onStatusFilter, activeStatusFilter, requests }: Overvie
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       {/* Overview Card */}
       <Card className="bg-white border border-gray-200 shadow-sm">
-        <CardContent className="p-4">
-          <h3 className="font-medium text-gray-900 mb-3">Overview</h3>
-          <div className="space-y-2">
+        <CardContent className="p-2">
+          <h3 className="font-medium text-gray-900 mb-1.5">Overview</h3>
+          <div className="space-y-1">
             <div 
-              className={`flex items-center justify-between p-2 rounded ${getStatusButtonClass('New')}`}
+              className={`flex items-center justify-between p-1 rounded ${getStatusButtonClass('New')}`}
               onClick={() => handleStatusClick('New')}
             >
               <div className="flex items-center space-x-2">
@@ -67,7 +67,7 @@ const OverviewCards = ({ onStatusFilter, activeStatusFilter, requests }: Overvie
               </div>
             </div>
             <div 
-              className={`flex items-center justify-between p-2 rounded ${getStatusButtonClass('Assessment complete')}`}
+              className={`flex items-center justify-between p-1 rounded ${getStatusButtonClass('Assessment complete')}`}
               onClick={() => handleStatusClick('Assessment complete')}
             >
               <div className="flex items-center space-x-2">
@@ -76,7 +76,7 @@ const OverviewCards = ({ onStatusFilter, activeStatusFilter, requests }: Overvie
               </div>
             </div>
             <div 
-              className={`flex items-center justify-between p-2 rounded ${getStatusButtonClass('Overdue')}`}
+              className={`flex items-center justify-between p-1 rounded ${getStatusButtonClass('Overdue')}`}
               onClick={() => handleStatusClick('Overdue')}
             >
               <div className="flex items-center space-x-2">
@@ -85,7 +85,7 @@ const OverviewCards = ({ onStatusFilter, activeStatusFilter, requests }: Overvie
               </div>
             </div>
             <div 
-              className={`flex items-center justify-between p-2 rounded ${getStatusButtonClass('Unscheduled')}`}
+              className={`flex items-center justify-between p-1 rounded ${getStatusButtonClass('Unscheduled')}`}
               onClick={() => handleStatusClick('Unscheduled')}
             >
               <div className="flex items-center space-x-2">
@@ -99,13 +99,13 @@ const OverviewCards = ({ onStatusFilter, activeStatusFilter, requests }: Overvie
 
       {/* New Requests Card */}
       <Card className="bg-white border border-gray-200 shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
+        <CardContent className="p-2">
+          <div className="flex items-center justify-between mb-1">
             <h3 className="font-medium text-gray-900">New requests</h3>
           </div>
-          <div className="text-sm text-gray-500 mb-3">Past 30 days</div>
+          <div className="text-sm text-gray-500 mb-1.5">Past 30 days</div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-semibold text-gray-900">{newRequestsPast30Days}</span>
+            <span className="text-2xl font-semibold text-gray-900">{newRequestsPast30Days}</span>
             <div className="flex items-center text-green-600 text-sm">
               <TrendingUp className="h-3 w-3 mr-1" />
               100%
@@ -116,14 +116,14 @@ const OverviewCards = ({ onStatusFilter, activeStatusFilter, requests }: Overvie
 
       {/* Conversion Rate Card */}
       <Card className="bg-white border border-gray-200 shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
+        <CardContent className="p-2">
+          <div className="flex items-center justify-between mb-1">
             <h3 className="font-medium text-gray-900">Conversion rate</h3>
             <Info className="h-4 w-4 text-gray-400" />
           </div>
-          <div className="text-sm text-gray-500 mb-3">Past 30 days</div>
+          <div className="text-sm text-gray-500 mb-1.5">Past 30 days</div>
           <div className="flex items-baseline space-x-2">
-            <span className="text-3xl font-semibold text-gray-900">{conversionRate}%</span>
+            <span className="text-2xl font-semibold text-gray-900">{conversionRate}%</span>
             <div className="flex items-center text-green-600 text-sm">
               <TrendingUp className="h-3 w-3 mr-1" />
               100%
@@ -134,9 +134,9 @@ const OverviewCards = ({ onStatusFilter, activeStatusFilter, requests }: Overvie
 
       {/* Copilot KPI Card */}
       <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-sm">
-        <CardContent className="p-4">
-          <div className="mb-3">
-            <h3 className="font-medium text-gray-900 mb-1">Want to take a closer look at some KPIs?</h3>
+        <CardContent className="p-2">
+          <div className="mb-1.5">
+            <h3 className="font-medium text-gray-900 mb-0.5">Want to take a closer look at some KPIs?</h3>
             <p className="text-sm text-gray-600">Jobber Copilot can help make sense of performance across all areas of your business.</p>
           </div>
           <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50">
