@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -104,7 +102,7 @@ const EditStages = () => {
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/sales')} className="flex items-center space-x-2">
                 <ArrowLeft className="h-4 w-4" />
                 <span>Back to Pipeline</span>
               </Button>
@@ -178,4 +176,3 @@ const EditStages = () => {
 };
 
 export default EditStages;
-

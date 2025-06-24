@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -48,8 +49,13 @@ const PipelineColumn = ({
   const stage = stages.find(s => s.id === id);
   const isJobberStage = stage?.isJobberStage;
 
-  // Don't show amount for New Deals and Contacted columns
-  const shouldShowAmount = id !== 'new-deals' && id !== 'contacted';
+  // Don't show amount for New Deals, Contacted, and assessment-related stages
+  const shouldShowAmount = id !== 'new-deals' && 
+    id !== 'contacted' && 
+    !title.toLowerCase().includes('unscheduled') &&
+    !title.toLowerCase().includes('overdue') &&
+    !title.toLowerCase().includes('assessment');
+
   const dealIds = deals.map(deal => deal.id);
   return <div className={`
         flex flex-col rounded-lg p-3 
