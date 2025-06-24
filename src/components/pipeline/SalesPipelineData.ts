@@ -22,9 +22,82 @@ const getNewestQuoteForRequest = (requestId: string, sessionQuotes: any[]): any 
   return requestQuotes.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())[0];
 };
 
-// FIXED: Enhanced mapping function to ensure only deals with quotes go to quote stages
+// NEW: Helper function to find matching Jobber stage based on exact rules
+const findMatchingJobberStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
+  console.log(`Finding matching Jobber stage for request ${request?.id}, quote status: ${newestQuote?.status}, request status: ${request?.status}`);
+  
+  const jobberStages = stages.filter(stage => stage.isJobberStage);
+  console.log('Available Jobber stages:', jobberStages.map(s => ({ id: s.id, title: s.title, order: s.order })));
+  
+  let matchingStages: any[] = [];
+  
+  // Rule 1: Request "Unscheduled" status -> "Unscheduled Assessment" Jobber Stage
+  if (request && request.status === 'Unscheduled') {
+    const unscheduledStages = jobberStages.filter(stage => 
+      stage.title.toLowerCase().includes('unscheduled') && 
+      stage.title.toLowerCase().includes('assessment')
+    );
+    matchingStages.push(...unscheduledStages);
+    console.log(`Request ${request.id} is Unscheduled, found ${unscheduledStages.length} matching unscheduled assessment stages`);
+  }
+  
+  // Rule 2: Request "Overdue" status -> "Overdue Assessment" Jobber Stage
+  if (request && request.status === 'Overdue') {
+    const overdueStages = jobberStages.filter(stage => 
+      stage.title.toLowerCase().includes('overdue') && 
+      stage.title.toLowerCase().includes('assessment')
+    );
+    matchingStages.push(...overdueStages);
+    console.log(`Request ${request.id} is Overdue, found ${overdueStages.length} matching overdue assessment stages`);
+  }
+  
+  // Rule 3: Request "Assessment complete" status -> "Assessment Completed" Jobber Stage
+  if (request && request.status === 'Assessment complete') {
+    const assessmentStages = jobberStages.filter(stage => 
+      stage.title.toLowerCase().includes('assessment') && 
+      (stage.title.toLowerCase().includes('completed') || stage.title.toLowerCase().includes('complete'))
+    );
+    matchingStages.push(...assessmentStages);
+    console.log(`Request ${request.id} is Assessment complete, found ${assessmentStages.length} matching assessment completed stages`);
+  }
+  
+  // Rule 4: Quote "Changes Requested" status -> "Quote Changes Requested" Jobber Stage
+  if (newestQuote && newestQuote.status === 'Changes Requested') {
+    const changesStages = jobberStages.filter(stage => 
+      stage.title.toLowerCase().includes('quote') && 
+      stage.title.toLowerCase().includes('changes') && 
+      stage.title.toLowerCase().includes('requested')
+    );
+    matchingStages.push(...changesStages);
+    console.log(`Quote ${newestQuote.id} has Changes Requested, found ${changesStages.length} matching quote changes stages`);
+  }
+  
+  // If multiple matching stages, select the rightmost one (highest order)
+  if (matchingStages.length > 0) {
+    const rightmostStage = matchingStages.reduce((prev, current) => 
+      (current.order > prev.order) ? current : prev
+    );
+    console.log(`Selected rightmost matching Jobber stage: ${rightmostStage.id} (${rightmostStage.title}) with order ${rightmostStage.order}`);
+    return rightmostStage.id;
+  }
+  
+  console.log('No matching Jobber stages found');
+  return null;
+};
+
+// ENHANCED: Enhanced mapping function to check Jobber stages first
 const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
-  // CRITICAL: If there's a newest quote, use its status to determine stage
+  console.log(`\n--- Assigning pipeline stage for request ${request.id} ---`);
+  console.log(`Request status: ${request.status}, Newest quote: ${newestQuote?.id || 'none'}, Quote status: ${newestQuote?.status || 'N/A'}`);
+  
+  // STEP 1: Check for Jobber stage matches first (NEW LOGIC)
+  const jobberStageMatch = findMatchingJobberStage(request, newestQuote, stages);
+  if (jobberStageMatch) {
+    console.log(`✅ Request ${request.id} matched to Jobber stage: ${jobberStageMatch}`);
+    return jobberStageMatch;
+  }
+  
+  // STEP 2: CRITICAL - If there's a newest quote, use its status to determine stage
   if (newestQuote) {
     console.log(`Request ${request.id} has newest quote ${newestQuote.id} with status: ${newestQuote.status}`);
     
@@ -55,9 +128,7 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
         }
       }
       
-      if (newestQuote.status === 'Changes Requested') {
-        return 'followup'; // Changes requested goes to followup
-      }
+      // Changes Requested is now handled by Jobber stage matching above
     } else {
       console.log(`Request ${request.id} has quote but invalid amount, placing in contacted stage`);
       return 'contacted'; // If quote exists but amount is invalid, place in contacted stage
@@ -70,7 +141,7 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     }
   }
   
-  // FIXED: Handle requests without quotes - they can NEVER go to quote stages
+  // STEP 3: Handle requests without quotes - they can NEVER go to quote stages
   // All requests without quotes should only be in pre-quote stages
   if (request.status === 'Assessment complete') {
     // Assessment complete but no quote - should be in contacted, ready for quote creation
@@ -78,15 +149,14 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   }
   
   if (request.status === 'Overdue') {
-    return 'followup'; // Overdue requests go to followup
+    return 'followup'; // Overdue requests go to followup (unless Jobber stage matched above)
   }
   
   if (request.status === 'Unscheduled') {
-    return 'contacted'; // Unscheduled requests go to contacted
+    return 'contacted'; // Unscheduled requests go to contacted (unless Jobber stage matched above)
   }
   
-  // FIXED: Removed hardcoded mappings that put requests in quote stages
-  // All new requests without quotes should start in appropriate pre-quote stages
+  // STEP 4: Handle new requests and others
   if (request.status === 'New') {
     // Distribute new requests between new-deals and contacted for realistic pipeline
     const distributionMapping: Record<string, string> = {
@@ -106,12 +176,20 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   }
   
   // Default fallback for any other status
+  console.log(`Request ${request.id} using default fallback: new-deals`);
   return 'new-deals';
 };
 
 // Function to determine pipeline stage for standalone quotes
 const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
-  console.log(`Standalone quote ${quote.id} has status: ${quote.status}`);
+  console.log(`Assigning stage for standalone quote ${quote.id} with status: ${quote.status}`);
+  
+  // Check for Jobber stage matches first
+  const jobberStageMatch = findMatchingJobberStage(null, quote, stages);
+  if (jobberStageMatch) {
+    console.log(`✅ Standalone quote ${quote.id} matched to Jobber stage: ${jobberStageMatch}`);
+    return jobberStageMatch;
+  }
   
   // ENHANCED AUTO CLOSED-WON: Approved and Converted quotes shouldn't be in pipeline (closed won)
   if (quote.status === 'Approved' || quote.status === 'Converted') {
@@ -146,9 +224,7 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
     }
   }
   
-  if (quote.status === 'Changes Requested') {
-    return 'followup'; // Changes requested goes to followup
-  }
+  // Changes Requested is now handled by Jobber stage matching above
   
   // Archived quotes should also be excluded
   if (quote.status === 'Archived') {
@@ -184,7 +260,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       return null; // This ensures the deal won't appear in the pipeline
     }
     
-    // Determine pipeline stage based on newest quote or request alone
+    // Determine pipeline stage based on newest quote or request alone (ENHANCED WITH JOBBER MATCHING)
     const pipelineStage = assignPipelineStage(request, newestQuote, stages);
     
     // If pipeline stage is null (closed won or excluded), don't include in pipeline
@@ -305,13 +381,14 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
 };
 
 export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
-  console.log('\n=== ENHANCED PIPELINE DATA CREATION (AUTO CLOSED-WON) ===');
+  console.log('\n=== ENHANCED PIPELINE DATA CREATION (WITH JOBBER STAGE MATCHING) ===');
   console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
+  console.log('Available stages:', stages.map(s => ({ id: s.id, title: s.title, isJobberStage: s.isJobberStage, order: s.order })));
   
-  // Create deals from open requests (using newest quote logic with AUTO CLOSED-WON)
+  // Create deals from open requests (using newest quote logic with JOBBER STAGE MATCHING)
   const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
   
-  // Create deals from standalone quotes only (with AUTO CLOSED-WON)
+  // Create deals from standalone quotes only (with JOBBER STAGE MATCHING)
   const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
   
   const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
