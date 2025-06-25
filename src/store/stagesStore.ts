@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 export interface Stage {
@@ -20,7 +21,7 @@ interface StagesState {
 }
 
 const defaultStages: Stage[] = [
-  { id: "new-deals", title: "New Lead", order: 1, isImmutable: true }, // Made immutable
+  { id: "new-deals", title: "New Deals", order: 1, isImmutable: true }, // Changed title from "New Lead" to "New Deals"
   { id: "contacted", title: "Contacted", order: 2 },
   { id: "draft-quote", title: "Draft Quote", order: 3, isJobberStage: true },
   { id: "quote-awaiting-response", title: "Quote Awaiting Response", order: 4, isJobberStage: true },
