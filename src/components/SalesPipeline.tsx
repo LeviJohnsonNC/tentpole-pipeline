@@ -127,9 +127,12 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
   const formatAmount = (amount: number) => {
     return `$ ${amount.toLocaleString()}.00`;
   };
+  
+  // Use filteredDeals for display but original deals for column height calculation
   const getColumnDeals = (columnId: string) => {
     return filteredDeals.filter(deal => deal.status === columnId);
   };
+  
   const getColumnTotalValue = (columnId: string) => {
     const columnDeals = getColumnDeals(columnId);
     const total = columnDeals.reduce((sum, deal) => {
@@ -154,9 +157,13 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     return deal?.status || null;
   };
 
-  // Calculate fixed height based on the column with the most cards - more compact sizing
+  // Calculate fixed height based on original deals array to maintain consistent column heights
   const fixedColumnHeight = useMemo(() => {
-    const maxDeals = Math.max(...stages.map(stage => getColumnDeals(stage.id).length), 1); // Minimum of 1 to avoid 0 height
+    const getOriginalColumnDeals = (columnId: string) => {
+      return deals.filter(deal => deal.status === columnId);
+    };
+    
+    const maxDeals = Math.max(...stages.map(stage => getOriginalColumnDeals(stage.id).length), 1); // Minimum of 1 to avoid 0 height
 
     // More precise measurements:
     const headerHeight = 80; // Header + counter/value + separator + padding
