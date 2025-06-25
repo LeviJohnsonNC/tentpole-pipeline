@@ -1,3 +1,4 @@
+
 import { MoreHorizontal, ChartColumn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -105,6 +106,16 @@ const Sales = () => {
                 </div>
               </div>
               
+              {/* Search bar for kanban view */}
+              {pipelineView === 'kanban' && (
+                <div className="flex justify-end mb-4">
+                  <SearchBar 
+                    searchTerm={searchTerm}
+                    onSearchChange={handleSearchChange}
+                  />
+                </div>
+              )}
+              
               {pipelineView === 'list' && (
                 <div className="flex items-center justify-between">
                   <StageFilter 
@@ -124,7 +135,7 @@ const Sales = () => {
             {pipelineView === 'kanban' ? (
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <div className="p-4">
-                  <SalesPipeline onDealsChange={handleDealsChange} />
+                  <SalesPipeline onDealsChange={handleDealsChange} searchTerm={searchTerm} />
                 </div>
               </div>
             ) : (
