@@ -22,7 +22,7 @@ export const calculatePipelineMetrics = (deals: Deal[]): PipelineMetrics => {
 
   // Conversion Rate (Last 30 Days)
   const recentDeals = deals.filter(deal => {
-    const dealDate = new Date(deal.createdDate);
+    const dealDate = new Date(deal.requested);
     return dealDate >= thirtyDaysAgo;
   });
   
@@ -39,7 +39,7 @@ export const calculatePipelineMetrics = (deals: Deal[]): PipelineMetrics => {
 
   // Average Lead Age - average days since creation for open leads
   const leadAges = openDeals.map(deal => {
-    const createdDate = new Date(deal.createdDate);
+    const createdDate = new Date(deal.requested);
     const diffTime = now.getTime() - createdDate.getTime();
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   });
