@@ -12,6 +12,7 @@ import { Deal } from "@/components/pipeline/SalesPipelineData";
 import PipelineViewToggle from "@/components/pipeline/PipelineViewToggle";
 import PipelineListView from "@/components/pipeline/PipelineListView";
 import StageFilter from "@/components/pipeline/StageFilter";
+import SearchBar from "@/components/pipeline/SearchBar";
 
 const Sales = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const Sales = () => {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [pipelineView, setPipelineView] = useState<'kanban' | 'list'>('kanban');
   const [selectedStage, setSelectedStage] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   const handleEditStages = () => {
     navigate('/requests/edit-stages');
@@ -40,11 +42,22 @@ const Sales = () => {
     setSelectedStage(stage);
   };
 
-  // Filter deals based on selected stage
-  const filteredDeals = selectedStage === 'all' 
-    ? deals 
-    : deals.filter(deal => deal.status.toLowerCase().replace(/\s+/g, '-') === selectedStage || 
-                           deal.status.toLowerCase() === selectedStage);
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  // Filter deals based on selected stage and search term
+  const filteredDeals = deals.filter(deal => {
+    const matchesStage = selectedStage === 'all' || 
+      deal.status.toLowerCase().replace(/\s+/g, '-') === selectedStage || 
+      deal.status.toLowerCase() === selectedStage;
+    
+    const matchesSearch = searchTerm === '' ||
+      deal.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deal.property.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesStage && matchesSearch;
+  });
 
   return (
     <SidebarProvider>
@@ -67,10 +80,17 @@ const Sales = () => {
                     onViewChange={setPipelineView}
                   />
                   {pipelineView === 'list' && (
-                    <StageFilter 
-                      selectedStage={selectedStage}
-                      onStageChange={handleStageChange}
-                    />
+                    <div className="flex items-center justify-between w-full">
+                      <StageFilter 
+                        selectedStage={selectedStage}
+                        onStageChange={handleStageChange}
+                        resultsCount={filteredDeals.length}
+                      />
+                      <SearchBar 
+                        searchTerm={searchTerm}
+                        onSearchChange={handleSearchChange}
+                      />
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center space-x-3">

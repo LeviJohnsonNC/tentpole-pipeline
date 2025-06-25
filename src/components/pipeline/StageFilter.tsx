@@ -6,9 +6,10 @@ import { useStagesStore } from '@/store/stagesStore';
 interface StageFilterProps {
   selectedStage: string;
   onStageChange: (stage: string) => void;
+  resultsCount: number;
 }
 
-const StageFilter: React.FC<StageFilterProps> = ({ selectedStage, onStageChange }) => {
+const StageFilter: React.FC<StageFilterProps> = ({ selectedStage, onStageChange, resultsCount }) => {
   const { stages } = useStagesStore();
 
   return (
@@ -29,7 +30,7 @@ const StageFilter: React.FC<StageFilterProps> = ({ selectedStage, onStageChange 
             ))}
         </SelectContent>
       </Select>
-      <span className="text-sm text-gray-400">({stages.length} results)</span>
+      <span className="text-sm text-gray-400">({resultsCount} results)</span>
     </div>
   );
 };
