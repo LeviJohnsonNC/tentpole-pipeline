@@ -1,4 +1,3 @@
-
 import { MoreHorizontal, ChartColumn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -12,12 +11,14 @@ import { useState } from "react";
 import { Deal } from "@/components/pipeline/SalesPipelineData";
 import PipelineViewToggle from "@/components/pipeline/PipelineViewToggle";
 import PipelineListView from "@/components/pipeline/PipelineListView";
+import StageFilter from "@/components/pipeline/StageFilter";
 
 const Sales = () => {
   const navigate = useNavigate();
   const [isInsightsOpen, setIsInsightsOpen] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [pipelineView, setPipelineView] = useState<'kanban' | 'list'>('kanban');
+  const [selectedStage, setSelectedStage] = useState<string>('all');
 
   const handleEditStages = () => {
     navigate('/requests/edit-stages');
@@ -34,6 +35,16 @@ const Sales = () => {
   const handleDealsChange = (newDeals: Deal[]) => {
     setDeals(newDeals);
   };
+
+  const handleStageChange = (stage: string) => {
+    setSelectedStage(stage);
+  };
+
+  // Filter deals based on selected stage
+  const filteredDeals = selectedStage === 'all' 
+    ? deals 
+    : deals.filter(deal => deal.status.toLowerCase().replace(/\s+/g, '-') === selectedStage || 
+                           deal.status.toLowerCase() === selectedStage);
 
   return (
     <SidebarProvider>
@@ -55,6 +66,12 @@ const Sales = () => {
                     view={pipelineView}
                     onViewChange={setPipelineView}
                   />
+                  {pipelineView === 'list' && (
+                    <StageFilter 
+                      selectedStage={selectedStage}
+                      onStageChange={handleStageChange}
+                    />
+                  )}
                 </div>
                 <div className="flex items-center space-x-3">
                   <Button 
@@ -90,7 +107,7 @@ const Sales = () => {
                 </div>
               </div>
             ) : (
-              <PipelineListView deals={deals} />
+              <PipelineListView deals={filteredDeals} />
             )}
           </main>
         </SidebarInset>

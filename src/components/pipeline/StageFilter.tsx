@@ -1,0 +1,37 @@
+
+import React from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useStagesStore } from '@/store/stagesStore';
+
+interface StageFilterProps {
+  selectedStage: string;
+  onStageChange: (stage: string) => void;
+}
+
+const StageFilter: React.FC<StageFilterProps> = ({ selectedStage, onStageChange }) => {
+  const { stages } = useStagesStore();
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-gray-600 font-medium">Stage</span>
+      <Select value={selectedStage} onValueChange={onStageChange}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="All stages" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All</SelectItem>
+          {stages
+            .sort((a, b) => a.order - b.order)
+            .map((stage) => (
+              <SelectItem key={stage.id} value={stage.id}>
+                {stage.title}
+              </SelectItem>
+            ))}
+        </SelectContent>
+      </Select>
+      <span className="text-sm text-gray-400">({stages.length} results)</span>
+    </div>
+  );
+};
+
+export default StageFilter;
