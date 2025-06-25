@@ -79,19 +79,6 @@ const Sales = () => {
                     view={pipelineView}
                     onViewChange={setPipelineView}
                   />
-                  {pipelineView === 'list' && (
-                    <div className="flex items-center justify-between w-full">
-                      <StageFilter 
-                        selectedStage={selectedStage}
-                        onStageChange={handleStageChange}
-                        resultsCount={filteredDeals.length}
-                      />
-                      <SearchBar 
-                        searchTerm={searchTerm}
-                        onSearchChange={handleSearchChange}
-                      />
-                    </div>
-                  )}
                 </div>
                 <div className="flex items-center space-x-3">
                   <Button 
@@ -117,6 +104,20 @@ const Sales = () => {
                   </DropdownMenu>
                 </div>
               </div>
+              
+              {pipelineView === 'list' && (
+                <div className="flex items-center justify-between">
+                  <StageFilter 
+                    selectedStage={selectedStage}
+                    onStageChange={handleStageChange}
+                    resultsCount={filteredDeals.length}
+                  />
+                  <SearchBar 
+                    searchTerm={searchTerm}
+                    onSearchChange={handleSearchChange}
+                  />
+                </div>
+              )}
             </div>
             
             {/* Conditional rendering based on view */}
