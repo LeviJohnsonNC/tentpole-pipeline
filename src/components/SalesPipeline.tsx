@@ -15,7 +15,12 @@ import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction } from './pipeline/SalesPipelineData';
 
-const SalesPipeline = ({ onDealsChange }: { onDealsChange?: (deals: Deal[]) => void }) => {
+interface SalesPipelineProps {
+  onDealsChange?: (deals: Deal[]) => void;
+  searchTerm?: string;
+}
+
+const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) => {
   const {
     sessionClients,
     updateSessionClient
@@ -59,6 +64,17 @@ const SalesPipeline = ({ onDealsChange }: { onDealsChange?: (deals: Deal[]) => v
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  
+  // Filter deals based on search term
+  const filteredDeals = useMemo(() => {
+    if (!searchTerm) return deals;
+    
+    return deals.filter(deal => {
+      const matchesClient = deal.client.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesProperty = deal.property.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesClient || matchesProperty;
+    });
+  }, [deals, searchTerm]);
   
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
@@ -112,7 +128,7 @@ const SalesPipeline = ({ onDealsChange }: { onDealsChange?: (deals: Deal[]) => v
     return `$ ${amount.toLocaleString()}.00`;
   };
   const getColumnDeals = (columnId: string) => {
-    return deals.filter(deal => deal.status === columnId);
+    return filteredDeals.filter(deal => deal.status === columnId);
   };
   const getColumnTotalValue = (columnId: string) => {
     const columnDeals = getColumnDeals(columnId);
@@ -354,7 +370,7 @@ const SalesPipeline = ({ onDealsChange }: { onDealsChange?: (deals: Deal[]) => v
       });
     }
   };
-  const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
+  const activeItem = activeId ? filteredDeals.find(deal => deal.id === activeId) : null;
   
   return <div className="h-full relative">
       {/* Pipeline Header */}
