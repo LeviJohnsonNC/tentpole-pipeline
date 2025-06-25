@@ -1,3 +1,4 @@
+
 import { MoreHorizontal, ChartColumn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -45,13 +46,17 @@ const Sales = () => {
           {/* Main Content */}
           <main className="flex-1 p-6">
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-semibold text-gray-900">Sales Pipeline</h1>
-                <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col gap-3">
+                  <h1 className="text-2xl font-semibold text-gray-900">
+                    {pipelineView === 'kanban' ? 'Sales Pipeline' : 'Sales List'}
+                  </h1>
                   <PipelineViewToggle 
                     view={pipelineView}
                     onViewChange={setPipelineView}
                   />
+                </div>
+                <div className="flex items-center space-x-3">
                   <Button 
                     variant="outline" 
                     onClick={handleOpenInsights}
