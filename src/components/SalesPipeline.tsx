@@ -149,7 +149,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       return id;
     }
 
-    // Then check if it's a deal id
+    // Then check if it's a deal id - use original deals array for drag operations
     const deal = deals.find(deal => deal.id === id);
     return deal?.status || null;
   };
@@ -370,7 +370,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
     }
   };
-  const activeItem = activeId ? filteredDeals.find(deal => deal.id === activeId) : null;
+  const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
   return <div className="h-full relative">
       {/* Pipeline Header */}
