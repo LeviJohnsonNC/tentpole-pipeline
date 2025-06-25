@@ -40,10 +40,26 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
   },
   
   addSessionQuote: (quote) => {
-    console.log('Adding new quote to store:', quote.id, quote.title);
-    set((state) => ({
-      sessionQuotes: [...state.sessionQuotes, quote],
-    }));
+    console.log('🎯 QUOTE STORE: Adding new quote:', quote.id, quote.title, 'status:', quote.status);
+    console.log('🎯 QUOTE STORE: Quote details:', { clientId: quote.clientId, amount: quote.amount, property: quote.property });
+    
+    set((state) => {
+      const newState = {
+        sessionQuotes: [...state.sessionQuotes, quote],
+      };
+      
+      console.log('🎯 QUOTE STORE: New state will have', newState.sessionQuotes.length, 'quotes');
+      console.log('🎯 QUOTE STORE: Latest quotes:', newState.sessionQuotes.slice(-3).map(q => ({ id: q.id, status: q.status, clientId: q.clientId })));
+      
+      return newState;
+    });
+    
+    // Force a small delay to ensure state propagation
+    setTimeout(() => {
+      const currentState = get();
+      console.log('🎯 QUOTE STORE VERIFICATION: Current quotes after add:', currentState.sessionQuotes.length);
+      console.log('🎯 QUOTE STORE VERIFICATION: Added quote exists:', !!currentState.sessionQuotes.find(q => q.id === quote.id));
+    }, 100);
   },
   
   removeSessionQuote: (id) =>

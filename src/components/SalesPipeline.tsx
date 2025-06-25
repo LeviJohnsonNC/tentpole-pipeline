@@ -32,17 +32,30 @@ const SalesPipeline = () => {
     stages
   } = useStagesStore();
 
-  // Create initial deals and ensure they update when data changes
+  // ENHANCED: Create initial deals and ensure they update when data changes with better logging
   const initialDeals = useMemo(() => {
-    console.log('Creating initial deals with clients:', sessionClients.length, 'requests:', sessionRequests.length, 'quotes:', sessionQuotes.length);
+    console.log('🔄 PIPELINE REFRESH: Creating initial deals with:');
+    console.log('  - Clients:', sessionClients.length);
+    console.log('  - Requests:', sessionRequests.length); 
+    console.log('  - Quotes:', sessionQuotes.length);
+    console.log('  - Stages:', stages.length);
+    
     const deals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-    console.log('Created deals:', deals.map(d => ({
-      id: d.id,
-      status: d.status,
-      type: d.type
-    })));
+    
+    console.log('🎯 PIPELINE REFRESH RESULT:');
+    console.log('  - Total deals created:', deals.length);
+    console.log('  - Deals by type:', deals.reduce((acc, d) => {
+      acc[d.type] = (acc[d.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>));
+    console.log('  - Deals by stage:', deals.reduce((acc, d) => {
+      acc[d.status] = (acc[d.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>));
+    
     return deals;
   }, [sessionClients, sessionRequests, sessionQuotes, stages]);
+  
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -54,6 +67,42 @@ const SalesPipeline = () => {
   }), useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates
   }));
+  
+  // ENHANCED: Force pipeline refresh when session data changes
+  React.useEffect(() => {
+    console.log('📡 PIPELINE MONITOR: Session data changed, forcing pipeline refresh...');
+    console.log('  - Quotes changed. Current quotes:', sessionQuotes.length);
+    console.log('  - Quote statuses:', sessionQuotes.map(q => ({ id: q.id, status: q.status, clientId: q.clientId })));
+    
+    // Check each quote for approved/converted status
+    const approvedOrConvertedQuotes = sessionQuotes.filter(quote => quote.status === 'Approved' || quote.status === 'Converted');
+    console.log('  - Found approved/converted quotes:', approvedOrConvertedQuotes.length);
+    
+    if (approvedOrConvertedQuotes.length > 0) {
+      approvedOrConvertedQuotes.forEach(quote => {
+        console.log('  - Processing auto closed-won for quote:', quote.id, 'status:', quote.status);
+
+        // Update client status to Active if they are currently a Lead
+        const client = sessionClients.find(c => c.id === quote.clientId);
+        if (client && client.status === 'Lead') {
+          console.log('  - Updating client status from Lead to Active:', client.id);
+          updateSessionClient(client.id, {
+            status: 'Active'
+          });
+          toast.success(`Deal won! Client ${client.name} is now Active.`);
+        }
+      });
+    }
+
+    // CRITICAL: Always regenerate deals from fresh data to ensure new quotes appear immediately
+    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    console.log('🔄 PIPELINE UPDATE: Regenerated deals count:', newDeals.length);
+    
+    // Force state update to ensure pipeline refreshes
+    setDeals(newDeals);
+    
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient]);
+
   const formatAmount = (amount: number) => {
     return `$ ${amount.toLocaleString()}.00`;
   };
@@ -98,40 +147,6 @@ const SalesPipeline = () => {
     const totalSpacing = maxDeals > 1 ? (maxDeals - 1) * cardSpacing : 0;
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
-
-  // Enhanced Auto Closed-Won Logic: Monitor quote status changes and remove deals immediately
-  React.useEffect(() => {
-    console.log('Session data changed. Checking for auto closed-won triggers...');
-
-    // Check each quote for approved/converted status
-    const approvedOrConvertedQuotes = sessionQuotes.filter(quote => quote.status === 'Approved' || quote.status === 'Converted');
-    console.log('Found approved/converted quotes:', approvedOrConvertedQuotes.length);
-    if (approvedOrConvertedQuotes.length > 0) {
-      approvedOrConvertedQuotes.forEach(quote => {
-        console.log('Processing auto closed-won for quote:', quote.id, 'status:', quote.status);
-
-        // Update client status to Active if they are currently a Lead
-        const client = sessionClients.find(c => c.id === quote.clientId);
-        if (client && client.status === 'Lead') {
-          console.log('Updating client status from Lead to Active:', client.id);
-          updateSessionClient(client.id, {
-            status: 'Active'
-          });
-          toast.success(`Deal won! Client ${client.name} is now Active.`);
-        }
-      });
-    }
-
-    // Always regenerate deals from fresh data to ensure auto-exclusion works
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-    console.log('Updated deals count:', newDeals.length);
-    console.log('Updated deals:', newDeals.map(d => ({
-      id: d.id,
-      status: d.status,
-      type: d.type
-    })));
-    setDeals(newDeals);
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient]);
 
   // Enhanced validation function for Jobber stages
   const canDropInJobberStage = (dealId: string, targetStageId: string): {
@@ -335,6 +350,7 @@ const SalesPipeline = () => {
     }
   };
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
+  
   return <div className="h-full relative">
       {/* Pipeline Header */}
       <div className="flex justify-end mb-4">
@@ -377,4 +393,5 @@ const SalesPipeline = () => {
       />
     </div>;
 };
+
 export default SalesPipeline;
