@@ -1,4 +1,3 @@
-
 import { MoreHorizontal, ChartColumn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -10,11 +9,14 @@ import PipelineInsights from "@/components/insights/PipelineInsights";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Deal } from "@/components/pipeline/SalesPipelineData";
+import PipelineViewToggle from "@/components/pipeline/PipelineViewToggle";
+import PipelineListView from "@/components/pipeline/PipelineListView";
 
 const Sales = () => {
   const navigate = useNavigate();
   const [isInsightsOpen, setIsInsightsOpen] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [pipelineView, setPipelineView] = useState<'kanban' | 'list'>('kanban');
 
   const handleEditStages = () => {
     navigate('/requests/edit-stages');
@@ -46,6 +48,10 @@ const Sales = () => {
               <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-semibold text-gray-900">Sales Pipeline</h1>
                 <div className="flex items-center space-x-3">
+                  <PipelineViewToggle 
+                    view={pipelineView}
+                    onViewChange={setPipelineView}
+                  />
                   <Button 
                     variant="outline" 
                     onClick={handleOpenInsights}
@@ -71,11 +77,16 @@ const Sales = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="p-4">
-                <SalesPipeline onDealsChange={handleDealsChange} />
+            {/* Conditional rendering based on view */}
+            {pipelineView === 'kanban' ? (
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="p-4">
+                  <SalesPipeline onDealsChange={handleDealsChange} />
+                </div>
               </div>
-            </div>
+            ) : (
+              <PipelineListView deals={deals} />
+            )}
           </main>
         </SidebarInset>
       </div>
