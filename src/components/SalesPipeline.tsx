@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Calendar, MessageSquare } from "lucide-react";
@@ -15,7 +15,7 @@ import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction } from './pipeline/SalesPipelineData';
 
-const SalesPipeline = () => {
+const SalesPipeline = ({ onDealsChange }: { onDealsChange?: (deals: Deal[]) => void }) => {
   const {
     sessionClients,
     updateSessionClient
@@ -101,7 +101,12 @@ const SalesPipeline = () => {
     // Force state update to ensure pipeline refreshes
     setDeals(newDeals);
     
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient]);
+    // Notify parent component of deals change
+    if (onDealsChange) {
+      onDealsChange(newDeals);
+    }
+    
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient, onDealsChange]);
 
   const formatAmount = (amount: number) => {
     return `$ ${amount.toLocaleString()}.00`;
