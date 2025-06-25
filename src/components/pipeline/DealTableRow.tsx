@@ -50,7 +50,7 @@ const DealTableRow: React.FC<DealTableRowProps> = ({ deal }) => {
   return (
     <TableRow className="hover:bg-gray-50">
       <TableCell className="font-medium">
-        {deal.clientName}
+        {deal.client}
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">

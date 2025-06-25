@@ -23,8 +23,8 @@ export const useSortableTable = (deals: Deal[]) => {
 
       switch (sortConfig.field) {
         case 'name':
-          aValue = a.clientName.toLowerCase();
-          bValue = b.clientName.toLowerCase();
+          aValue = a.client.toLowerCase();
+          bValue = b.client.toLowerCase();
           break;
         case 'property':
           aValue = a.property.toLowerCase();
