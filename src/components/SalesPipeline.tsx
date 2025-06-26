@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import PipelineColumn from './pipeline/PipelineColumn';
+import AggregateColumn from './pipeline/AggregateColumn';
 import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
 import FeedbackModal from './FeedbackModal';
@@ -14,6 +15,7 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction } from './pipeline/SalesPipelineData';
+import { calculateAggregateMetrics, formatAmount } from './pipeline/SalesPipelineAggregates';
 
 interface SalesPipelineProps {
   onDealsChange?: (deals: Deal[]) => void;
@@ -37,7 +39,6 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     stages
   } = useStagesStore();
 
-  // ENHANCED: Create initial deals and ensure they update when data changes with better logging
   const initialDeals = useMemo(() => {
     console.log('🔄 PIPELINE REFRESH: Creating initial deals with:');
     console.log('  - Clients:', sessionClients.length);
@@ -64,8 +65,12 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
   const [deals, setDeals] = useState<Deal[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+
+  // Calculate aggregate metrics
+  const aggregateMetrics = useMemo(() => {
+    return calculateAggregateMetrics(sessionRequests, sessionQuotes, sessionClients);
+  }, [sessionRequests, sessionQuotes, sessionClients]);
   
-  // Filter deals based on search term - now includes title search
   const filteredDeals = useMemo(() => {
     if (!searchTerm) return deals;
     
@@ -85,13 +90,11 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     coordinateGetter: sortableKeyboardCoordinates
   }));
   
-  // ENHANCED: Force pipeline refresh when session data changes
   React.useEffect(() => {
     console.log('📡 PIPELINE MONITOR: Session data changed, forcing pipeline refresh...');
     console.log('  - Quotes changed. Current quotes:', sessionQuotes.length);
     console.log('  - Quote statuses:', sessionQuotes.map(q => ({ id: q.id, status: q.status, clientId: q.clientId })));
     
-    // Check each quote for approved/converted status
     const approvedOrConvertedQuotes = sessionQuotes.filter(quote => quote.status === 'Approved' || quote.status === 'Converted');
     console.log('  - Found approved/converted quotes:', approvedOrConvertedQuotes.length);
     
@@ -99,7 +102,6 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       approvedOrConvertedQuotes.forEach(quote => {
         console.log('  - Processing auto closed-won for quote:', quote.id, 'status:', quote.status);
 
-        // Update client status to Active if they are currently a Lead
         const client = sessionClients.find(c => c.id === quote.clientId);
         if (client && client.status === 'Lead') {
           console.log('  - Updating client status from Lead to Active:', client.id);
@@ -111,25 +113,21 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
     }
 
-    // CRITICAL: Always regenerate deals from fresh data to ensure new quotes appear immediately
     const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
     console.log('🔄 PIPELINE UPDATE: Regenerated deals count:', newDeals.length);
     
-    // Force state update to ensure pipeline refreshes
     setDeals(newDeals);
     
-    // Notify parent component of deals change
     if (onDealsChange) {
       onDealsChange(newDeals);
     }
     
   }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient, onDealsChange]);
 
-  const formatAmount = (amount: number) => {
+  const formatAmountDisplay = (amount: number) => {
     return `$ ${amount.toLocaleString()}.00`;
   };
   
-  // Use filteredDeals for display but original deals for column height calculation
   const getColumnDeals = (columnId: string) => {
     return filteredDeals.filter(deal => deal.status === columnId);
   };
@@ -137,47 +135,40 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
   const getColumnTotalValue = (columnId: string) => {
     const columnDeals = getColumnDeals(columnId);
     const total = columnDeals.reduce((sum, deal) => {
-      // Only add to total if deal has an amount (i.e., has a quote)
       return sum + (deal.amount || 0);
     }, 0);
-    return formatAmount(total);
+    return formatAmountDisplay(total);
   };
+
   const findContainer = (id: string) => {
-    // Check if id is an action zone
     if (id.startsWith('action-')) {
       return id;
     }
 
-    // Check if id is a column id
     if (stages.some(stage => stage.id === id)) {
       return id;
     }
 
-    // Then check if it's a deal id - use original deals array for drag operations
     const deal = deals.find(deal => deal.id === id);
     return deal?.status || null;
   };
 
-  // Calculate fixed height based on original deals array to maintain consistent column heights
   const fixedColumnHeight = useMemo(() => {
     const getOriginalColumnDeals = (columnId: string) => {
       return deals.filter(deal => deal.status === columnId);
     };
     
-    const maxDeals = Math.max(...stages.map(stage => getOriginalColumnDeals(stage.id).length), 1); // Minimum of 1 to avoid 0 height
+    const maxDeals = Math.max(...stages.map(stage => getOriginalColumnDeals(stage.id).length), 1);
 
-    // More precise measurements:
-    const headerHeight = 80; // Header + counter/value + separator + padding
-    const cardHeight = 65; // More realistic card height based on actual size
-    const cardSpacing = 8; // space-y-2 = 8px spacing between cards
-    const bufferSpace = 20; // Minimal buffer for scroll and breathing room
+    const headerHeight = 80;
+    const cardHeight = 65;
+    const cardSpacing = 8;
+    const bufferSpace = 20;
 
-    // Calculate total spacing needed (n-1 spaces between n cards)
     const totalSpacing = maxDeals > 1 ? (maxDeals - 1) * cardSpacing : 0;
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
 
-  // Enhanced validation function for Jobber stages
   const canDropInJobberStage = (dealId: string, targetStageId: string): {
     allowed: boolean;
     message?: string;
@@ -191,11 +182,8 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     }
     const stageTitle = targetStage.title.toLowerCase();
 
-    // Map Jobber stage titles to required deal conditions
     if (stageTitle.includes('draft') && stageTitle.includes('quote')) {
-      // For "Draft Quote" stage, need to have a quote (any status except archived)
       if (deal.type === 'quote') {
-        // Quote-type deals already have a quote, so they're allowed
         const quote = sessionQuotes.find(q => q.id === deal.quoteId);
         if (!quote || quote.status === 'Archived') {
           return {
@@ -204,7 +192,6 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
           };
         }
       } else {
-        // For request-type deals, check if there's any quote (except archived) for this request
         const requestQuote = sessionQuotes.find(q => q.requestId === deal.id && q.status !== 'Archived');
         if (!requestQuote) {
           return {
@@ -214,9 +201,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         }
       }
     } else if (stageTitle.includes('quote') && stageTitle.includes('awaiting')) {
-      // For "Quote Awaiting Response" stage, need quote to be sent
       if (deal.type === 'quote') {
-        // For quote-type deals, check if the quote has been sent
         const quote = sessionQuotes.find(q => q.id === deal.quoteId);
         if (!quote || quote.status !== 'Awaiting Response') {
           return {
@@ -225,7 +210,6 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
           };
         }
       } else {
-        // For request-type deals, check if there's a sent quote for this request
         const requestQuote = sessionQuotes.find(q => q.requestId === deal.id && q.status === 'Awaiting Response');
         if (!requestQuote) {
           return {
@@ -235,13 +219,11 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         }
       }
     } else if (stageTitle.includes('invoice') && stageTitle.includes('sent')) {
-      // For "Invoice Sent" stage
       return {
         allowed: false,
         message: "Only jobs with sent invoices can be moved to Invoice Sent stage."
       };
     } else if (stageTitle.includes('work') && (stageTitle.includes('scheduled') || stageTitle.includes('progress'))) {
-      // For work-related stages
       return {
         allowed: false,
         message: "Only scheduled jobs can be moved to work stages."
@@ -251,37 +233,30 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       allowed: true
     };
   };
+
   const handleDragStart = (event: DragStartEvent) => {
-    const {
-      active
-    } = event;
+    const { active } = event;
     setActiveId(active.id as string);
   };
+
   const handleDragOver = (event: DragOverEvent) => {
-    const {
-      active,
-      over
-    } = event;
+    const { active, over } = event;
     if (!over || !active) return;
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Don't do anything if we're hovering over the same item
     if (activeId === overId) return;
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
     if (!activeContainer || !overContainer) return;
 
-    // Don't move to action zones during drag over
     if (overContainer.startsWith('action-')) return;
 
-    // Check Jobber stage validation before allowing drag over
     const validation = canDropInJobberStage(activeId, overContainer);
     if (!validation.allowed) {
-      return; // Prevent drag over for invalid drops
+      return;
     }
 
-    // Only move between containers, don't reorder within the same container here
     if (activeContainer !== overContainer) {
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
@@ -296,22 +271,18 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
     }
   };
+
   const handleDragEnd = (event: DragEndEvent) => {
-    const {
-      active,
-      over
-    } = event;
+    const { active, over } = event;
     setActiveId(null);
     if (!over || !active) return;
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Don't do anything if dropped on itself
     if (activeId === overId) return;
     const overContainer = findContainer(overId);
     if (!overContainer) return;
 
-    // Handle action zone drops with enhanced store updates
     if (overContainer.startsWith('action-')) {
       console.log('Handling action zone drop:', overContainer, 'for deal:', activeId);
       switch (overContainer) {
@@ -328,11 +299,9 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       return;
     }
 
-    // Validate Jobber stage drops
     const validation = canDropInJobberStage(activeId, overContainer);
     if (!validation.allowed) {
       toast.error(validation.message);
-      // Revert the deal to its original position
       setDeals(prevDeals => {
         const originalDeal = initialDeals.find(d => d.id === activeId);
         if (originalDeal) {
@@ -350,10 +319,10 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
       return;
     }
+
     const activeContainer = findContainer(activeId);
     if (!activeContainer) return;
     if (activeContainer === overContainer) {
-      // Reordering within the same container
       setDeals(prevDeals => {
         const containerDeals = prevDeals.filter(deal => deal.status === activeContainer);
         const otherDeals = prevDeals.filter(deal => deal.status !== activeContainer);
@@ -364,7 +333,6 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         return [...otherDeals, ...reorderedDeals];
       });
     } else {
-      // Moving between containers - ensure final state is correct
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
           if (deal.id === activeId) {
@@ -378,6 +346,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
     }
   };
+
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
   return <div className="h-full relative">
@@ -397,12 +366,29 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <ScrollArea className="w-full">
           <div className="flex space-x-4 pb-4 min-w-max">
+            {/* Regular Pipeline Columns */}
             {stages.sort((a, b) => a.order - b.order).map(stage => {
-            const columnDeals = getColumnDeals(stage.id);
-            return <div key={stage.id} className="w-44 flex-shrink-0">
-                    <PipelineColumn id={stage.id} title={stage.title} deals={columnDeals} count={columnDeals.length} totalValue={getColumnTotalValue(stage.id)} fixedHeight={fixedColumnHeight} />
-                  </div>;
-          })}
+              const columnDeals = getColumnDeals(stage.id);
+              return <div key={stage.id} className="w-44 flex-shrink-0">
+                      <PipelineColumn id={stage.id} title={stage.title} deals={columnDeals} count={columnDeals.length} totalValue={getColumnTotalValue(stage.id)} fixedHeight={fixedColumnHeight} />
+                    </div>;
+            })}
+            
+            {/* Aggregate Columns */}
+            <div className="flex space-x-4 ml-6">
+              <AggregateColumn
+                title="Won"
+                count={aggregateMetrics.wonCount}
+                totalValue={formatAmount(aggregateMetrics.wonValue)}
+                type="won"
+              />
+              <AggregateColumn
+                title="Lost"
+                count={aggregateMetrics.lostCount}
+                totalValue={formatAmount(aggregateMetrics.lostValue)}
+                type="lost"
+              />
+            </div>
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
