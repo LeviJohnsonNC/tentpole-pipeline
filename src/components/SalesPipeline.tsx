@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -265,14 +264,26 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       return;
     }
 
+    // Map pipeline stages to valid Request status values
+    let requestStatus: Request['status'];
+    if (newStatus === 'new-deals') {
+      requestStatus = 'New';
+    } else if (newStatus === 'contacted' || newStatus === 'followup') {
+      requestStatus = 'New'; // Keep as New for custom stages
+    } else if (newStatus === 'draft-quote' || newStatus === 'quote-awaiting-response') {
+      requestStatus = 'New'; // Keep as New for Jobber stages until converted
+    } else {
+      requestStatus = 'New'; // Default fallback
+    }
+
     if (deal.type === 'request') {
-      console.log('💾 PERSIST: Updating request status');
-      updateSessionRequest(dealId, { status: newStatus === 'new-deals' ? 'New' : 'In Progress' });
+      console.log('💾 PERSIST: Updating request status to:', requestStatus);
+      updateSessionRequest(dealId, { status: requestStatus });
     } else if (deal.type === 'quote' && deal.quoteId) {
-      console.log('💾 PERSIST: Updating quote-related request status');
+      console.log('💾 PERSIST: Updating quote-related request status to:', requestStatus);
       const quote = sessionQuotes.find(q => q.id === deal.quoteId);
       if (quote && quote.requestId) {
-        updateSessionRequest(quote.requestId, { status: newStatus === 'new-deals' ? 'New' : 'In Progress' });
+        updateSessionRequest(quote.requestId, { status: requestStatus });
       }
     }
   };
