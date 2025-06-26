@@ -66,9 +66,12 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
-  // Calculate aggregate metrics
+  // Calculate aggregate metrics - this should update when session data changes
   const aggregateMetrics = useMemo(() => {
-    return calculateAggregateMetrics(sessionRequests, sessionQuotes, sessionClients);
+    console.log('🔄 Recalculating aggregate metrics...');
+    const metrics = calculateAggregateMetrics(sessionRequests, sessionQuotes, sessionClients);
+    console.log('📊 Aggregate metrics:', metrics);
+    return metrics;
   }, [sessionRequests, sessionQuotes, sessionClients]);
   
   const filteredDeals = useMemo(() => {
