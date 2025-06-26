@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -142,6 +143,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     }, 0);
     return formatAmount(total);
   };
+  
   const findContainer = (id: string) => {
     // Check if id is an action zone
     if (id.startsWith('action-')) {
@@ -177,19 +179,38 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
 
-  // Enhanced validation function for Jobber stages
+  // Enhanced validation function for Jobber stages - FIXED to allow moves to New Deals
   const canDropInJobberStage = (dealId: string, targetStageId: string): {
     allowed: boolean;
     message?: string;
   } => {
     const deal = deals.find(d => d.id === dealId);
     const targetStage = stages.find(s => s.id === targetStageId);
-    if (!deal || !targetStage || !targetStage.isJobberStage) {
-      return {
-        allowed: true
-      };
+    
+    console.log('🔍 DRAG VALIDATION: Checking drop for deal:', dealId, 'to stage:', targetStageId);
+    console.log('  - Deal found:', !!deal);
+    console.log('  - Target stage found:', !!targetStage);
+    console.log('  - Target stage isJobberStage:', targetStage?.isJobberStage);
+    
+    if (!deal || !targetStage) {
+      console.log('  - Missing deal or target stage, allowing drop');
+      return { allowed: true };
     }
+    
+    // IMPORTANT: Always allow drops to New Deals stage regardless of isJobberStage
+    if (targetStageId === 'new-deals') {
+      console.log('  - Target is New Deals stage, allowing drop');
+      return { allowed: true };
+    }
+    
+    // Only validate Jobber stages, not regular stages
+    if (!targetStage.isJobberStage) {
+      console.log('  - Target is not a Jobber stage, allowing drop');
+      return { allowed: true };
+    }
+    
     const stageTitle = targetStage.title.toLowerCase();
+    console.log('  - Validating Jobber stage:', stageTitle);
 
     // Map Jobber stage titles to required deal conditions
     if (stageTitle.includes('draft') && stageTitle.includes('quote')) {
@@ -247,29 +268,34 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         message: "Only scheduled jobs can be moved to work stages."
       };
     }
-    return {
-      allowed: true
-    };
+    
+    console.log('  - Validation passed for Jobber stage');
+    return { allowed: true };
   };
+  
   const handleDragStart = (event: DragStartEvent) => {
-    const {
-      active
-    } = event;
+    const { active } = event;
+    console.log('🚀 DRAG START: Active ID:', active.id);
     setActiveId(active.id as string);
   };
+  
   const handleDragOver = (event: DragOverEvent) => {
-    const {
-      active,
-      over
-    } = event;
+    const { active, over } = event;
     if (!over || !active) return;
+    
     const activeId = active.id as string;
     const overId = over.id as string;
+    
+    console.log('🔄 DRAG OVER: Active:', activeId, 'Over:', overId);
 
     // Don't do anything if we're hovering over the same item
     if (activeId === overId) return;
+    
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
+    
+    console.log('  - Active container:', activeContainer, 'Over container:', overContainer);
+    
     if (!activeContainer || !overContainer) return;
 
     // Don't move to action zones during drag over
@@ -278,11 +304,13 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     // Check Jobber stage validation before allowing drag over
     const validation = canDropInJobberStage(activeId, overContainer);
     if (!validation.allowed) {
+      console.log('  - Validation failed:', validation.message);
       return; // Prevent drag over for invalid drops
     }
 
     // Only move between containers, don't reorder within the same container here
     if (activeContainer !== overContainer) {
+      console.log('  - Moving between containers');
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
           if (deal.id === activeId) {
@@ -296,19 +324,23 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
     }
   };
+  
   const handleDragEnd = (event: DragEndEvent) => {
-    const {
-      active,
-      over
-    } = event;
+    const { active, over } = event;
+    console.log('🏁 DRAG END: Active:', active.id, 'Over:', over?.id);
+    
     setActiveId(null);
     if (!over || !active) return;
+    
     const activeId = active.id as string;
     const overId = over.id as string;
 
     // Don't do anything if dropped on itself
     if (activeId === overId) return;
+    
     const overContainer = findContainer(overId);
+    console.log('  - Over container:', overContainer);
+    
     if (!overContainer) return;
 
     // Handle action zone drops with enhanced store updates
@@ -331,6 +363,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     // Validate Jobber stage drops
     const validation = canDropInJobberStage(activeId, overContainer);
     if (!validation.allowed) {
+      console.log('  - Final validation failed:', validation.message);
       toast.error(validation.message);
       // Revert the deal to its original position
       setDeals(prevDeals => {
@@ -350,10 +383,13 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
       return;
     }
+    
     const activeContainer = findContainer(activeId);
     if (!activeContainer) return;
+    
     if (activeContainer === overContainer) {
       // Reordering within the same container
+      console.log('  - Reordering within same container');
       setDeals(prevDeals => {
         const containerDeals = prevDeals.filter(deal => deal.status === activeContainer);
         const otherDeals = prevDeals.filter(deal => deal.status !== activeContainer);
@@ -365,9 +401,11 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
     } else {
       // Moving between containers - ensure final state is correct
+      console.log('  - Moving between containers - final update');
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
           if (deal.id === activeId) {
+            console.log('  - Updated deal', deal.id, 'status from', deal.status, 'to', overContainer);
             return {
               ...deal,
               status: overContainer
@@ -378,6 +416,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       });
     }
   };
+  
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
   return <div className="h-full relative">
