@@ -27,13 +27,13 @@ export const calculateAggregateMetrics = (
   wonCount += wonQuotes.length;
   wonValue += wonQuotes.reduce((sum, quote) => sum + (quote.amount || 0), 0);
 
-  // Count lost deals from requests with status 'Lost'
-  const lostRequests = requests.filter(request => request.status === 'Lost');
+  // Count lost deals from requests with status 'Archived' (as closest equivalent to lost)
+  const lostRequests = requests.filter(request => request.status === 'Archived');
   lostCount += lostRequests.length;
   // Lost requests don't have values since they didn't convert to quotes
 
-  // Count lost deals from quotes that are 'Declined'
-  const lostQuotes = quotes.filter(quote => quote.status === 'Declined');
+  // Count lost deals from quotes that are 'Archived' (as closest equivalent to declined)
+  const lostQuotes = quotes.filter(quote => quote.status === 'Archived');
   lostCount += lostQuotes.length;
   lostValue += lostQuotes.reduce((sum, quote) => sum + (quote.amount || 0), 0);
 
