@@ -156,12 +156,11 @@ export const quotesData: Quote[] = [
     validUntil: '2025-07-21',
     notes: 'Seasonal flower installation for condo complex'
   },
-  // Standalone quotes (not linked to requests)
+  // Standalone quotes (not linked to requests) - NO TITLE field
   {
     id: 'quote-11',
     clientId: 'client-7',
     quoteNumber: 'Q-2025-011',
-    title: 'Office Building Window Cleaning',
     property: '789 Business District Ave',
     status: 'Awaiting Response',
     amount: 850.00,
@@ -175,7 +174,6 @@ export const quotesData: Quote[] = [
     id: 'quote-12',
     clientId: 'client-12',
     quoteNumber: 'Q-2025-012',
-    title: 'Emergency Storm Cleanup',
     property: '456 Maple Street SW',
     status: 'Draft',
     amount: 2200.00,

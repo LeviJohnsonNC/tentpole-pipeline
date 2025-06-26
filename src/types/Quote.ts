@@ -4,7 +4,7 @@ export interface Quote {
   clientId: string;
   requestId?: string; // Optional - quotes can exist without being linked to a request
   quoteNumber: string;
-  title: string;
+  title?: string; // Made optional - only present for quotes linked to requests
   property: string;
   status: 'Draft' | 'Awaiting Response' | 'Changes Requested' | 'Approved' | 'Converted' | 'Archived';
   amount: number;

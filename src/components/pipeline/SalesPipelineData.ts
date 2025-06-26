@@ -1,4 +1,3 @@
-
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -284,7 +283,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     return {
       id: request.id,
       client: request.client.name,
-      title: request.title || 'Service Request',
+      title: request.title || 'Service Request', // Use request title for request-based deals
       property: request.client.primaryAddress,
       contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
       requested: request.requestDate,
@@ -395,7 +394,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     const dealData = {
       id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
       client: quote.client.name,
-      title: quote.title || 'Quote',
+      title: quote.quoteNumber, // Use quote number as title for standalone quotes
       property: quote.property || quote.client.primaryAddress || 'Property not specified',
       contact: [quote.client.phone, quote.client.email].filter(Boolean).join('\n') || 'No contact info',
       requested: quote.createdDate || new Date().toISOString(),
@@ -409,14 +408,15 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
       id: dealData.id,
       client: dealData.client,
       status: dealData.status,
-      amount: dealData.amount
+      amount: dealData.amount,
+      title: dealData.title
     });
     
     return dealData;
   }).filter(Boolean); // Remove null entries
   
   console.log('✅ Final deals from standalone quotes:', deals.length);
-  deals.forEach(d => console.log(`  - Deal created: ${d.id} (${d.status}, $${d.amount}) for ${d.client}`));
+  deals.forEach(d => console.log(`  - Deal created: ${d.id} (${d.status}, $${d.amount}) for ${d.client} - Title: ${d.title}`));
   return deals;
 };
 
