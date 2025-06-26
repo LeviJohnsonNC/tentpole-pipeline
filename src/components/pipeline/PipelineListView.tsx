@@ -43,6 +43,9 @@ const PipelineListView: React.FC<PipelineListViewProps> = ({ deals }) => {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[200px]">
+              <SortButton field="title">Title</SortButton>
+            </TableHead>
+            <TableHead className="w-[150px]">
               <SortButton field="name">Name</SortButton>
             </TableHead>
             <TableHead className="w-[120px]">
@@ -65,7 +68,7 @@ const PipelineListView: React.FC<PipelineListViewProps> = ({ deals }) => {
         <TableBody>
           {sortedDeals.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                 No deals found
               </TableCell>
             </TableRow>

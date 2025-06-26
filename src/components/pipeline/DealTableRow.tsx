@@ -121,6 +121,11 @@ const DealTableRow: React.FC<DealTableRowProps> = ({ deal }) => {
   return (
     <TableRow className="hover:bg-gray-50">
       <TableCell className="font-medium">
+        <div className="max-w-xs truncate" title={deal.title}>
+          {deal.title}
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">
         {deal.client}
       </TableCell>
       <TableCell>

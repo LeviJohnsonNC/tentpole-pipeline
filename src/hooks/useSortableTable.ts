@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Deal } from '@/components/pipeline/SalesPipelineData';
 
-type SortField = 'name' | 'property' | 'status' | 'amount' | 'requested';
+type SortField = 'title' | 'name' | 'property' | 'status' | 'amount' | 'requested';
 type SortDirection = 'asc' | 'desc';
 
 interface SortConfig {
@@ -22,6 +22,10 @@ export const useSortableTable = (deals: Deal[]) => {
       let bValue: any;
 
       switch (sortConfig.field) {
+        case 'title':
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+          break;
         case 'name':
           aValue = a.client.toLowerCase();
           bValue = b.client.toLowerCase();
