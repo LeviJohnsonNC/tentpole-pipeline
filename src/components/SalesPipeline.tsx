@@ -38,35 +38,73 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     stages
   } = useStagesStore();
 
-  // ENHANCED: Create initial deals and ensure they update when data changes with better logging
-  const initialDeals = useMemo(() => {
-    console.log('🔄 PIPELINE REFRESH: Creating initial deals with:');
-    console.log('  - Clients:', sessionClients.length);
-    console.log('  - Requests:', sessionRequests.length); 
-    console.log('  - Quotes:', sessionQuotes.length);
-    console.log('  - Stages:', stages.length);
-    
-    const deals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-    
-    console.log('🎯 PIPELINE REFRESH RESULT:');
-    console.log('  - Total deals created:', deals.length);
-    console.log('  - Deals by type:', deals.reduce((acc, d) => {
-      acc[d.type] = (acc[d.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>));
-    console.log('  - Deals by stage:', deals.reduce((acc, d) => {
-      acc[d.status] = (acc[d.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>));
-    
-    return deals;
-  }, [sessionClients, sessionRequests, sessionQuotes, stages]);
-  
-  const [deals, setDeals] = useState<Deal[]>(initialDeals);
+  // Create initial deals and track initialization
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   
-  // Filter deals based on search term - now includes title search
+  // Initialize deals once when component mounts or data becomes available
+  useEffect(() => {
+    if (!isInitialized && sessionClients.length > 0 && stages.length > 0) {
+      console.log('🚀 PIPELINE INIT: Initializing deals for the first time');
+      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+      console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'initial deals');
+      setDeals(initialDeals);
+      setIsInitialized(true);
+      
+      if (onDealsChange) {
+        onDealsChange(initialDeals);
+      }
+    }
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange]);
+
+  // Handle new quotes being created or status changes that require deal updates
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    console.log('📡 PIPELINE MONITOR: Checking for data changes that require deal updates');
+    
+    // Check for approved/converted quotes that need client status updates
+    const approvedOrConvertedQuotes = sessionQuotes.filter(quote => 
+      quote.status === 'Approved' || quote.status === 'Converted'
+    );
+    
+    if (approvedOrConvertedQuotes.length > 0) {
+      approvedOrConvertedQuotes.forEach(quote => {
+        const client = sessionClients.find(c => c.id === quote.clientId);
+        if (client && client.status === 'Lead') {
+          console.log('📡 PIPELINE MONITOR: Updating client status from Lead to Active:', client.id);
+          updateSessionClient(client.id, { status: 'Active' });
+          toast.success(`Deal won! Client ${client.name} is now Active.`);
+        }
+      });
+    }
+
+    // Only regenerate deals if there are significant changes (new quotes/requests)
+    const currentDealIds = new Set(deals.map(d => d.id));
+    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    const newDealIds = new Set(newDeals.map(d => d.id));
+    
+    // Check if we have new deals that weren't in the current set
+    const hasNewDeals = newDeals.some(deal => !currentDealIds.has(deal.id));
+    const hasRemovedDeals = deals.some(deal => !newDealIds.has(deal.id));
+    
+    if (hasNewDeals || hasRemovedDeals) {
+      console.log('📡 PIPELINE MONITOR: Detected new/removed deals, updating pipeline');
+      console.log('  - Has new deals:', hasNewDeals);
+      console.log('  - Has removed deals:', hasRemovedDeals);
+      setDeals(newDeals);
+      
+      if (onDealsChange) {
+        onDealsChange(newDeals);
+      }
+    } else {
+      console.log('📡 PIPELINE MONITOR: No new deals detected, preserving current state');
+    }
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, updateSessionClient, onDealsChange]);
+  
+  // Filter deals based on search term
   const filteredDeals = useMemo(() => {
     if (!searchTerm) return deals;
     
@@ -86,46 +124,6 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     coordinateGetter: sortableKeyboardCoordinates
   }));
   
-  // ENHANCED: Force pipeline refresh when session data changes
-  React.useEffect(() => {
-    console.log('📡 PIPELINE MONITOR: Session data changed, forcing pipeline refresh...');
-    console.log('  - Quotes changed. Current quotes:', sessionQuotes.length);
-    console.log('  - Quote statuses:', sessionQuotes.map(q => ({ id: q.id, status: q.status, clientId: q.clientId })));
-    
-    // Check each quote for approved/converted status
-    const approvedOrConvertedQuotes = sessionQuotes.filter(quote => quote.status === 'Approved' || quote.status === 'Converted');
-    console.log('  - Found approved/converted quotes:', approvedOrConvertedQuotes.length);
-    
-    if (approvedOrConvertedQuotes.length > 0) {
-      approvedOrConvertedQuotes.forEach(quote => {
-        console.log('  - Processing auto closed-won for quote:', quote.id, 'status:', quote.status);
-
-        // Update client status to Active if they are currently a Lead
-        const client = sessionClients.find(c => c.id === quote.clientId);
-        if (client && client.status === 'Lead') {
-          console.log('  - Updating client status from Lead to Active:', client.id);
-          updateSessionClient(client.id, {
-            status: 'Active'
-          });
-          toast.success(`Deal won! Client ${client.name} is now Active.`);
-        }
-      });
-    }
-
-    // CRITICAL: Always regenerate deals from fresh data to ensure new quotes appear immediately
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-    console.log('🔄 PIPELINE UPDATE: Regenerated deals count:', newDeals.length);
-    
-    // Force state update to ensure pipeline refreshes
-    setDeals(newDeals);
-    
-    // Notify parent component of deals change
-    if (onDealsChange) {
-      onDealsChange(newDeals);
-    }
-    
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, updateSessionClient, onDealsChange]);
-
   const formatAmount = (amount: number) => {
     return `$ ${amount.toLocaleString()}.00`;
   };
@@ -138,85 +136,85 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
   const getColumnTotalValue = (columnId: string) => {
     const columnDeals = getColumnDeals(columnId);
     const total = columnDeals.reduce((sum, deal) => {
-      // Only add to total if deal has an amount (i.e., has a quote)
       return sum + (deal.amount || 0);
     }, 0);
     return formatAmount(total);
   };
   
   const findContainer = (id: string) => {
+    console.log('🔍 FIND CONTAINER: Looking for container of:', id);
+    
     // Check if id is an action zone
     if (id.startsWith('action-')) {
+      console.log('🔍 FIND CONTAINER: Found action zone:', id);
       return id;
     }
 
     // Check if id is a column id
     if (stages.some(stage => stage.id === id)) {
+      console.log('🔍 FIND CONTAINER: Found stage column:', id);
       return id;
     }
 
-    // Then check if it's a deal id - use original deals array for drag operations
+    // Check if it's a deal id - use original deals array for drag operations
     const deal = deals.find(deal => deal.id === id);
-    return deal?.status || null;
+    const container = deal?.status || null;
+    console.log('🔍 FIND CONTAINER: Deal', id, 'found in container:', container);
+    return container;
   };
 
-  // Calculate fixed height based on original deals array to maintain consistent column heights
+  // Calculate fixed height based on original deals array
   const fixedColumnHeight = useMemo(() => {
     const getOriginalColumnDeals = (columnId: string) => {
       return deals.filter(deal => deal.status === columnId);
     };
     
-    const maxDeals = Math.max(...stages.map(stage => getOriginalColumnDeals(stage.id).length), 1); // Minimum of 1 to avoid 0 height
+    const maxDeals = Math.max(...stages.map(stage => getOriginalColumnDeals(stage.id).length), 1);
 
-    // More precise measurements:
-    const headerHeight = 80; // Header + counter/value + separator + padding
-    const cardHeight = 65; // More realistic card height based on actual size
-    const cardSpacing = 8; // space-y-2 = 8px spacing between cards
-    const bufferSpace = 20; // Minimal buffer for scroll and breathing room
+    const headerHeight = 80;
+    const cardHeight = 65;
+    const cardSpacing = 8;
+    const bufferSpace = 20;
 
-    // Calculate total spacing needed (n-1 spaces between n cards)
     const totalSpacing = maxDeals > 1 ? (maxDeals - 1) * cardSpacing : 0;
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
 
-  // Enhanced validation function for Jobber stages - FIXED to allow moves to New Deals
+  // Enhanced validation function with better logging
   const canDropInJobberStage = (dealId: string, targetStageId: string): {
     allowed: boolean;
     message?: string;
   } => {
+    console.log('🔍 DRAG VALIDATION: Checking drop for deal:', dealId, 'to stage:', targetStageId);
+    
     const deal = deals.find(d => d.id === dealId);
     const targetStage = stages.find(s => s.id === targetStageId);
     
-    console.log('🔍 DRAG VALIDATION: Checking drop for deal:', dealId, 'to stage:', targetStageId);
-    console.log('  - Deal found:', !!deal);
-    console.log('  - Target stage found:', !!targetStage);
-    console.log('  - Target stage isJobberStage:', targetStage?.isJobberStage);
-    
     if (!deal || !targetStage) {
-      console.log('  - Missing deal or target stage, allowing drop');
+      console.log('🔍 DRAG VALIDATION: Missing deal or stage, allowing drop');
       return { allowed: true };
     }
     
-    // IMPORTANT: Always allow drops to New Deals stage regardless of isJobberStage
+    console.log('🔍 DRAG VALIDATION: Deal found:', deal.client, 'Target stage:', targetStage.title, 'isJobberStage:', targetStage.isJobberStage);
+    
+    // Always allow drops to New Deals stage
     if (targetStageId === 'new-deals') {
-      console.log('  - Target is New Deals stage, allowing drop');
+      console.log('🔍 DRAG VALIDATION: Target is New Deals, allowing drop');
       return { allowed: true };
     }
     
-    // Only validate Jobber stages, not regular stages
+    // Allow drops to non-Jobber stages (custom stages)
     if (!targetStage.isJobberStage) {
-      console.log('  - Target is not a Jobber stage, allowing drop');
+      console.log('🔍 DRAG VALIDATION: Target is not a Jobber stage, allowing drop');
       return { allowed: true };
     }
     
+    // Validate Jobber stage requirements
     const stageTitle = targetStage.title.toLowerCase();
-    console.log('  - Validating Jobber stage:', stageTitle);
+    console.log('🔍 DRAG VALIDATION: Validating Jobber stage:', stageTitle);
 
-    // Map Jobber stage titles to required deal conditions
     if (stageTitle.includes('draft') && stageTitle.includes('quote')) {
-      // For "Draft Quote" stage, need to have a quote (any status except archived)
       if (deal.type === 'quote') {
-        // Quote-type deals already have a quote, so they're allowed
         const quote = sessionQuotes.find(q => q.id === deal.quoteId);
         if (!quote || quote.status === 'Archived') {
           return {
@@ -225,7 +223,6 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
           };
         }
       } else {
-        // For request-type deals, check if there's any quote (except archived) for this request
         const requestQuote = sessionQuotes.find(q => q.requestId === deal.id && q.status !== 'Archived');
         if (!requestQuote) {
           return {
@@ -235,9 +232,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         }
       }
     } else if (stageTitle.includes('quote') && stageTitle.includes('awaiting')) {
-      // For "Quote Awaiting Response" stage, need quote to be sent
       if (deal.type === 'quote') {
-        // For quote-type deals, check if the quote has been sent
         const quote = sessionQuotes.find(q => q.id === deal.quoteId);
         if (!quote || quote.status !== 'Awaiting Response') {
           return {
@@ -246,7 +241,6 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
           };
         }
       } else {
-        // For request-type deals, check if there's a sent quote for this request
         const requestQuote = sessionQuotes.find(q => q.requestId === deal.id && q.status === 'Awaiting Response');
         if (!requestQuote) {
           return {
@@ -255,22 +249,32 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
           };
         }
       }
-    } else if (stageTitle.includes('invoice') && stageTitle.includes('sent')) {
-      // For "Invoice Sent" stage
-      return {
-        allowed: false,
-        message: "Only jobs with sent invoices can be moved to Invoice Sent stage."
-      };
-    } else if (stageTitle.includes('work') && (stageTitle.includes('scheduled') || stageTitle.includes('progress'))) {
-      // For work-related stages
-      return {
-        allowed: false,
-        message: "Only scheduled jobs can be moved to work stages."
-      };
     }
     
-    console.log('  - Validation passed for Jobber stage');
+    console.log('🔍 DRAG VALIDATION: Validation passed');
     return { allowed: true };
+  };
+
+  // Persist drag changes to session stores
+  const persistDealStatusChange = (dealId: string, newStatus: string) => {
+    console.log('💾 PERSIST: Updating deal status in session stores:', dealId, 'to:', newStatus);
+    
+    const deal = deals.find(d => d.id === dealId);
+    if (!deal) {
+      console.error('💾 PERSIST: Deal not found:', dealId);
+      return;
+    }
+
+    if (deal.type === 'request') {
+      console.log('💾 PERSIST: Updating request status');
+      updateSessionRequest(dealId, { status: newStatus === 'new-deals' ? 'New' : 'In Progress' });
+    } else if (deal.type === 'quote' && deal.quoteId) {
+      console.log('💾 PERSIST: Updating quote-related request status');
+      const quote = sessionQuotes.find(q => q.id === deal.quoteId);
+      if (quote && quote.requestId) {
+        updateSessionRequest(quote.requestId, { status: newStatus === 'new-deals' ? 'New' : 'In Progress' });
+      }
+    }
   };
   
   const handleDragStart = (event: DragStartEvent) => {
@@ -288,36 +292,33 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     
     console.log('🔄 DRAG OVER: Active:', activeId, 'Over:', overId);
 
-    // Don't do anything if we're hovering over the same item
     if (activeId === overId) return;
     
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
     
-    console.log('  - Active container:', activeContainer, 'Over container:', overContainer);
+    console.log('🔄 DRAG OVER: Active container:', activeContainer, 'Over container:', overContainer);
     
     if (!activeContainer || !overContainer) return;
 
     // Don't move to action zones during drag over
     if (overContainer.startsWith('action-')) return;
 
-    // Check Jobber stage validation before allowing drag over
+    // Check validation before allowing drag over
     const validation = canDropInJobberStage(activeId, overContainer);
     if (!validation.allowed) {
-      console.log('  - Validation failed:', validation.message);
-      return; // Prevent drag over for invalid drops
+      console.log('🔄 DRAG OVER: Validation failed:', validation.message);
+      return;
     }
 
-    // Only move between containers, don't reorder within the same container here
+    // Only move between containers during drag over
     if (activeContainer !== overContainer) {
-      console.log('  - Moving between containers');
+      console.log('🔄 DRAG OVER: Moving between containers');
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
           if (deal.id === activeId) {
-            return {
-              ...deal,
-              status: overContainer
-            };
+            console.log('🔄 DRAG OVER: Updated deal', deal.id, 'status to', overContainer);
+            return { ...deal, status: overContainer };
           }
           return deal;
         });
@@ -330,22 +331,30 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     console.log('🏁 DRAG END: Active:', active.id, 'Over:', over?.id);
     
     setActiveId(null);
-    if (!over || !active) return;
+    if (!over || !active) {
+      console.log('🏁 DRAG END: No over target, ending drag');
+      return;
+    }
     
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Don't do anything if dropped on itself
-    if (activeId === overId) return;
+    if (activeId === overId) {
+      console.log('🏁 DRAG END: Dropped on self, no action needed');
+      return;
+    }
     
     const overContainer = findContainer(overId);
-    console.log('  - Over container:', overContainer);
+    console.log('🏁 DRAG END: Over container:', overContainer);
     
-    if (!overContainer) return;
+    if (!overContainer) {
+      console.log('🏁 DRAG END: No valid container found');
+      return;
+    }
 
-    // Handle action zone drops with enhanced store updates
+    // Handle action zone drops
     if (overContainer.startsWith('action-')) {
-      console.log('Handling action zone drop:', overContainer, 'for deal:', activeId);
+      console.log('🏁 DRAG END: Handling action zone drop:', overContainer);
       switch (overContainer) {
         case 'action-delete':
           handleDeleteAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote);
@@ -360,21 +369,20 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       return;
     }
 
-    // Validate Jobber stage drops
+    // Final validation for regular stage drops
     const validation = canDropInJobberStage(activeId, overContainer);
     if (!validation.allowed) {
-      console.log('  - Final validation failed:', validation.message);
+      console.log('🏁 DRAG END: Final validation failed:', validation.message);
       toast.error(validation.message);
+      
       // Revert the deal to its original position
       setDeals(prevDeals => {
-        const originalDeal = initialDeals.find(d => d.id === activeId);
+        const originalDeal = deals.find(d => d.id === activeId);
         if (originalDeal) {
           return prevDeals.map(deal => {
             if (deal.id === activeId) {
-              return {
-                ...deal,
-                status: originalDeal.status
-              };
+              console.log('🏁 DRAG END: Reverting deal to original status:', originalDeal.status);
+              return { ...deal, status: originalDeal.status };
             }
             return deal;
           });
@@ -385,11 +393,14 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     }
     
     const activeContainer = findContainer(activeId);
-    if (!activeContainer) return;
+    if (!activeContainer) {
+      console.log('🏁 DRAG END: No active container found');
+      return;
+    }
     
     if (activeContainer === overContainer) {
       // Reordering within the same container
-      console.log('  - Reordering within same container');
+      console.log('🏁 DRAG END: Reordering within same container');
       setDeals(prevDeals => {
         const containerDeals = prevDeals.filter(deal => deal.status === activeContainer);
         const otherDeals = prevDeals.filter(deal => deal.status !== activeContainer);
@@ -400,26 +411,35 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         return [...otherDeals, ...reorderedDeals];
       });
     } else {
-      // Moving between containers - ensure final state is correct
-      console.log('  - Moving between containers - final update');
+      // Moving between containers - ensure final state and persist
+      console.log('🏁 DRAG END: Moving between containers - finalizing');
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
           if (deal.id === activeId) {
-            console.log('  - Updated deal', deal.id, 'status from', deal.status, 'to', overContainer);
-            return {
-              ...deal,
-              status: overContainer
-            };
+            console.log('🏁 DRAG END: Final update - deal', deal.id, 'moved to', overContainer);
+            return { ...deal, status: overContainer };
           }
           return deal;
         });
       });
+      
+      // Persist the change to session stores
+      persistDealStatusChange(activeId, overContainer);
+    }
+
+    // Update parent component
+    if (onDealsChange) {
+      // Use setTimeout to ensure state has been updated
+      setTimeout(() => {
+        onDealsChange(deals);
+      }, 0);
     }
   };
   
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
-  return <div className="h-full relative">
+  return (
+    <div className="h-full relative">
       {/* Pipeline Header */}
       <div className="flex justify-end mb-4">
         <Button 
@@ -433,15 +453,30 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       </div>
 
       {/* Pipeline Columns with Horizontal Scroll */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+      <DndContext 
+        sensors={sensors} 
+        collisionDetection={closestCenter} 
+        onDragStart={handleDragStart} 
+        onDragOver={handleDragOver} 
+        onDragEnd={handleDragEnd}
+      >
         <ScrollArea className="w-full">
           <div className="flex space-x-4 pb-4 min-w-max">
             {stages.sort((a, b) => a.order - b.order).map(stage => {
-            const columnDeals = getColumnDeals(stage.id);
-            return <div key={stage.id} className="w-44 flex-shrink-0">
-                    <PipelineColumn id={stage.id} title={stage.title} deals={columnDeals} count={columnDeals.length} totalValue={getColumnTotalValue(stage.id)} fixedHeight={fixedColumnHeight} />
-                  </div>;
-          })}
+              const columnDeals = getColumnDeals(stage.id);
+              return (
+                <div key={stage.id} className="w-44 flex-shrink-0">
+                  <PipelineColumn 
+                    id={stage.id} 
+                    title={stage.title} 
+                    deals={columnDeals} 
+                    count={columnDeals.length} 
+                    totalValue={getColumnTotalValue(stage.id)} 
+                    fixedHeight={fixedColumnHeight} 
+                  />
+                </div>
+              );
+            })}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
@@ -459,7 +494,8 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         isOpen={isFeedbackModalOpen} 
         onClose={() => setIsFeedbackModalOpen(false)} 
       />
-    </div>;
+    </div>
+  );
 };
 
 export default SalesPipeline;

@@ -48,10 +48,17 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
       sessionRequests: state.sessionRequests.filter((r) => r.id !== id),
     })),
     
-  updateSessionRequest: (id, updates) =>
-    set((state) => ({
-      sessionRequests: state.sessionRequests.map((r) =>
+  updateSessionRequest: (id, updates) => {
+    console.log('📝 REQUEST STORE: Updating request:', id, 'with:', updates);
+    set((state) => {
+      const updatedRequests = state.sessionRequests.map((r) =>
         r.id === id ? { ...r, ...updates } : r
-      ),
-    })),
+      );
+      const updatedRequest = updatedRequests.find(r => r.id === id);
+      console.log('📝 REQUEST STORE: Updated request:', updatedRequest ? { id: updatedRequest.id, status: updatedRequest.status, clientId: updatedRequest.clientId } : 'not found');
+      return {
+        sessionRequests: updatedRequests
+      };
+    });
+  },
 }));
