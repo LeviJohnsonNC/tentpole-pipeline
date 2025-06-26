@@ -1,4 +1,3 @@
-
 import { MoreHorizontal, ChartColumn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -47,7 +46,7 @@ const Sales = () => {
     setSearchTerm(value);
   };
 
-  // Filter deals based on selected stage and search term
+  // Filter deals based on selected stage and search term - now includes title search
   const filteredDeals = deals.filter(deal => {
     const matchesStage = selectedStage === 'all' || 
       deal.status.toLowerCase().replace(/\s+/g, '-') === selectedStage || 
@@ -55,7 +54,8 @@ const Sales = () => {
     
     const matchesSearch = searchTerm === '' ||
       deal.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      deal.property.toLowerCase().includes(searchTerm.toLowerCase());
+      deal.property.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deal.title.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesStage && matchesSearch;
   });

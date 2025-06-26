@@ -65,14 +65,15 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   
-  // Filter deals based on search term
+  // Filter deals based on search term - now includes title search
   const filteredDeals = useMemo(() => {
     if (!searchTerm) return deals;
     
     return deals.filter(deal => {
       const matchesClient = deal.client.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesProperty = deal.property.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesClient || matchesProperty;
+      const matchesTitle = deal.title.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesClient || matchesProperty || matchesTitle;
     });
   }, [deals, searchTerm]);
   
