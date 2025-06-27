@@ -100,7 +100,8 @@ const DealCard = ({
             </TooltipPrimitive.Trigger>
             <TooltipPrimitive.Portal>
               <TooltipPrimitive.Content
-                sideOffset={4}
+                side="top"
+                sideOffset={8}
                 className="z-[9999] overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
               >
                 Created: {formatDateTimeFull(deal.createdAt)}
@@ -111,16 +112,19 @@ const DealCard = ({
           {/* Days in stage counter (right) - only show tooltip when not dragging */}
           <TooltipPrimitive.Root delayDuration={300}>
             <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
-              <Badge 
-                variant="secondary" 
-                className="h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs text-blue-800 cursor-help bg-slate-200"
-              >
-                {daysInStage}
-              </Badge>
+              <div className="cursor-help">
+                <Badge 
+                  variant="secondary" 
+                  className="h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs text-blue-800 bg-slate-200 pointer-events-none"
+                >
+                  {daysInStage}
+                </Badge>
+              </div>
             </TooltipPrimitive.Trigger>
             <TooltipPrimitive.Portal>
               <TooltipPrimitive.Content
-                sideOffset={4}
+                side="top"
+                sideOffset={8}
                 className="z-[9999] overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
               >
                 {daysHoursText}
