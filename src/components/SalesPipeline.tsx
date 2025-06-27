@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Calendar, MessageSquare } from "lucide-react";
@@ -13,6 +13,7 @@ import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
+import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
 import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction } from './pipeline/SalesPipelineData';
 import { Request } from "@/types/Request";
 
@@ -43,6 +44,17 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
   const [deals, setDeals] = useState<Deal[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  
+  // Responsive columns setup
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { columnWidth, shouldUseHorizontalScroll } = useResponsiveColumns({
+    containerRef,
+    columnCount: stages.length,
+    minColumnWidth: 200,
+    maxColumnWidth: 320,
+    columnGap: 16,
+    padding: 32
+  });
   
   // Initialize deals once when component mounts or data becomes available
   useEffect(() => {
@@ -464,7 +476,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         </Button>
       </div>
 
-      {/* Pipeline Columns with Horizontal Scroll */}
+      {/* Pipeline Columns with Dynamic Grid Layout */}
       <DndContext 
         sensors={sensors} 
         collisionDetection={closestCenter} 
@@ -472,13 +484,41 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         onDragOver={handleDragOver} 
         onDragEnd={handleDragEnd}
       >
-        <ScrollArea className="w-full">
-          <div className="flex space-x-4 pb-4 min-w-max">
-            {stages.sort((a, b) => a.order - b.order).map(stage => {
-              const columnDeals = getColumnDeals(stage.id);
-              return (
-                <div key={stage.id} className="w-44 flex-shrink-0">
+        <div ref={containerRef} className="w-full">
+          {shouldUseHorizontalScroll ? (
+            <ScrollArea className="w-full">
+              <div className="flex space-x-4 pb-4 min-w-max">
+                {stages.sort((a, b) => a.order - b.order).map(stage => {
+                  const columnDeals = getColumnDeals(stage.id);
+                  return (
+                    <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                      <PipelineColumn 
+                        id={stage.id} 
+                        title={stage.title} 
+                        deals={columnDeals} 
+                        count={columnDeals.length} 
+                        totalValue={getColumnTotalValue(stage.id)} 
+                        fixedHeight={fixedColumnHeight} 
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          ) : (
+            <div 
+              className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+              style={{
+                gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`,
+                justifyContent: 'center'
+              }}
+            >
+              {stages.sort((a, b) => a.order - b.order).map(stage => {
+                const columnDeals = getColumnDeals(stage.id);
+                return (
                   <PipelineColumn 
+                    key={stage.id}
                     id={stage.id} 
                     title={stage.title} 
                     deals={columnDeals} 
@@ -486,12 +526,11 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
                     totalValue={getColumnTotalValue(stage.id)} 
                     fixedHeight={fixedColumnHeight} 
                   />
-                </div>
-              );
-            })}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <DragOverlay>
           {activeItem ? <DealCard deal={activeItem} isDragging /> : null}
