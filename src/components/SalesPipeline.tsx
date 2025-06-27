@@ -14,6 +14,7 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction } from './pipeline/SalesPipelineData';
+import { Request } from "@/types/Request";
 
 interface SalesPipelineProps {
   onDealsChange?: (deals: Deal[]) => void;
