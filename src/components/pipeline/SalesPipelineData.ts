@@ -1,3 +1,4 @@
+
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -11,7 +12,30 @@ interface Deal {
   status: string; // Pipeline status, not request status
   type: 'request' | 'quote'; // New field to distinguish between requests and quotes
   quoteId?: string; // Optional field for quote-based deals
+  createdAt: string; // Enhanced creation date tracking
+  stageEnteredDate: string; // New field to track when deal entered current stage
 }
+
+// Helper function to generate random dates within the last 3 months
+const generateRandomDateInLastThreeMonths = (): string => {
+  const now = new Date();
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+  const timeDiff = now.getTime() - threeMonthsAgo.getTime();
+  const randomTime = Math.random() * timeDiff;
+  const randomDate = new Date(threeMonthsAgo.getTime() + randomTime);
+  return randomDate.toISOString();
+};
+
+// Helper function to generate stage entered date (between creation and now)
+const generateStageEnteredDate = (createdAt: string): string => {
+  const createdDate = new Date(createdAt);
+  const now = new Date();
+  const timeDiff = now.getTime() - createdDate.getTime();
+  // Stage entered date should be between creation date and now, but closer to creation
+  const stageTime = Math.random() * (timeDiff * 0.7); // Use 70% of time range for more realistic staging
+  const stageDate = new Date(createdDate.getTime() + stageTime);
+  return stageDate.toISOString();
+};
 
 // Helper function to find the newest quote for a request
 const getNewestQuoteForRequest = (requestId: string, sessionQuotes: any[]): any | null => {
@@ -280,6 +304,10 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     // FIXED: Only include amount if there's a quote with valid numeric amount
     const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
     
+    // Generate realistic dates
+    const createdAt = generateRandomDateInLastThreeMonths();
+    const stageEnteredDate = generateStageEnteredDate(createdAt);
+    
     return {
       id: request.id,
       client: request.client.name,
@@ -290,7 +318,9 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       amount: amount, // Only present if there's a valid quote amount
       status: pipelineStage,
       type: 'request' as const,
-      quoteId: newestQuote?.id
+      quoteId: newestQuote?.id,
+      createdAt,
+      stageEnteredDate
     };
   }).filter(Boolean); // Remove null entries
   
@@ -390,6 +420,10 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     
     console.log(`✅ Creating deal for standalone quote ${quote.id} in stage ${pipelineStage}`);
     
+    // Generate realistic dates
+    const createdAt = generateRandomDateInLastThreeMonths();
+    const stageEnteredDate = generateStageEnteredDate(createdAt);
+    
     // Enhanced validation for deal creation
     const dealData = {
       id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
@@ -401,7 +435,9 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
       amount: quote.amount, // Always present for quotes and validated above
       status: pipelineStage,
       type: 'quote' as const,
-      quoteId: quote.id
+      quoteId: quote.id,
+      createdAt,
+      stageEnteredDate
     };
     
     console.log(`✅ Deal created for quote ${quote.id}:`, {
