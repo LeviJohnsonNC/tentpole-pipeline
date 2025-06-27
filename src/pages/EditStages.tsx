@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +10,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalList
 import StageCard from "@/components/stages/StageCard";
 import Sidebar from "@/components/Sidebar";
 import JobberStageSelector from "@/components/stages/JobberStageSelector";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
 
 const EditStages = () => {
   const navigate = useNavigate();
@@ -22,6 +25,17 @@ const EditStages = () => {
   } = useStagesStore();
   const [localStages, setLocalStages] = useState<Stage[]>(stages);
   const [showJobberSelector, setShowJobberSelector] = useState(false);
+
+  // Responsive columns setup
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { columnWidth, shouldUseHorizontalScroll } = useResponsiveColumns({
+    containerRef,
+    columnCount: stages.length,
+    minColumnWidth: 200,
+    maxColumnWidth: 320,
+    columnGap: 16,
+    padding: 48
+  });
 
   useEffect(() => {
     setLocalStages(stages);
@@ -121,22 +135,45 @@ const EditStages = () => {
               </p>
             </div>
 
-            {/* Stages - Single Row with Horizontal Scroll */}
-            <div className="overflow-x-auto mb-6">
+            {/* Stages - Dynamic Layout with Responsive Columns */}
+            <div ref={containerRef} className="w-full mb-6">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={localStages.map(stage => stage.id)} strategy={horizontalListSortingStrategy}>
-                  <div className="flex gap-4 min-w-max pb-4">
-                    {localStages.sort((a, b) => a.order - b.order).map(stage => (
-                      <div key={stage.id} className="w-40 flex-shrink-0">
+                  {shouldUseHorizontalScroll ? (
+                    <ScrollArea className="w-full">
+                      <div className="flex gap-4 min-w-max pb-4">
+                        {localStages.sort((a, b) => a.order - b.order).map(stage => (
+                          <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                            <StageCard 
+                              stage={stage} 
+                              onUpdateTitle={handleTitleChange} 
+                              onDelete={handleDelete} 
+                              canDelete={!stage.isImmutable} 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  ) : (
+                    <div 
+                      className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                      style={{
+                        gridTemplateColumns: `repeat(${localStages.length}, ${columnWidth}px)`,
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {localStages.sort((a, b) => a.order - b.order).map(stage => (
                         <StageCard 
+                          key={stage.id}
                           stage={stage} 
                           onUpdateTitle={handleTitleChange} 
                           onDelete={handleDelete} 
                           canDelete={!stage.isImmutable} 
                         />
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </SortableContext>
               </DndContext>
             </div>
