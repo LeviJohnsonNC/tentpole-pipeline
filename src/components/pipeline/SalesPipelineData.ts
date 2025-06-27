@@ -1,4 +1,3 @@
-
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -16,14 +15,20 @@ interface Deal {
   stageEnteredDate: string; // New field to track when deal entered current stage
 }
 
-// Helper function to generate random dates within the last 3 months
-const generateRandomDateInLastThreeMonths = (): string => {
+// Helper function to generate dates for new deals (5-7 hours ago)
+const generateNewDealDate = (): string => {
   const now = new Date();
-  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-  const timeDiff = now.getTime() - threeMonthsAgo.getTime();
-  const randomTime = Math.random() * timeDiff;
-  const randomDate = new Date(threeMonthsAgo.getTime() + randomTime);
-  return randomDate.toISOString();
+  const hoursAgo = 5 + Math.random() * 2; // 5-7 hours ago
+  const newDealDate = new Date(now.getTime() - (hoursAgo * 60 * 60 * 1000));
+  return newDealDate.toISOString();
+};
+
+// Helper function to generate dates for other deals (1-60 days ago)
+const generateOtherDealDate = (): string => {
+  const now = new Date();
+  const daysAgo = 1 + Math.random() * 59; // 1-60 days ago
+  const otherDealDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+  return otherDealDate.toISOString();
 };
 
 // Helper function to generate stage entered date (between creation and now)
@@ -268,7 +273,7 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
   return 'draft-quote';
 };
 
-// Convert requests to deals for the pipeline (with newest quote logic)
+// Convert requests to deals for the pipeline (with updated date logic)
 const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
@@ -304,8 +309,9 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     // FIXED: Only include amount if there's a quote with valid numeric amount
     const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
     
-    // Generate realistic dates
-    const createdAt = generateRandomDateInLastThreeMonths();
+    // Generate realistic dates based on pipeline stage
+    const isNewDeal = pipelineStage === 'new-deals';
+    const createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
     const stageEnteredDate = generateStageEnteredDate(createdAt);
     
     return {
@@ -328,7 +334,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
   return deals;
 };
 
-// ENHANCED: Convert ONLY standalone quotes (not linked to requests) to deals for the pipeline with better error handling
+// ENHANCED: Convert ONLY standalone quotes (not linked to requests) to deals for the pipeline with updated date logic
 const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
   console.log('🚀 ENHANCED: Creating deals from standalone quotes. Session quotes:', sessionQuotes.length);
   console.log('🚀 ENHANCED: Session clients available:', sessionClients.length);
@@ -406,7 +412,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
   console.log('✅ Standalone quotes for pipeline:', standaloneQuotes.length);
   standaloneQuotes.forEach(q => console.log(`  - Standalone quote: ${q.id} (${q.status}, $${q.amount}) for client: ${q.client.name}`));
   
-  // ENHANCED: Create deals with better error handling and validation
+  // ENHANCED: Create deals with updated date logic
   const deals = standaloneQuotes.map((quote) => {
     console.log(`🔧 Creating deal for standalone quote ${quote.id}`);
     
@@ -420,8 +426,8 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
     
     console.log(`✅ Creating deal for standalone quote ${quote.id} in stage ${pipelineStage}`);
     
-    // Generate realistic dates
-    const createdAt = generateRandomDateInLastThreeMonths();
+    // Generate realistic dates - standalone quotes are typically older (not new deals)
+    const createdAt = generateOtherDealDate();
     const stageEnteredDate = generateStageEnteredDate(createdAt);
     
     // Enhanced validation for deal creation
