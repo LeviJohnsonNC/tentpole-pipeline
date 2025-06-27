@@ -1,11 +1,9 @@
-
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { formatDateShort, formatDateTimeFull, calculateDaysInStage, calculateDaysAndHours } from '@/utils/dateHelpers';
-
 interface Deal {
   id: string;
   client: string;
@@ -18,69 +16,57 @@ interface Deal {
   createdAt: string;
   stageEnteredDate: string;
 }
-
 interface DealCardProps {
   deal: Deal;
   isDragging?: boolean;
 }
-
-const DealCard = ({ deal, isDragging }: DealCardProps) => {
+const DealCard = ({
+  deal,
+  isDragging
+}: DealCardProps) => {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-    isDragging: isSortableDragging,
-  } = useSortable({ 
-    id: deal.id,
+    isDragging: isSortableDragging
+  } = useSortable({
+    id: deal.id
   });
-
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : (transition || 'transform 150ms ease'),
+    transition: isDragging ? 'none' : transition || 'transform 150ms ease'
   };
-
   const isBeingDragged = isDragging || isSortableDragging;
-
   const formatAmount = (amount: number) => {
     return `$ ${amount.toLocaleString()}.00`;
   };
 
   // Calculate days in stage
   const daysInStage = calculateDaysInStage(deal.stageEnteredDate);
-  const { days, hours } = calculateDaysAndHours(deal.stageEnteredDate);
-
-  return (
-    <TooltipProvider>
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        {...listeners}
-        className={`
+  const {
+    days,
+    hours
+  } = calculateDaysAndHours(deal.stageEnteredDate);
+  return <TooltipProvider>
+      <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={`
           bg-white border border-gray-200 rounded-lg p-2 shadow-sm 
           cursor-grab active:cursor-grabbing
           transition-all duration-150 ease-out
           hover:shadow-md hover:-translate-y-0.5
-          ${isBeingDragged ? 
-            'shadow-lg scale-105 rotate-1 opacity-90 z-50 ring-2 ring-blue-200' : 
-            'shadow-sm'
-          }
+          ${isBeingDragged ? 'shadow-lg scale-105 rotate-1 opacity-90 z-50 ring-2 ring-blue-200' : 'shadow-sm'}
           ${isDragging ? 'pointer-events-none' : ''}
-        `}
-      >
+        `}>
         {/* Main content */}
         <div className="mb-2">
           <h4 className="font-medium text-gray-900 text-xs mb-1 truncate">
             {deal.client}
           </h4>
           <p className="text-xs text-gray-600 truncate">{deal.title}</p>
-          {deal.amount && (
-            <p className="text-xs text-green-600 font-medium mt-1">
+          {deal.amount && <p className="text-xs text-green-600 font-medium mt-1">
               {formatAmount(deal.amount)}
-            </p>
-          )}
+            </p>}
         </div>
 
         {/* Bottom section with date and days counter */}
@@ -100,10 +86,7 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
           {/* Days in stage counter (right) */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge 
-                variant="secondary" 
-                className="h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-help"
-              >
+              <Badge variant="secondary" className="h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs text-blue-800 cursor-help bg-slate-200">
                 {daysInStage}
               </Badge>
             </TooltipTrigger>
@@ -113,8 +96,6 @@ const DealCard = ({ deal, isDragging }: DealCardProps) => {
           </Tooltip>
         </div>
       </div>
-    </TooltipProvider>
-  );
+    </TooltipProvider>;
 };
-
 export default DealCard;
