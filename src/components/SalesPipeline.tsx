@@ -106,15 +106,26 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
       console.log('📡 PIPELINE MONITOR: Detected new/removed deals, updating pipeline');
       console.log('  - Has new deals:', hasNewDeals);
       console.log('  - Has removed deals:', hasRemovedDeals);
-      setDeals(newDeals);
+      
+      // For automatic moves, reset stage entered date for deals that changed stages
+      const updatedDeals = newDeals.map(newDeal => {
+        const existingDeal = deals.find(d => d.id === newDeal.id);
+        if (existingDeal && existingDeal.status !== newDeal.status) {
+          console.log('📡 PIPELINE MONITOR: Auto-move detected, resetting stage date for deal:', newDeal.id);
+          return { ...newDeal, stageEnteredDate: new Date().toISOString() };
+        }
+        return newDeal;
+      });
+      
+      setDeals(updatedDeals);
       
       if (onDealsChange) {
-        onDealsChange(newDeals);
+        onDealsChange(updatedDeals);
       }
     } else {
       console.log('📡 PIPELINE MONITOR: No new deals detected, preserving current state');
     }
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, updateSessionClient, onDealsChange]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, updateSessionClient, onDealsChange, deals]);
   
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
@@ -342,7 +353,12 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         return prevDeals.map(deal => {
           if (deal.id === activeId) {
             console.log('🔄 DRAG OVER: Updated deal', deal.id, 'status to', overContainer);
-            return { ...deal, status: overContainer };
+            // Reset stage entered date when moving to new container
+            return { 
+              ...deal, 
+              status: overContainer,
+              stageEnteredDate: new Date().toISOString()
+            };
           }
           return deal;
         });
@@ -406,7 +422,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
           return prevDeals.map(deal => {
             if (deal.id === activeId) {
               console.log('🏁 DRAG END: Reverting deal to original status:', originalDeal.status);
-              return { ...deal, status: originalDeal.status };
+              return { ...deal, status: originalDeal.status, stageEnteredDate: originalDeal.stageEnteredDate };
             }
             return deal;
           });
@@ -423,7 +439,7 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
     }
     
     if (activeContainer === overContainer) {
-      // Reordering within the same container
+      // Reordering within the same container - don't reset stage date
       console.log('🏁 DRAG END: Reordering within same container');
       setDeals(prevDeals => {
         const containerDeals = prevDeals.filter(deal => deal.status === activeContainer);
@@ -435,13 +451,17 @@ const SalesPipeline = ({ onDealsChange, searchTerm = '' }: SalesPipelineProps) =
         return [...otherDeals, ...reorderedDeals];
       });
     } else {
-      // Moving between containers - ensure final state and persist
+      // Moving between containers - stage date already reset in handleDragOver
       console.log('🏁 DRAG END: Moving between containers - finalizing');
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
           if (deal.id === activeId) {
             console.log('🏁 DRAG END: Final update - deal', deal.id, 'moved to', overContainer);
-            return { ...deal, status: overContainer };
+            return { 
+              ...deal, 
+              status: overContainer,
+              stageEnteredDate: new Date().toISOString()
+            };
           }
           return deal;
         });
