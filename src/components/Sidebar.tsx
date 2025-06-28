@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -39,8 +38,9 @@ const Sidebar = () => {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Auto-expand Sales if user is on requests, quotes, or sales routes
-    if (location.pathname === '/' || location.pathname.startsWith('/requests') || 
-        location.pathname.startsWith('/quotes') || location.pathname.startsWith('/sales')) {
+    if (location.pathname.startsWith('/requests') || 
+        location.pathname.startsWith('/quotes') || 
+        location.pathname.startsWith('/sales')) {
       return ['sales'];
     }
     return [];
@@ -58,7 +58,7 @@ const Sidebar = () => {
       path: "/sales", 
       active: true,
       children: [
-        { id: "requests", label: "Requests", path: "/", active: true },
+        { id: "requests", label: "Requests", path: "/requests", active: true },
         { id: "quotes", label: "Quotes", path: "/quotes", active: true }
       ]
     },
@@ -92,7 +92,7 @@ const Sidebar = () => {
     }
     
     // Special cases for sub-routes
-    if (item.id === "requests" && (location.pathname.startsWith("/requests") || location.pathname === "/")) {
+    if (item.id === "requests" && location.pathname.startsWith("/requests")) {
       return true;
     }
     
@@ -100,7 +100,8 @@ const Sidebar = () => {
       return true;
     }
     
-    if (item.id === "sales" && location.pathname.startsWith("/sales")) {
+    // Sales should only be active if on /sales exactly, not on child routes
+    if (item.id === "sales" && location.pathname === "/sales") {
       return true;
     }
     
@@ -147,7 +148,7 @@ const Sidebar = () => {
               <Link
                 to={item.path}
                 className={`flex-1 flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
-                  isActive || parentActive
+                  isActive
                     ? "bg-[#d4edda] text-[#155724]"
                     : "text-gray-700 hover:bg-gray-100"
                 }`}

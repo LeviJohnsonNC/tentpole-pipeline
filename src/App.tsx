@@ -3,7 +3,7 @@ import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Clients from "./pages/Clients";
 import NewClient from "./pages/NewClient";
@@ -23,7 +23,8 @@ const App = () => (
     <Sonner />
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route path="/" element={<Navigate to="/sales" replace />} />
+        <Route path="/requests" element={<Index />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/clients/new" element={<NewClient />} />
         <Route path="/requests/new" element={<NewRequest />} />
