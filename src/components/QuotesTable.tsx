@@ -87,7 +87,7 @@ const QuotesTable = ({ quotes, statusFilter, searchTerm, onSearchChange }: Quote
     const matchesSearch = searchTerm === "" || 
       quote.client.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       quote.quoteNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      quote.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (quote.title && quote.title.toLowerCase().includes(searchTerm.toLowerCase())) || 
       quote.property.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || quote.status === statusFilter;
     const matchesSalesperson = salespersonFilter === "all" || quote.salesperson === salespersonFilter;
@@ -151,7 +151,7 @@ const QuotesTable = ({ quotes, statusFilter, searchTerm, onSearchChange }: Quote
                     <TableCell>
                       <div>
                         <div className="font-medium text-gray-900">{quote.client.name}</div>
-                        <div className="text-sm text-gray-500">{quote.title}</div>
+                        <div className="text-sm text-gray-500">{quote.title || 'Standalone Quote'}</div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{quote.quoteNumber}</TableCell>
