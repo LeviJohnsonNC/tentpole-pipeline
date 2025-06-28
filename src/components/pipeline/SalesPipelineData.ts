@@ -139,22 +139,46 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     // Only allow quote stages if there's actually a valid quote with amount
     if (typeof newestQuote.amount === 'number' && newestQuote.amount > 0) {
       if (newestQuote.status === 'Draft') {
+        console.log(`FIXED: Looking for draft quote stage for request ${request.id}`);
+        // Fixed: First try to find exact match by ID
+        const draftStageById = stages.find(stage => stage.id === 'draft-quote');
+        if (draftStageById) {
+          console.log(`FIXED: Found draft quote stage by ID: ${draftStageById.id}`);
+          return draftStageById.id;
+        }
+        
+        // Fallback: search by title (case-insensitive)
         const draftStage = stages.find(stage => 
           stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
         );
         if (draftStage) {
+          console.log(`FIXED: Found draft quote stage by title: ${draftStage.id} (${draftStage.title})`);
           return draftStage.id;
         }
+        
+        console.log(`FIXED: No draft quote stage found, using fallback`);
         return 'draft-quote'; // Fallback to default draft quote stage ID
       }
       
       if (newestQuote.status === 'Awaiting Response') {
+        // Fixed: First try to find exact match by ID
+        const awaitingStageById = stages.find(stage => stage.id === 'quote-awaiting-response');
+        if (awaitingStageById) {
+          console.log(`FIXED: Found awaiting response stage by ID: ${awaitingStageById.id}`);
+          return awaitingStageById.id;
+        }
+        
+        // Fallback: search by title (case-insensitive)
         const awaitingStage = stages.find(stage => 
           stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
         );
         if (awaitingStage) {
+          console.log(`FIXED: Found awaiting response stage by title: ${awaitingStage.id} (${awaitingStage.title})`);
           return awaitingStage.id;
         }
+        
+        console.log(`FIXED: No awaiting response stage found, using fallback`);
+        return 'quote-awaiting-response'; // Fallback to default stage ID
       }
       
       // Changes Requested is now handled by Jobber stage matching above
@@ -245,25 +269,46 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
   
   // ENHANCED: Better stage assignment for valid quotes
   if (quote.status === 'Draft') {
+    console.log(`FIXED: Looking for draft quote stage for standalone quote ${quote.id}`);
+    // Fixed: First try to find exact match by ID
+    const draftStageById = stages.find(stage => stage.id === 'draft-quote');
+    if (draftStageById) {
+      console.log(`FIXED: Found draft quote stage by ID: ${draftStageById.id}`);
+      return draftStageById.id;
+    }
+    
+    // Fallback: search by title (case-insensitive)
     const draftStage = stages.find(stage => 
       stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
     );
     if (draftStage) {
-      console.log(`✅ Standalone quote ${quote.id} assigned to Draft stage: ${draftStage.id}`);
+      console.log(`FIXED: Found draft quote stage by title: ${draftStage.id} (${draftStage.title})`);
       return draftStage.id;
     }
-    console.log(`✅ Standalone quote ${quote.id} using fallback draft-quote stage`);
+    
+    console.log(`FIXED: No draft quote stage found, using fallback`);
     return 'draft-quote'; // Fallback to default draft quote stage ID
   }
   
   if (quote.status === 'Awaiting Response') {
+    // Fixed: First try to find exact match by ID
+    const awaitingStageById = stages.find(stage => stage.id === 'quote-awaiting-response');
+    if (awaitingStageById) {
+      console.log(`FIXED: Found awaiting response stage by ID: ${awaitingStageById.id}`);
+      return awaitingStageById.id;
+    }
+    
+    // Fallback: search by title (case-insensitive)
     const awaitingStage = stages.find(stage => 
       stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
     );
     if (awaitingStage) {
-      console.log(`✅ Standalone quote ${quote.id} assigned to Awaiting stage: ${awaitingStage.id}`);
+      console.log(`FIXED: Found awaiting response stage by title: ${awaitingStage.id} (${awaitingStage.title})`);
       return awaitingStage.id;
     }
+    
+    console.log(`FIXED: No awaiting response stage found, using fallback`);
+    return 'quote-awaiting-response'; // Fallback to default stage ID
   }
   
   // Changes Requested is now handled by Jobber stage matching above
