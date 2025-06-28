@@ -15,6 +15,26 @@ interface Deal {
   stageEnteredDate: string; // New field to track when deal entered current stage
 }
 
+// JOBBER STAGE ID MAPPING - Centralized mapping of Jobber stage titles to their IDs
+const JOBBER_STAGE_IDS = {
+  'Draft Quote': 'draft-quote',
+  'Quote Awaiting Response': 'quote-awaiting-response', 
+  'Unscheduled Assessment': 'jobber-unscheduled-assessment',
+  'Overdue Assessment': 'jobber-overdue-assessment',
+  'Assessment Completed': 'jobber-assessment-completed',
+  'Quote Changes Requested': 'jobber-quote-changes-requested'
+} as const;
+
+// Helper function to check if a stage ID is a Jobber stage
+const isJobberStageId = (stageId: string): boolean => {
+  return Object.values(JOBBER_STAGE_IDS).includes(stageId as any);
+};
+
+// Helper function to find Jobber stage ID by title
+const getJobberStageId = (title: string): string | null => {
+  return JOBBER_STAGE_IDS[title as keyof typeof JOBBER_STAGE_IDS] || null;
+};
+
 // Helper function to generate dates for new deals (5-7 hours ago)
 const generateNewDealDate = (): string => {
   const now = new Date();
@@ -51,140 +71,88 @@ const getNewestQuoteForRequest = (requestId: string, sessionQuotes: any[]): any 
   return requestQuotes.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())[0];
 };
 
-// NEW: Helper function to find matching Jobber stage based on exact rules
-const findMatchingJobberStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
-  console.log(`Finding matching Jobber stage for request ${request?.id}, quote status: ${newestQuote?.status}, request status: ${request?.status}`);
+// NEW: Priority-based Jobber stage assignment with ID-based detection
+const findJobberStageByPriority = (request: any, newestQuote: any | null, stages: any[]): string | null => {
+  console.log(`🎯 PRIORITY ASSIGNMENT: Checking Jobber stages for request ${request?.id || 'standalone'}, quote status: ${newestQuote?.status || 'N/A'}`);
   
-  const jobberStages = stages.filter(stage => stage.isJobberStage);
-  console.log('Available Jobber stages:', jobberStages.map(s => ({ id: s.id, title: s.title, order: s.order })));
-  
-  let matchingStages: any[] = [];
-  
-  // Rule 1: Request "Unscheduled" status -> "Unscheduled Assessment" Jobber Stage
-  if (request && request.status === 'Unscheduled') {
-    const unscheduledStages = jobberStages.filter(stage => 
-      stage.title.toLowerCase().includes('unscheduled') && 
-      stage.title.toLowerCase().includes('assessment')
-    );
-    matchingStages.push(...unscheduledStages);
-    console.log(`Request ${request.id} is Unscheduled, found ${unscheduledStages.length} matching unscheduled assessment stages`);
-  }
-  
-  // Rule 2: Request "Overdue" status -> "Overdue Assessment" Jobber Stage
-  if (request && request.status === 'Overdue') {
-    const overdueStages = jobberStages.filter(stage => 
-      stage.title.toLowerCase().includes('overdue') && 
-      stage.title.toLowerCase().includes('assessment')
-    );
-    matchingStages.push(...overdueStages);
-    console.log(`Request ${request.id} is Overdue, found ${overdueStages.length} matching overdue assessment stages`);
-  }
-  
-  // Rule 3: Request "Assessment complete" status -> "Assessment Completed" Jobber Stage
-  if (request && request.status === 'Assessment complete') {
-    const assessmentStages = jobberStages.filter(stage => 
-      stage.title.toLowerCase().includes('assessment') && 
-      (stage.title.toLowerCase().includes('completed') || stage.title.toLowerCase().includes('complete'))
-    );
-    matchingStages.push(...assessmentStages);
-    console.log(`Request ${request.id} is Assessment complete, found ${assessmentStages.length} matching assessment completed stages`);
-  }
-  
-  // Rule 4: Quote "Changes Requested" status -> "Quote Changes Requested" Jobber Stage
+  // Priority 1: Quote "Changes Requested" → jobber-quote-changes-requested
   if (newestQuote && newestQuote.status === 'Changes Requested') {
-    const changesStages = jobberStages.filter(stage => 
-      stage.title.toLowerCase().includes('quote') && 
-      stage.title.toLowerCase().includes('changes') && 
-      stage.title.toLowerCase().includes('requested')
-    );
-    matchingStages.push(...changesStages);
-    console.log(`Quote ${newestQuote.id} has Changes Requested, found ${changesStages.length} matching quote changes stages`);
+    const stageId = JOBBER_STAGE_IDS['Quote Changes Requested'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 1: Found Changes Requested stage: ${stageId}`);
+      return stageId;
+    }
   }
   
-  // If multiple matching stages, select the rightmost one (highest order)
-  if (matchingStages.length > 0) {
-    const rightmostStage = matchingStages.reduce((prev, current) => 
-      (current.order > prev.order) ? current : prev
-    );
-    console.log(`Selected rightmost matching Jobber stage: ${rightmostStage.id} (${rightmostStage.title}) with order ${rightmostStage.order}`);
-    return rightmostStage.id;
+  // Priority 2: Quote "Awaiting Response" → quote-awaiting-response
+  if (newestQuote && newestQuote.status === 'Awaiting Response') {
+    const stageId = JOBBER_STAGE_IDS['Quote Awaiting Response'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 2: Found Awaiting Response stage: ${stageId}`);
+      return stageId;
+    }
   }
   
-  console.log('No matching Jobber stages found');
+  // Priority 3: Quote "Draft" → draft-quote
+  if (newestQuote && newestQuote.status === 'Draft') {
+    const stageId = JOBBER_STAGE_IDS['Draft Quote'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 3: Found Draft Quote stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  // Priority 4: Request "Assessment complete" → jobber-assessment-completed
+  if (request && request.status === 'Assessment complete') {
+    const stageId = JOBBER_STAGE_IDS['Assessment Completed'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 4: Found Assessment Completed stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  // Priority 5: Request "Overdue" → jobber-overdue-assessment
+  if (request && request.status === 'Overdue') {
+    const stageId = JOBBER_STAGE_IDS['Overdue Assessment'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 5: Found Overdue Assessment stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  // Priority 6: Request "Unscheduled" → jobber-unscheduled-assessment
+  if (request && request.status === 'Unscheduled') {
+    const stageId = JOBBER_STAGE_IDS['Unscheduled Assessment'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 6: Found Unscheduled Assessment stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  console.log('❌ No matching Jobber stages found');
   return null;
 };
 
-// ENHANCED: Enhanced mapping function to check Jobber stages first
+// REWRITTEN: Enhanced mapping function with priority-based Jobber stage assignment
 const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
   console.log(`\n--- Assigning pipeline stage for request ${request.id} ---`);
   console.log(`Request status: ${request.status}, Newest quote: ${newestQuote?.id || 'none'}, Quote status: ${newestQuote?.status || 'N/A'}`);
   
-  // STEP 1: Check for Jobber stage matches first (NEW LOGIC)
-  const jobberStageMatch = findMatchingJobberStage(request, newestQuote, stages);
+  // STEP 1: Check for priority-based Jobber stage matches first
+  const jobberStageMatch = findJobberStageByPriority(request, newestQuote, stages);
   if (jobberStageMatch) {
     console.log(`✅ Request ${request.id} matched to Jobber stage: ${jobberStageMatch}`);
     return jobberStageMatch;
   }
   
-  // STEP 2: CRITICAL - If there's a newest quote, use its status to determine stage
+  // STEP 2: If there's a newest quote, check for exclusions
   if (newestQuote) {
     console.log(`Request ${request.id} has newest quote ${newestQuote.id} with status: ${newestQuote.status}`);
     
-    // ENHANCED AUTO CLOSED-WON: Approved and Converted quotes should NOT be in pipeline (closed won)
+    // AUTO CLOSED-WON: Approved and Converted quotes should NOT be in pipeline
     if (newestQuote.status === 'Approved' || newestQuote.status === 'Converted') {
       console.log(`Request ${request.id} EXCLUDED from pipeline - quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
-      return null; // Don't include in pipeline - this is the key fix!
-    }
-    
-    // Only allow quote stages if there's actually a valid quote with amount
-    if (typeof newestQuote.amount === 'number' && newestQuote.amount > 0) {
-      if (newestQuote.status === 'Draft') {
-        console.log(`FIXED: Looking for draft quote stage for request ${request.id}`);
-        // Fixed: First try to find exact match by ID
-        const draftStageById = stages.find(stage => stage.id === 'draft-quote');
-        if (draftStageById) {
-          console.log(`FIXED: Found draft quote stage by ID: ${draftStageById.id}`);
-          return draftStageById.id;
-        }
-        
-        // Fallback: search by title (case-insensitive)
-        const draftStage = stages.find(stage => 
-          stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
-        );
-        if (draftStage) {
-          console.log(`FIXED: Found draft quote stage by title: ${draftStage.id} (${draftStage.title})`);
-          return draftStage.id;
-        }
-        
-        console.log(`FIXED: No draft quote stage found, using fallback`);
-        return 'draft-quote'; // Fallback to default draft quote stage ID
-      }
-      
-      if (newestQuote.status === 'Awaiting Response') {
-        // Fixed: First try to find exact match by ID
-        const awaitingStageById = stages.find(stage => stage.id === 'quote-awaiting-response');
-        if (awaitingStageById) {
-          console.log(`FIXED: Found awaiting response stage by ID: ${awaitingStageById.id}`);
-          return awaitingStageById.id;
-        }
-        
-        // Fallback: search by title (case-insensitive)
-        const awaitingStage = stages.find(stage => 
-          stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
-        );
-        if (awaitingStage) {
-          console.log(`FIXED: Found awaiting response stage by title: ${awaitingStage.id} (${awaitingStage.title})`);
-          return awaitingStage.id;
-        }
-        
-        console.log(`FIXED: No awaiting response stage found, using fallback`);
-        return 'quote-awaiting-response'; // Fallback to default stage ID
-      }
-      
-      // Changes Requested is now handled by Jobber stage matching above
-    } else {
-      console.log(`Request ${request.id} has quote but invalid amount, placing in contacted stage`);
-      return 'contacted'; // If quote exists but amount is invalid, place in contacted stage
+      return null;
     }
     
     // Archived quotes should also be excluded
@@ -194,24 +162,21 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     }
   }
   
-  // STEP 3: Handle requests without quotes - they can NEVER go to quote stages
-  // All requests without quotes should only be in pre-quote stages
+  // STEP 3: Handle requests without quotes or non-Jobber stage quotes
   if (request.status === 'Assessment complete') {
-    // Assessment complete but no quote - should be in contacted, ready for quote creation
     return 'contacted';
   }
   
   if (request.status === 'Overdue') {
-    return 'followup'; // Overdue requests go to followup (unless Jobber stage matched above)
+    return 'followup';
   }
   
   if (request.status === 'Unscheduled') {
-    return 'contacted'; // Unscheduled requests go to contacted (unless Jobber stage matched above)
+    return 'contacted';
   }
   
   // STEP 4: Handle new requests and others
   if (request.status === 'New') {
-    // Distribute new requests between new-deals and contacted for realistic pipeline
     const distributionMapping: Record<string, string> = {
       'request-1': 'new-deals',
       'request-2': 'new-deals', 
@@ -228,14 +193,13 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     return distributionMapping[request.id] || 'new-deals';
   }
   
-  // Default fallback for any other status
   console.log(`Request ${request.id} using default fallback: new-deals`);
   return 'new-deals';
 };
 
-// ENHANCED: Function to determine pipeline stage for standalone quotes with better validation
+// REWRITTEN: Function to determine pipeline stage for standalone quotes with priority-based logic
 const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
-  console.log(`🔍 ENHANCED: Assigning stage for standalone quote ${quote.id} with status: ${quote.status}, amount: ${quote.amount}, clientId: ${quote.clientId}`);
+  console.log(`🔍 Assigning stage for standalone quote ${quote.id} with status: ${quote.status}, amount: ${quote.amount}, clientId: ${quote.clientId}`);
   
   // VALIDATION: Must have valid amount and clientId
   if (!quote.clientId) {
@@ -248,17 +212,17 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
     return null;
   }
   
-  // Check for Jobber stage matches first
-  const jobberStageMatch = findMatchingJobberStage(null, quote, stages);
+  // Check for priority-based Jobber stage matches
+  const jobberStageMatch = findJobberStageByPriority(null, quote, stages);
   if (jobberStageMatch) {
     console.log(`✅ Standalone quote ${quote.id} matched to Jobber stage: ${jobberStageMatch}`);
     return jobberStageMatch;
   }
   
-  // ENHANCED AUTO CLOSED-WON: Approved and Converted quotes shouldn't be in pipeline (closed won)
+  // AUTO CLOSED-WON: Approved and Converted quotes shouldn't be in pipeline
   if (quote.status === 'Approved' || quote.status === 'Converted') {
     console.log(`❌ Standalone quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status} (AUTO CLOSED-WON)`);
-    return null; // Don't include in pipeline - this is the key fix!
+    return null;
   }
   
   // Archived quotes should also be excluded
@@ -267,53 +231,7 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
     return null;
   }
   
-  // ENHANCED: Better stage assignment for valid quotes
-  if (quote.status === 'Draft') {
-    console.log(`FIXED: Looking for draft quote stage for standalone quote ${quote.id}`);
-    // Fixed: First try to find exact match by ID
-    const draftStageById = stages.find(stage => stage.id === 'draft-quote');
-    if (draftStageById) {
-      console.log(`FIXED: Found draft quote stage by ID: ${draftStageById.id}`);
-      return draftStageById.id;
-    }
-    
-    // Fallback: search by title (case-insensitive)
-    const draftStage = stages.find(stage => 
-      stage.title.toLowerCase().includes('draft') && stage.title.toLowerCase().includes('quote')
-    );
-    if (draftStage) {
-      console.log(`FIXED: Found draft quote stage by title: ${draftStage.id} (${draftStage.title})`);
-      return draftStage.id;
-    }
-    
-    console.log(`FIXED: No draft quote stage found, using fallback`);
-    return 'draft-quote'; // Fallback to default draft quote stage ID
-  }
-  
-  if (quote.status === 'Awaiting Response') {
-    // Fixed: First try to find exact match by ID
-    const awaitingStageById = stages.find(stage => stage.id === 'quote-awaiting-response');
-    if (awaitingStageById) {
-      console.log(`FIXED: Found awaiting response stage by ID: ${awaitingStageById.id}`);
-      return awaitingStageById.id;
-    }
-    
-    // Fallback: search by title (case-insensitive)
-    const awaitingStage = stages.find(stage => 
-      stage.title.toLowerCase().includes('quote') && stage.title.toLowerCase().includes('awaiting')
-    );
-    if (awaitingStage) {
-      console.log(`FIXED: Found awaiting response stage by title: ${awaitingStage.id} (${awaitingStage.title})`);
-      return awaitingStage.id;
-    }
-    
-    console.log(`FIXED: No awaiting response stage found, using fallback`);
-    return 'quote-awaiting-response'; // Fallback to default stage ID
-  }
-  
-  // Changes Requested is now handled by Jobber stage matching above
-  
-  // Fallback to "draft-quote" for other valid statuses
+  // Fallback to "draft-quote" for other valid statuses if no Jobber stage matched
   console.log(`✅ Standalone quote ${quote.id} using fallback draft-quote stage for status: ${quote.status}`);
   return 'draft-quote';
 };
@@ -540,6 +458,50 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
   console.log('=== 🏁 END ENHANCED PIPELINE DATA CREATION ===\n');
   
   return totalDeals;
+};
+
+// NEW: Enhanced validation function with complete Jobber stage blocking
+export const canDropInJobberStage = (dealId: string, targetStageId: string): {
+  allowed: boolean;
+  message?: string;
+} => {
+  console.log('🚫 DRAG VALIDATION: Checking drop for deal:', dealId, 'to stage:', targetStageId);
+  
+  // COMPLETE BLOCK: No manual drags into any Jobber stage
+  if (isJobberStageId(targetStageId)) {
+    console.log('🚫 DRAG BLOCKED: Cannot manually drag into Jobber stage:', targetStageId);
+    return {
+      allowed: false,
+      message: "This stage is automatically managed. Deals are moved here based on their status."
+    };
+  }
+  
+  console.log('✅ DRAG ALLOWED: Target is not a Jobber stage');
+  return {
+    allowed: true
+  };
+};
+
+// NEW: Function to check if dragging FROM a Jobber stage should be blocked
+export const canDragFromJobberStage = (dealId: string, sourceStageId: string): {
+  allowed: boolean;
+  message?: string;
+} => {
+  console.log('🚫 DRAG FROM VALIDATION: Checking drag from stage:', sourceStageId);
+  
+  // COMPLETE BLOCK: No manual drags out of any Jobber stage
+  if (isJobberStageId(sourceStageId)) {
+    console.log('🚫 DRAG BLOCKED: Cannot manually drag from Jobber stage:', sourceStageId);
+    return {
+      allowed: false,
+      message: "This stage is automatically managed. Deals cannot be manually moved from here."
+    };
+  }
+  
+  console.log('✅ DRAG ALLOWED: Source is not a Jobber stage');
+  return {
+    allowed: true
+  };
 };
 
 // Enhanced action handlers that update source data instead of just local state

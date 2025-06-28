@@ -14,12 +14,14 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
-import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction } from './pipeline/SalesPipelineData';
+import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
 import { Request } from "@/types/Request";
+
 interface SalesPipelineProps {
   onDealsChange?: (deals: Deal[]) => void;
   searchTerm?: string;
 }
+
 const SalesPipeline = ({
   onDealsChange,
   searchTerm = ''
@@ -196,82 +198,29 @@ const SalesPipeline = ({
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
 
-  // Enhanced validation function with better logging
-  const canDropInJobberStage = (dealId: string, targetStageId: string): {
+  // Enhanced validation function with complete Jobber stage blocking
+  const validateDragOperation = (dealId: string, sourceStageId: string, targetStageId: string): {
     allowed: boolean;
     message?: string;
   } => {
-    console.log('🔍 DRAG VALIDATION: Checking drop for deal:', dealId, 'to stage:', targetStageId);
-    const deal = deals.find(d => d.id === dealId);
-    const targetStage = stages.find(s => s.id === targetStageId);
-    if (!deal || !targetStage) {
-      console.log('🔍 DRAG VALIDATION: Missing deal or stage, allowing drop');
-      return {
-        allowed: true
-      };
+    console.log('🔍 DRAG VALIDATION: Full validation for deal:', dealId, 'from:', sourceStageId, 'to:', targetStageId);
+    
+    // Check if dragging FROM a Jobber stage is allowed
+    const fromValidation = canDragFromJobberStage(dealId, sourceStageId);
+    if (!fromValidation.allowed) {
+      console.log('🔍 DRAG VALIDATION: FROM validation failed:', fromValidation.message);
+      return fromValidation;
     }
-    console.log('🔍 DRAG VALIDATION: Deal found:', deal.client, 'Target stage:', targetStage.title, 'isJobberStage:', targetStage.isJobberStage);
-
-    // Always allow drops to New Deals stage
-    if (targetStageId === 'new-deals') {
-      console.log('🔍 DRAG VALIDATION: Target is New Deals, allowing drop');
-      return {
-        allowed: true
-      };
+    
+    // Check if dragging TO a Jobber stage is allowed
+    const toValidation = canDropInJobberStage(dealId, targetStageId);
+    if (!toValidation.allowed) {
+      console.log('🔍 DRAG VALIDATION: TO validation failed:', toValidation.message);
+      return toValidation;
     }
-
-    // Allow drops to non-Jobber stages (custom stages)
-    if (!targetStage.isJobberStage) {
-      console.log('🔍 DRAG VALIDATION: Target is not a Jobber stage, allowing drop');
-      return {
-        allowed: true
-      };
-    }
-
-    // Validate Jobber stage requirements
-    const stageTitle = targetStage.title.toLowerCase();
-    console.log('🔍 DRAG VALIDATION: Validating Jobber stage:', stageTitle);
-    if (stageTitle.includes('draft') && stageTitle.includes('quote')) {
-      if (deal.type === 'quote') {
-        const quote = sessionQuotes.find(q => q.id === deal.quoteId);
-        if (!quote || quote.status === 'Archived') {
-          return {
-            allowed: false,
-            message: "Cannot move archived quotes to Draft Quote stage."
-          };
-        }
-      } else {
-        const requestQuote = sessionQuotes.find(q => q.requestId === deal.id && q.status !== 'Archived');
-        if (!requestQuote) {
-          return {
-            allowed: false,
-            message: "Only deals with created quotes can be moved to Draft Quote stage. Create a quote first."
-          };
-        }
-      }
-    } else if (stageTitle.includes('quote') && stageTitle.includes('awaiting')) {
-      if (deal.type === 'quote') {
-        const quote = sessionQuotes.find(q => q.id === deal.quoteId);
-        if (!quote || quote.status !== 'Awaiting Response') {
-          return {
-            allowed: false,
-            message: "Only sent quotes can be moved to Quote Awaiting Response stage. Send the quote first via text or email."
-          };
-        }
-      } else {
-        const requestQuote = sessionQuotes.find(q => q.requestId === deal.id && q.status === 'Awaiting Response');
-        if (!requestQuote) {
-          return {
-            allowed: false,
-            message: "Only deals with sent quotes can be moved to Quote Awaiting Response stage. Send the quote first via text or email."
-          };
-        }
-      }
-    }
-    console.log('🔍 DRAG VALIDATION: Validation passed');
-    return {
-      allowed: true
-    };
+    
+    console.log('🔍 DRAG VALIDATION: All validations passed');
+    return { allowed: true };
   };
 
   // Persist drag changes to session stores
@@ -334,8 +283,8 @@ const SalesPipeline = ({
     // Don't move to action zones during drag over
     if (overContainer.startsWith('action-')) return;
 
-    // Check validation before allowing drag over
-    const validation = canDropInJobberStage(activeId, overContainer);
+    // UPDATED: Use new validation function
+    const validation = validateDragOperation(activeId, activeContainer, overContainer);
     if (!validation.allowed) {
       console.log('🔄 DRAG OVER: Validation failed:', validation.message);
       return;
@@ -401,8 +350,14 @@ const SalesPipeline = ({
       return;
     }
 
-    // Final validation for regular stage drops
-    const validation = canDropInJobberStage(activeId, overContainer);
+    const activeContainer = findContainer(activeId);
+    if (!activeContainer) {
+      console.log('🏁 DRAG END: No active container found');
+      return;
+    }
+
+    // UPDATED: Final validation with complete blocking
+    const validation = validateDragOperation(activeId, activeContainer, overContainer);
     if (!validation.allowed) {
       console.log('🏁 DRAG END: Final validation failed:', validation.message);
       toast.error(validation.message);
@@ -427,25 +382,23 @@ const SalesPipeline = ({
       });
       return;
     }
-    const activeContainer = findContainer(activeId);
-    if (!activeContainer) {
-      console.log('🏁 DRAG END: No active container found');
-      return;
-    }
+
     if (activeContainer === overContainer) {
-      // Reordering within the same container - don't reset stage date
+      // Reordering within the same container
       console.log('🏁 DRAG END: Reordering within same container');
       setDeals(prevDeals => {
         const containerDeals = prevDeals.filter(deal => deal.status === activeContainer);
         const otherDeals = prevDeals.filter(deal => deal.status !== activeContainer);
         const activeIndex = containerDeals.findIndex(deal => deal.id === activeId);
         const overIndex = containerDeals.findIndex(deal => deal.id === overId);
+
         if (activeIndex === -1 || overIndex === -1) return prevDeals;
+
         const reorderedDeals = arrayMove(containerDeals, activeIndex, overIndex);
         return [...otherDeals, ...reorderedDeals];
       });
     } else {
-      // Moving between containers - stage date already reset in handleDragOver
+      // Moving between containers
       console.log('🏁 DRAG END: Moving between containers - finalizing');
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
