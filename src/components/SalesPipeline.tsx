@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -22,6 +21,19 @@ interface SalesPipelineProps {
   onDealsChange?: (deals: Deal[]) => void;
   searchTerm?: string;
 }
+
+// Helper function to check if a stage ID is a Jobber stage
+const isJobberStageId = (stageId: string): boolean => {
+  const JOBBER_STAGE_IDS = [
+    'draft-quote',
+    'quote-awaiting-response', 
+    'jobber-unscheduled-assessment',
+    'jobber-overdue-assessment',
+    'jobber-assessment-completed',
+    'jobber-quote-changes-requested'
+  ];
+  return JOBBER_STAGE_IDS.includes(stageId);
+};
 
 const SalesPipeline = ({
   onDealsChange,
@@ -236,43 +248,6 @@ const SalesPipeline = ({
     return { allowed: true };
   };
 
-  // Persist drag changes to session stores
-  const persistDealStatusChange = (dealId: string, newStatus: string) => {
-    console.log('💾 PERSIST: Updating deal status in session stores:', dealId, 'to:', newStatus);
-    const deal = deals.find(d => d.id === dealId);
-    if (!deal) {
-      console.error('💾 PERSIST: Deal not found:', dealId);
-      return;
-    }
-
-    // Map pipeline stages to valid Request status values
-    let requestStatus: Request['status'];
-    if (newStatus === 'new-deals') {
-      requestStatus = 'New';
-    } else if (newStatus === 'contacted' || newStatus === 'followup') {
-      requestStatus = 'New'; // Keep as New for custom stages
-    } else if (newStatus === 'draft-quote' || newStatus === 'quote-awaiting-response') {
-      requestStatus = 'New'; // Keep as New for Jobber stages until converted
-    } else {
-      requestStatus = 'New'; // Default fallback
-    }
-    
-    if (deal.type === 'request') {
-      console.log('💾 PERSIST: Updating request status to:', requestStatus);
-      updateSessionRequest(dealId, {
-        status: requestStatus
-      });
-    } else if (deal.type === 'quote' && deal.quoteId) {
-      console.log('💾 PERSIST: Updating quote-related request status to:', requestStatus);
-      const quote = sessionQuotes.find(q => q.id === deal.quoteId);
-      if (quote && quote.requestId) {
-        updateSessionRequest(quote.requestId, {
-          status: requestStatus
-        });
-      }
-    }
-  };
-  
   const handleDragStart = (event: DragStartEvent) => {
     const {
       active
@@ -425,7 +400,7 @@ const SalesPipeline = ({
         return updatedDeals;
       });
     } else {
-      // Moving between containers
+      // Moving between containers - set manual stage for custom stages
       console.log('🏁 DRAG END: Moving between containers - finalizing');
       setDeals(prevDeals => {
         const updatedDeals = prevDeals.map(deal => {
@@ -434,7 +409,8 @@ const SalesPipeline = ({
             return {
               ...deal,
               status: overContainer,
-              stageEnteredDate: new Date().toISOString()
+              stageEnteredDate: new Date().toISOString(),
+              manualStage: isJobberStageId(overContainer) ? undefined : overContainer // Only set manual stage for custom stages
             };
           }
           return deal;
@@ -448,8 +424,8 @@ const SalesPipeline = ({
         return updatedDeals;
       });
 
-      // Persist the change to session stores
-      persistDealStatusChange(activeId, overContainer);
+      // REMOVED: persistDealStatusChange call - no longer needed for custom stages
+      console.log('🏁 DRAG END: Custom stage move completed, no persistence needed');
     }
   };
   

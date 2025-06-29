@@ -13,6 +13,7 @@ interface Deal {
   quoteId?: string; // Optional field for quote-based deals
   createdAt: string; // Enhanced creation date tracking
   stageEnteredDate: string; // New field to track when deal entered current stage
+  manualStage?: string; // New field to track manual stage assignments
 }
 
 // JOBBER STAGE ID MAPPING - Centralized mapping of Jobber stage titles to their IDs
@@ -133,14 +134,24 @@ const findJobberStageByPriority = (request: any, newestQuote: any | null, stages
   return null;
 };
 
-// REWRITTEN: Enhanced mapping function with priority-based Jobber stage assignment and stage date reset
-const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[], currentDealStatus?: string): { 
+// REWRITTEN: Enhanced mapping function with manual stage override support
+const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[], currentDealStatus?: string, manualStage?: string): { 
   stage: string | null; 
   shouldResetStageDate: boolean;
 } => {
   console.log(`\n--- Assigning pipeline stage for request ${request.id} ---`);
   console.log(`Request status: ${request.status}, Newest quote: ${newestQuote?.id || 'none'}, Quote status: ${newestQuote?.status || 'N/A'}`);
-  console.log(`Current deal status: ${currentDealStatus || 'new'}`);
+  console.log(`Current deal status: ${currentDealStatus || 'new'}, Manual stage: ${manualStage || 'none'}`);
+  
+  // STEP 0: Check for manual stage override (only for custom stages)
+  if (manualStage && !isJobberStageId(manualStage)) {
+    console.log(`✅ Using manual stage override: ${manualStage}`);
+    const shouldReset = currentDealStatus && currentDealStatus !== manualStage;
+    return { 
+      stage: manualStage, 
+      shouldResetStageDate: shouldReset 
+    };
+  }
   
   // STEP 1: Check for priority-based Jobber stage matches first
   const jobberStageMatch = findJobberStageByPriority(request, newestQuote, stages);
@@ -209,13 +220,23 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   };
 };
 
-// REWRITTEN: Function to determine pipeline stage for standalone quotes with priority-based logic and stage date reset
-const assignQuotePipelineStage = (quote: any, stages: any[], currentDealStatus?: string): { 
+// REWRITTEN: Function to determine pipeline stage for standalone quotes with manual stage override support
+const assignQuotePipelineStage = (quote: any, stages: any[], currentDealStatus?: string, manualStage?: string): { 
   stage: string | null; 
   shouldResetStageDate: boolean;
 } => {
   console.log(`🔍 Assigning stage for standalone quote ${quote.id} with status: ${quote.status}, amount: ${quote.amount}, clientId: ${quote.clientId}`);
-  console.log(`Current deal status: ${currentDealStatus || 'new'}`);
+  console.log(`Current deal status: ${currentDealStatus || 'new'}, Manual stage: ${manualStage || 'none'}`);
+  
+  // STEP 0: Check for manual stage override (only for custom stages)
+  if (manualStage && !isJobberStageId(manualStage)) {
+    console.log(`✅ Using manual stage override for quote: ${manualStage}`);
+    const shouldReset = currentDealStatus && currentDealStatus !== manualStage;
+    return { 
+      stage: manualStage, 
+      shouldResetStageDate: shouldReset 
+    };
+  }
   
   // VALIDATION: Must have valid amount and clientId
   if (!quote.clientId) {
@@ -263,7 +284,7 @@ const assignQuotePipelineStage = (quote: any, stages: any[], currentDealStatus?:
   };
 };
 
-// Convert requests to deals for the pipeline (with updated date logic and stage date reset)
+// Convert requests to deals for the pipeline (with manual stage override support)
 const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = [], existingDeals: Deal[] = []): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
@@ -281,7 +302,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
     console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none');
     
-    // Find existing deal to check for stage changes
+    // Find existing deal to check for stage changes and manual overrides
     const existingDeal = existingDeals.find(d => d.id === request.id);
     
     // ENHANCED AUTO CLOSED-WON LOGIC: Exclude deals with approved/converted quotes
@@ -290,8 +311,8 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       return null; // This ensures the deal won't appear in the pipeline
     }
     
-    // Determine pipeline stage based on newest quote or request alone (ENHANCED WITH JOBBER MATCHING AND STAGE DATE RESET)
-    const stageResult = assignPipelineStage(request, newestQuote, stages, existingDeal?.status);
+    // Determine pipeline stage with manual stage override support
+    const stageResult = assignPipelineStage(request, newestQuote, stages, existingDeal?.status, existingDeal?.manualStage);
     
     // If pipeline stage is null (closed won or excluded), don't include in pipeline
     if (!stageResult.stage) {
@@ -335,7 +356,8 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       type: 'request' as const,
       quoteId: newestQuote?.id,
       createdAt,
-      stageEnteredDate
+      stageEnteredDate,
+      manualStage: existingDeal?.manualStage // Preserve manual stage override
     };
   }).filter(Boolean); // Remove null entries
   
@@ -343,7 +365,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
   return deals;
 };
 
-// ENHANCED: Convert ONLY standalone quotes (not linked to requests) to deals for the pipeline with updated date logic and stage date reset
+// ENHANCED: Convert ONLY standalone quotes (not linked to requests) to deals for the pipeline with manual stage override support
 const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = [], existingDeals: Deal[] = []): Deal[] => {
   console.log('🚀 ENHANCED: Creating deals from standalone quotes. Session quotes:', sessionQuotes.length);
   console.log('🚀 ENHANCED: Session clients available:', sessionClients.length);
@@ -421,14 +443,14 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
   console.log('✅ Standalone quotes for pipeline:', standaloneQuotes.length);
   standaloneQuotes.forEach(q => console.log(`  - Standalone quote: ${q.id} (${q.status}, $${q.amount}) for client: ${q.client.name}`));
   
-  // ENHANCED: Create deals with updated date logic and stage date reset
+  // ENHANCED: Create deals with manual stage override support
   const deals = standaloneQuotes.map((quote) => {
     console.log(`🔧 Creating deal for standalone quote ${quote.id}`);
     
-    // Find existing deal to check for stage changes
+    // Find existing deal to check for stage changes and manual overrides
     const existingDeal = existingDeals.find(d => d.id === `quote-${quote.id}`);
     
-    const stageResult = assignQuotePipelineStage(quote, stages, existingDeal?.status);
+    const stageResult = assignQuotePipelineStage(quote, stages, existingDeal?.status, existingDeal?.manualStage);
     
     // If pipelineStage is null, don't include this quote
     if (!stageResult.stage) {
@@ -471,7 +493,8 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
       type: 'quote' as const,
       quoteId: quote.id,
       createdAt,
-      stageEnteredDate
+      stageEnteredDate,
+      manualStage: existingDeal?.manualStage // Preserve manual stage override
     };
     
     console.log(`✅ Deal created for quote ${quote.id}:`, {
