@@ -98,35 +98,31 @@ const SalesPipeline = ({
 
     // Only regenerate deals if there are significant changes (new quotes/requests)
     const currentDealIds = new Set(deals.map(d => d.id));
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, deals);
     const newDealIds = new Set(newDeals.map(d => d.id));
 
     // Check if we have new deals that weren't in the current set
     const hasNewDeals = newDeals.some(deal => !currentDealIds.has(deal.id));
     const hasRemovedDeals = deals.some(deal => !newDealIds.has(deal.id));
-    if (hasNewDeals || hasRemovedDeals) {
-      console.log('📡 PIPELINE MONITOR: Detected new/removed deals, updating pipeline');
+    
+    // Also check for stage changes that would trigger stage date resets
+    const hasStageChanges = newDeals.some(newDeal => {
+      const existingDeal = deals.find(d => d.id === newDeal.id);
+      return existingDeal && existingDeal.status !== newDeal.status;
+    });
+    
+    if (hasNewDeals || hasRemovedDeals || hasStageChanges) {
+      console.log('📡 PIPELINE MONITOR: Detected changes requiring pipeline update');
       console.log('  - Has new deals:', hasNewDeals);
       console.log('  - Has removed deals:', hasRemovedDeals);
+      console.log('  - Has stage changes:', hasStageChanges);
 
-      // For automatic moves, reset stage entered date for deals that changed stages
-      const updatedDeals = newDeals.map(newDeal => {
-        const existingDeal = deals.find(d => d.id === newDeal.id);
-        if (existingDeal && existingDeal.status !== newDeal.status) {
-          console.log('📡 PIPELINE MONITOR: Auto-move detected, resetting stage date for deal:', newDeal.id);
-          return {
-            ...newDeal,
-            stageEnteredDate: new Date().toISOString()
-          };
-        }
-        return newDeal;
-      });
-      setDeals(updatedDeals);
+      setDeals(newDeals);
       if (onDealsChange) {
-        onDealsChange(updatedDeals);
+        onDealsChange(newDeals);
       }
     } else {
-      console.log('📡 PIPELINE MONITOR: No new deals detected, preserving current state');
+      console.log('📡 PIPELINE MONITOR: No significant changes detected, preserving current state');
     }
   }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, updateSessionClient, onDealsChange, deals]);
 

@@ -133,16 +133,25 @@ const findJobberStageByPriority = (request: any, newestQuote: any | null, stages
   return null;
 };
 
-// REWRITTEN: Enhanced mapping function with priority-based Jobber stage assignment
-const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
+// REWRITTEN: Enhanced mapping function with priority-based Jobber stage assignment and stage date reset
+const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[], currentDealStatus?: string): { 
+  stage: string | null; 
+  shouldResetStageDate: boolean;
+} => {
   console.log(`\n--- Assigning pipeline stage for request ${request.id} ---`);
   console.log(`Request status: ${request.status}, Newest quote: ${newestQuote?.id || 'none'}, Quote status: ${newestQuote?.status || 'N/A'}`);
+  console.log(`Current deal status: ${currentDealStatus || 'new'}`);
   
   // STEP 1: Check for priority-based Jobber stage matches first
   const jobberStageMatch = findJobberStageByPriority(request, newestQuote, stages);
   if (jobberStageMatch) {
     console.log(`✅ Request ${request.id} matched to Jobber stage: ${jobberStageMatch}`);
-    return jobberStageMatch;
+    const shouldReset = currentDealStatus && currentDealStatus !== jobberStageMatch;
+    console.log(`Stage change detected: ${shouldReset ? 'YES' : 'NO'} (${currentDealStatus} → ${jobberStageMatch})`);
+    return { 
+      stage: jobberStageMatch, 
+      shouldResetStageDate: shouldReset 
+    };
   }
   
   // STEP 2: If there's a newest quote, check for exclusions
@@ -152,31 +161,27 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     // AUTO CLOSED-WON: Approved and Converted quotes should NOT be in pipeline
     if (newestQuote.status === 'Approved' || newestQuote.status === 'Converted') {
       console.log(`Request ${request.id} EXCLUDED from pipeline - quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
-      return null;
+      return { stage: null, shouldResetStageDate: false };
     }
     
     // Archived quotes should also be excluded
     if (newestQuote.status === 'Archived') {
       console.log(`Request ${request.id} EXCLUDED from pipeline - quote ${newestQuote.id} is archived`);
-      return null;
+      return { stage: null, shouldResetStageDate: false };
     }
   }
   
   // STEP 3: Handle requests without quotes or non-Jobber stage quotes
+  let assignedStage: string;
+  
   if (request.status === 'Assessment complete') {
-    return 'contacted';
-  }
-  
-  if (request.status === 'Overdue') {
-    return 'followup';
-  }
-  
-  if (request.status === 'Unscheduled') {
-    return 'contacted';
-  }
-  
-  // STEP 4: Handle new requests and others
-  if (request.status === 'New') {
+    assignedStage = 'contacted';
+  } else if (request.status === 'Overdue') {
+    assignedStage = 'followup';
+  } else if (request.status === 'Unscheduled') {
+    assignedStage = 'contacted';
+  } else if (request.status === 'New') {
+    // STEP 4: Handle new requests and others
     const distributionMapping: Record<string, string> = {
       'request-1': 'new-deals',
       'request-2': 'new-deals', 
@@ -190,54 +195,76 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
       'request-12': 'followup'
     };
     
-    return distributionMapping[request.id] || 'new-deals';
+    assignedStage = distributionMapping[request.id] || 'new-deals';
+  } else {
+    console.log(`Request ${request.id} using default fallback: new-deals`);
+    assignedStage = 'new-deals';
   }
   
-  console.log(`Request ${request.id} using default fallback: new-deals`);
-  return 'new-deals';
+  const shouldReset = currentDealStatus && currentDealStatus !== assignedStage;
+  console.log(`Non-Jobber stage assigned: ${assignedStage}, Stage change: ${shouldReset ? 'YES' : 'NO'} (${currentDealStatus} → ${assignedStage})`);
+  return { 
+    stage: assignedStage, 
+    shouldResetStageDate: shouldReset 
+  };
 };
 
-// REWRITTEN: Function to determine pipeline stage for standalone quotes with priority-based logic
-const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
+// REWRITTEN: Function to determine pipeline stage for standalone quotes with priority-based logic and stage date reset
+const assignQuotePipelineStage = (quote: any, stages: any[], currentDealStatus?: string): { 
+  stage: string | null; 
+  shouldResetStageDate: boolean;
+} => {
   console.log(`🔍 Assigning stage for standalone quote ${quote.id} with status: ${quote.status}, amount: ${quote.amount}, clientId: ${quote.clientId}`);
+  console.log(`Current deal status: ${currentDealStatus || 'new'}`);
   
   // VALIDATION: Must have valid amount and clientId
   if (!quote.clientId) {
     console.log(`❌ Standalone quote ${quote.id} EXCLUDED - missing clientId`);
-    return null;
+    return { stage: null, shouldResetStageDate: false };
   }
   
   if (typeof quote.amount !== 'number' || quote.amount <= 0) {
     console.log(`❌ Standalone quote ${quote.id} EXCLUDED - invalid amount: ${quote.amount}`);
-    return null;
+    return { stage: null, shouldResetStageDate: false };
   }
   
   // Check for priority-based Jobber stage matches
   const jobberStageMatch = findJobberStageByPriority(null, quote, stages);
   if (jobberStageMatch) {
     console.log(`✅ Standalone quote ${quote.id} matched to Jobber stage: ${jobberStageMatch}`);
-    return jobberStageMatch;
+    const shouldReset = currentDealStatus && currentDealStatus !== jobberStageMatch;
+    console.log(`Stage change detected: ${shouldReset ? 'YES' : 'NO'} (${currentDealStatus} → ${jobberStageMatch})`);
+    return { 
+      stage: jobberStageMatch, 
+      shouldResetStageDate: shouldReset 
+    };
   }
   
   // AUTO CLOSED-WON: Approved and Converted quotes shouldn't be in pipeline
   if (quote.status === 'Approved' || quote.status === 'Converted') {
     console.log(`❌ Standalone quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status} (AUTO CLOSED-WON)`);
-    return null;
+    return { stage: null, shouldResetStageDate: false };
   }
   
   // Archived quotes should also be excluded
   if (quote.status === 'Archived') {
     console.log(`❌ Standalone quote ${quote.id} EXCLUDED from pipeline - status is archived`);
-    return null;
+    return { stage: null, shouldResetStageDate: false };
   }
   
-  // Fallback to "draft-quote" for other valid statuses if no Jobber stage matched
+  // Fallback to "jobber-draft-quote" for other valid statuses if no Jobber stage matched
+  const fallbackStage = JOBBER_STAGE_IDS['Draft Quote'];
   console.log(`✅ Standalone quote ${quote.id} using fallback draft-quote stage for status: ${quote.status}`);
-  return 'draft-quote';
+  const shouldReset = currentDealStatus && currentDealStatus !== fallbackStage;
+  console.log(`Fallback stage assigned: ${fallbackStage}, Stage change: ${shouldReset ? 'YES' : 'NO'} (${currentDealStatus} → ${fallbackStage})`);
+  return { 
+    stage: fallbackStage, 
+    shouldResetStageDate: shouldReset 
+  };
 };
 
-// Convert requests to deals for the pipeline (with updated date logic)
-const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
+// Convert requests to deals for the pipeline (with updated date logic and stage date reset)
+const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = [], existingDeals: Deal[] = []): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
   console.log('Requests with client info:', requestsWithClients.length);
@@ -254,17 +281,20 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
     console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none');
     
+    // Find existing deal to check for stage changes
+    const existingDeal = existingDeals.find(d => d.id === request.id);
+    
     // ENHANCED AUTO CLOSED-WON LOGIC: Exclude deals with approved/converted quotes
     if (newestQuote && (newestQuote.status === 'Approved' || newestQuote.status === 'Converted')) {
       console.log(`Request ${request.id} EXCLUDED from pipeline - newest quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
       return null; // This ensures the deal won't appear in the pipeline
     }
     
-    // Determine pipeline stage based on newest quote or request alone (ENHANCED WITH JOBBER MATCHING)
-    const pipelineStage = assignPipelineStage(request, newestQuote, stages);
+    // Determine pipeline stage based on newest quote or request alone (ENHANCED WITH JOBBER MATCHING AND STAGE DATE RESET)
+    const stageResult = assignPipelineStage(request, newestQuote, stages, existingDeal?.status);
     
     // If pipeline stage is null (closed won or excluded), don't include in pipeline
-    if (!pipelineStage) {
+    if (!stageResult.stage) {
       console.log(`Request ${request.id} EXCLUDED from pipeline - no valid stage`);
       return null;
     }
@@ -272,10 +302,26 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
     // FIXED: Only include amount if there's a quote with valid numeric amount
     const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
     
-    // Generate realistic dates based on pipeline stage
-    const isNewDeal = pipelineStage === 'new-deals';
-    const createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
-    const stageEnteredDate = generateStageEnteredDate(createdAt);
+    // Generate realistic dates based on pipeline stage, or preserve existing dates
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    if (existingDeal) {
+      // Preserve existing creation date
+      createdAt = existingDeal.createdAt;
+      // Reset stage entered date only if stage changed
+      if (stageResult.shouldResetStageDate) {
+        stageEnteredDate = new Date().toISOString();
+        console.log(`🔄 STAGE DATE RESET: Request ${request.id} moved from ${existingDeal.status} to ${stageResult.stage}, resetting stage date`);
+      } else {
+        stageEnteredDate = existingDeal.stageEnteredDate;
+      }
+    } else {
+      // New deal - generate realistic dates
+      const isNewDeal = stageResult.stage === 'new-deals';
+      createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt);
+    }
     
     return {
       id: request.id,
@@ -285,7 +331,7 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
       contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
       requested: request.requestDate,
       amount: amount, // Only present if there's a valid quote amount
-      status: pipelineStage,
+      status: stageResult.stage,
       type: 'request' as const,
       quoteId: newestQuote?.id,
       createdAt,
@@ -297,8 +343,8 @@ const createDealsFromRequests = (sessionClients: any[] = [], sessionRequests: an
   return deals;
 };
 
-// ENHANCED: Convert ONLY standalone quotes (not linked to requests) to deals for the pipeline with updated date logic
-const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
+// ENHANCED: Convert ONLY standalone quotes (not linked to requests) to deals for the pipeline with updated date logic and stage date reset
+const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuotes: any[] = [], stages: any[] = [], existingDeals: Deal[] = []): Deal[] => {
   console.log('🚀 ENHANCED: Creating deals from standalone quotes. Session quotes:', sessionQuotes.length);
   console.log('🚀 ENHANCED: Session clients available:', sessionClients.length);
   
@@ -375,23 +421,42 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
   console.log('✅ Standalone quotes for pipeline:', standaloneQuotes.length);
   standaloneQuotes.forEach(q => console.log(`  - Standalone quote: ${q.id} (${q.status}, $${q.amount}) for client: ${q.client.name}`));
   
-  // ENHANCED: Create deals with updated date logic
+  // ENHANCED: Create deals with updated date logic and stage date reset
   const deals = standaloneQuotes.map((quote) => {
     console.log(`🔧 Creating deal for standalone quote ${quote.id}`);
     
-    const pipelineStage = assignQuotePipelineStage(quote, stages);
+    // Find existing deal to check for stage changes
+    const existingDeal = existingDeals.find(d => d.id === `quote-${quote.id}`);
+    
+    const stageResult = assignQuotePipelineStage(quote, stages, existingDeal?.status);
     
     // If pipelineStage is null, don't include this quote
-    if (!pipelineStage) {
+    if (!stageResult.stage) {
       console.log(`❌ Standalone quote ${quote.id} EXCLUDED from pipeline - no valid stage assigned`);
       return null;
     }
     
-    console.log(`✅ Creating deal for standalone quote ${quote.id} in stage ${pipelineStage}`);
+    console.log(`✅ Creating deal for standalone quote ${quote.id} in stage ${stageResult.stage}`);
     
-    // Generate realistic dates - standalone quotes are typically older (not new deals)
-    const createdAt = generateOtherDealDate();
-    const stageEnteredDate = generateStageEnteredDate(createdAt);
+    // Generate realistic dates or preserve existing ones, reset stage date if stage changed
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    if (existingDeal) {
+      // Preserve existing creation date
+      createdAt = existingDeal.createdAt;
+      // Reset stage entered date only if stage changed
+      if (stageResult.shouldResetStageDate) {
+        stageEnteredDate = new Date().toISOString();
+        console.log(`🔄 STAGE DATE RESET: Quote ${quote.id} moved from ${existingDeal.status} to ${stageResult.stage}, resetting stage date`);
+      } else {
+        stageEnteredDate = existingDeal.stageEnteredDate;
+      }
+    } else {
+      // New deal - standalone quotes are typically older (not new deals)
+      createdAt = generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt);
+    }
     
     // Enhanced validation for deal creation
     const dealData = {
@@ -402,7 +467,7 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
       contact: [quote.client.phone, quote.client.email].filter(Boolean).join('\n') || 'No contact info',
       requested: quote.createdDate || new Date().toISOString(),
       amount: quote.amount, // Always present for quotes and validated above
-      status: pipelineStage,
+      status: stageResult.stage,
       type: 'quote' as const,
       quoteId: quote.id,
       createdAt,
@@ -425,9 +490,10 @@ const createDealsFromStandaloneQuotes = (sessionClients: any[] = [], sessionQuot
   return deals;
 };
 
-export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = []): Deal[] => {
-  console.log('\n=== 🚀 ENHANCED PIPELINE DATA CREATION (WITH IMPROVED QUOTE HANDLING) ===');
+export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: any[] = [], sessionQuotes: any[] = [], stages: any[] = [], existingDeals: Deal[] = []): Deal[] => {
+  console.log('\n=== 🚀 ENHANCED PIPELINE DATA CREATION (WITH IMPROVED QUOTE HANDLING AND STAGE DATE RESET) ===');
   console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
+  console.log('Existing deals:', existingDeals.length);
   console.log('Available stages:', stages.map(s => ({ id: s.id, title: s.title, isJobberStage: s.isJobberStage, order: s.order })));
   
   // Enhanced error handling for missing data
@@ -441,11 +507,11 @@ export const createInitialDeals = (sessionClients: any[] = [], sessionRequests: 
     return [];
   }
   
-  // Create deals from open requests (using newest quote logic with JOBBER STAGE MATCHING)
-  const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
+  // Create deals from open requests (using newest quote logic with JOBBER STAGE MATCHING AND STAGE DATE RESET)
+  const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages, existingDeals);
   
-  // Create deals from standalone quotes only (with ENHANCED VALIDATION AND ERROR HANDLING)
-  const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
+  // Create deals from standalone quotes only (with ENHANCED VALIDATION, ERROR HANDLING, AND STAGE DATE RESET)
+  const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages, existingDeals);
   
   const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
   console.log('✅ Total pipeline deals created:', totalDeals.length);
