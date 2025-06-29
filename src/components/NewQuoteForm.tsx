@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -171,13 +170,10 @@ const NewQuoteForm = () => {
           <Label htmlFor="jobTitle" className="text-base font-medium">Job title</Label>
           <Input
             id="jobTitle"
-            {...register("jobTitle", { required: "Job title is required" })}
+            {...register("jobTitle")}
             placeholder="Enter job title"
             className="text-base"
           />
-          {errors.jobTitle && (
-            <p className="text-sm text-red-600">{errors.jobTitle.message}</p>
-          )}
         </div>
 
         {/* Quote Number Section */}
