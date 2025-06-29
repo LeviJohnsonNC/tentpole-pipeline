@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -62,6 +63,9 @@ const SalesPipeline = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
+  // NEW: Track user modifications to prevent overwriting manual moves
+  const [userModifications, setUserModifications] = useState<Map<string, { status: string; timestamp: number }>>(new Map());
+
   // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
   const {
@@ -80,7 +84,7 @@ const SalesPipeline = ({
   useEffect(() => {
     if (!isInitialized && sessionClients.length > 0 && stages.length > 0) {
       console.log('🚀 PIPELINE INIT: Initializing deals for the first time');
-      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, [], userModifications);
       console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'initial deals');
       setDeals(initialDeals);
       setIsInitialized(true);
@@ -88,9 +92,9 @@ const SalesPipeline = ({
         onDealsChange(initialDeals);
       }
     }
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange, userModifications]);
 
-  // Handle new quotes being created or status changes that require deal updates
+  // UPDATED: Modified monitoring effect to preserve user modifications
   useEffect(() => {
     if (!isInitialized || isDragging) {
       console.log('📡 PIPELINE MONITOR: Skipping update - initialized:', isInitialized, 'isDragging:', isDragging);
@@ -114,22 +118,24 @@ const SalesPipeline = ({
       });
     }
 
-    // Only regenerate deals if there are significant changes (new quotes/requests)
+    // Generate new deals with user modifications
     const currentDealIds = new Set(deals.map(d => d.id));
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, deals);
+    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, deals, userModifications);
     const newDealIds = new Set(newDeals.map(d => d.id));
 
-    // Check if we have new deals that weren't in the current set
+    // Check if we have genuinely new deals or removed deals
     const hasNewDeals = newDeals.some(deal => !currentDealIds.has(deal.id));
     const hasRemovedDeals = deals.some(deal => !newDealIds.has(deal.id));
     
-    // Only check for meaningful stage changes, not temporary drag-related ones
+    // Only check for meaningful stage changes that aren't user modifications
     const hasStageChanges = newDeals.some(newDeal => {
       const existingDeal = deals.find(d => d.id === newDeal.id);
       if (!existingDeal) return false;
       
-      // Skip if this is a drag-related change (status is different but we're dragging)
-      if (existingDeal.status !== newDeal.status && activeId === newDeal.id) {
+      // Skip if this deal has been manually modified by user recently (within 5 seconds)
+      const userMod = userModifications.get(newDeal.id);
+      if (userMod && (Date.now() - userMod.timestamp) < 5000) {
+        console.log('📡 PIPELINE MONITOR: Skipping stage change for user-modified deal:', newDeal.id);
         return false;
       }
       
@@ -149,7 +155,7 @@ const SalesPipeline = ({
     } else {
       console.log('📡 PIPELINE MONITOR: No significant changes detected, preserving current state');
     }
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, updateSessionClient, onDealsChange, deals, isDragging, activeId]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, updateSessionClient, onDealsChange, deals, isDragging, activeId, userModifications]);
 
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
@@ -275,7 +281,7 @@ const SalesPipeline = ({
     // Don't move to action zones during drag over
     if (overContainer.startsWith('action-')) return;
 
-    // UPDATED: Use new validation function
+    // Use validation function
     const validation = validateDragOperation(activeId, activeContainer, overContainer);
     if (!validation.allowed) {
       console.log('🔄 DRAG OVER: Validation failed:', validation.message);
@@ -289,7 +295,6 @@ const SalesPipeline = ({
         return prevDeals.map(deal => {
           if (deal.id === activeId) {
             console.log('🔄 DRAG OVER: Updated deal', deal.id, 'status to', overContainer);
-            // Reset stage entered date when moving to new container
             return {
               ...deal,
               status: overContainer,
@@ -351,7 +356,7 @@ const SalesPipeline = ({
       return;
     }
 
-    // UPDATED: Final validation with complete blocking
+    // Final validation
     const validation = validateDragOperation(activeId, activeContainer, overContainer);
     if (!validation.allowed) {
       console.log('🏁 DRAG END: Final validation failed:', validation.message);
@@ -392,7 +397,6 @@ const SalesPipeline = ({
         const reorderedDeals = arrayMove(containerDeals, activeIndex, overIndex);
         const updatedDeals = [...otherDeals, ...reorderedDeals];
         
-        // Update parent component immediately
         if (onDealsChange) {
           onDealsChange(updatedDeals);
         }
@@ -400,8 +404,19 @@ const SalesPipeline = ({
         return updatedDeals;
       });
     } else {
-      // Moving between containers - set manual stage for custom stages
-      console.log('🏁 DRAG END: Moving between containers - finalizing');
+      // Moving between containers - UPDATED: Record user modification
+      console.log('🏁 DRAG END: Moving between containers - recording user modification');
+      
+      // Record this as a user modification to prevent monitoring effect from overriding
+      setUserModifications(prev => {
+        const newMods = new Map(prev);
+        newMods.set(activeId, {
+          status: overContainer,
+          timestamp: Date.now()
+        });
+        return newMods;
+      });
+
       setDeals(prevDeals => {
         const updatedDeals = prevDeals.map(deal => {
           if (deal.id === activeId) {
@@ -410,13 +425,12 @@ const SalesPipeline = ({
               ...deal,
               status: overContainer,
               stageEnteredDate: new Date().toISOString(),
-              manualStage: isJobberStageId(overContainer) ? undefined : overContainer // Only set manual stage for custom stages
+              manualStage: isJobberStageId(overContainer) ? undefined : overContainer
             };
           }
           return deal;
         });
         
-        // Update parent component immediately
         if (onDealsChange) {
           onDealsChange(updatedDeals);
         }
@@ -424,8 +438,7 @@ const SalesPipeline = ({
         return updatedDeals;
       });
 
-      // REMOVED: persistDealStatusChange call - no longer needed for custom stages
-      console.log('🏁 DRAG END: Custom stage move completed, no persistence needed');
+      console.log('🏁 DRAG END: Custom stage move completed with user modification tracking');
     }
   };
   
