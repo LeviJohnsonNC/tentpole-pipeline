@@ -5,30 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useRequestStore } from "@/store/requestStore";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 import ClientSelectionModal from "./ClientSelectionModal";
 import StarRating from "./StarRating";
+import QuoteNumberSection from "./QuoteNumberSection";
+import SalespersonSelector from "./SalespersonSelector";
 import { Quote } from "@/types/Quote";
 import { getAllClients, getRequestById } from "@/utils/dataHelpers";
 import { useClientStore } from "@/store/clientStore";
 
 interface QuoteFormData {
-  title: string;
+  jobTitle: string;
   clientId: string;
   property: string;
   notes: string;
   rating: number;
-  division: string;
   amount: number;
+  salesperson: string;
 }
 
 const NewQuoteForm = () => {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [quoteNumber, setQuoteNumber] = useState(`Q-${Date.now()}`);
   const { addSessionQuote } = useQuoteStore();
   const { sessionClients } = useClientStore();
   const { sessionRequests } = useRequestStore();
@@ -117,15 +120,15 @@ const NewQuoteForm = () => {
       id: crypto.randomUUID(),
       clientId: selectedClientId,
       requestId: requestId || undefined, // Link to request if created from request
-      quoteNumber: `Q-${Date.now()}`,
-      title: data.title,
+      quoteNumber: quoteNumber,
+      jobTitle: data.jobTitle,
       property: data.property,
       status: 'Draft',
       amount: data.amount,
       createdDate: new Date().toISOString(),
       notes: data.notes,
       rating: data.rating,
-      division: data.division,
+      salesperson: data.salesperson,
     };
 
     addSessionQuote(newQuote);
@@ -141,102 +144,125 @@ const NewQuoteForm = () => {
     setIsClientModalOpen(false);
   };
 
+  const handleClientHeaderClick = () => {
+    setIsClientModalOpen(true);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <Card>
-        <CardContent className="p-6 space-y-6">
-          {/* Quote Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Quote title</Label>
-            <Input
-              id="title"
-              {...register("title", { required: "Quote title is required" })}
-              placeholder="Enter quote title"
-            />
-            {errors.title && (
-              <p className="text-sm text-red-600">{errors.title.message}</p>
-            )}
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+      {/* Client Header Section */}
+      <div className="space-y-6">
+        <div
+          className="flex items-center space-x-4 cursor-pointer group"
+          onClick={handleClientHeaderClick}
+        >
+          <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center group-hover:bg-green-700 transition-colors">
+            <Plus className="h-6 w-6 text-white" />
           </div>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Quote for {selectedClient ? selectedClient.name : "Select Client"}
+            </h1>
+          </div>
+        </div>
 
-          {/* Client Selection */}
-          <div className="space-y-2">
-            <Label>Client</Label>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-start h-auto p-4 text-left"
-              onClick={() => setIsClientModalOpen(true)}
-            >
-              {selectedClient ? (
-                <span className="text-gray-900">{selectedClient.name}</span>
-              ) : (
-                <span className="text-gray-500">Select a client</span>
-              )}
-            </Button>
-          </div>
+        {/* Job Title */}
+        <div className="space-y-2">
+          <Label htmlFor="jobTitle" className="text-base font-medium">Job title</Label>
+          <Input
+            id="jobTitle"
+            {...register("jobTitle", { required: "Job title is required" })}
+            placeholder="Enter job title"
+            className="text-base"
+          />
+          {errors.jobTitle && (
+            <p className="text-sm text-red-600">{errors.jobTitle.message}</p>
+          )}
+        </div>
 
-          {/* Property */}
-          <div className="space-y-2">
-            <Label htmlFor="property">Property</Label>
-            <Input
-              id="property"
-              {...register("property", { required: "Property is required" })}
-              placeholder="Enter property address"
-            />
-            {errors.property && (
-              <p className="text-sm text-red-600">{errors.property.message}</p>
-            )}
-          </div>
+        {/* Quote Number Section */}
+        <QuoteNumberSection
+          quoteNumber={quoteNumber}
+          onQuoteNumberChange={setQuoteNumber}
+        />
+      </div>
 
-          {/* Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              {...register("amount", { required: "Amount is required" })}
-              placeholder="0.00"
-            />
-            {errors.amount && (
-              <p className="text-sm text-red-600">{errors.amount.message}</p>
-            )}
-          </div>
+      {/* Form Fields */}
+      <div className="space-y-6">
+        {/* Rate Opportunity */}
+        <div className="space-y-2">
+          <Label className="text-base font-medium">Rate opportunity</Label>
+          <StarRating
+            rating={watchedRating}
+            onChange={(rating) => setValue("rating", rating)}
+          />
+        </div>
 
-          {/* Rating */}
-          <div className="space-y-2">
-            <Label>Rating</Label>
-            <StarRating
-              rating={watchedRating}
-              onChange={(rating) => setValue("rating", rating)}
-            />
-          </div>
+        {/* Salesperson */}
+        <div className="space-y-2">
+          <Label className="text-base font-medium">Salesperson</Label>
+          <SalespersonSelector
+            value={watch("salesperson")}
+            onValueChange={(salesperson) => setValue("salesperson", salesperson)}
+          />
+        </div>
 
-          {/* Division */}
-          <div className="space-y-2">
-            <Label htmlFor="division">Division</Label>
-            <Input
-              id="division"
-              {...register("division")}
-              placeholder="Enter division"
-            />
-          </div>
+        {/* Add Custom Field Button */}
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-start"
+          disabled
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add custom field
+        </Button>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              {...register("notes")}
-              placeholder="Add any additional notes..."
-              rows={4}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        {/* Property */}
+        <div className="space-y-2">
+          <Label htmlFor="property" className="text-base font-medium">Property</Label>
+          <Input
+            id="property"
+            {...register("property", { required: "Property is required" })}
+            placeholder="Enter property address"
+            className="text-base"
+          />
+          {errors.property && (
+            <p className="text-sm text-red-600">{errors.property.message}</p>
+          )}
+        </div>
+
+        {/* Amount */}
+        <div className="space-y-2">
+          <Label htmlFor="amount" className="text-base font-medium">Amount</Label>
+          <Input
+            id="amount"
+            type="number"
+            step="0.01"
+            {...register("amount", { required: "Amount is required" })}
+            placeholder="0.00"
+            className="text-base"
+          />
+          {errors.amount && (
+            <p className="text-sm text-red-600">{errors.amount.message}</p>
+          )}
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-2">
+          <Label htmlFor="notes" className="text-base font-medium">Notes</Label>
+          <Textarea
+            id="notes"
+            {...register("notes")}
+            placeholder="Add any additional notes..."
+            rows={4}
+            className="text-base"
+          />
+        </div>
+      </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-end space-x-3">
+      <div className="flex justify-end space-x-3 pt-6">
         <Button
           type="button"
           variant="outline"
