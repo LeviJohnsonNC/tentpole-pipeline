@@ -38,10 +38,12 @@ export const useRequestStore = create<RequestStore>((set, get) => ({
     });
   },
   
-  addSessionRequest: (request) =>
+  addSessionRequest: (request) => {
+    console.log('📝 REQUEST STORE: Adding new request:', request.id, 'status:', request.status);
     set((state) => ({
       sessionRequests: [...state.sessionRequests, request],
-    })),
+    }));
+  },
     
   removeSessionRequest: (id) =>
     set((state) => ({

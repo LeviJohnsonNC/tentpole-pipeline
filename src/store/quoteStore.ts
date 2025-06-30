@@ -67,20 +67,21 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
       sessionQuotes: state.sessionQuotes.filter((q) => q.id !== id),
     })),
   
-  updateSessionQuote: (id, updates) =>
+  updateSessionQuote: (id, updates) => {
+    console.log('🎯 QUOTE STORE: Updating quote:', id, 'with updates:', updates);
     set((state) => {
-      console.log('Updating quote:', id, 'with updates:', updates);
       const updatedQuotes = state.sessionQuotes.map((q) =>
         q.id === id ? { ...q, ...updates } : q
       );
-      console.log('Updated quote in store:', updatedQuotes.find(q => q.id === id));
+      console.log('🎯 QUOTE STORE: Updated quote in store:', updatedQuotes.find(q => q.id === id));
       return {
         sessionQuotes: updatedQuotes
       };
-    }),
+    });
+  },
     
   updateQuoteStatus: (id, status) => {
-    console.log('Updating quote status:', id, 'to:', status);
+    console.log('🎯 QUOTE STORE: Updating quote status:', id, 'to:', status);
     const { updateSessionQuote } = get();
     const updates: Partial<Quote> = { status };
     
