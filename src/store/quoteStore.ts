@@ -41,15 +41,43 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
   
   addSessionQuote: (quote) => {
     console.log('🎯 QUOTE STORE: Adding new quote:', quote.id, quote.title, 'status:', quote.status, 'amount:', quote.amount);
-    console.log('🎯 QUOTE STORE: Quote details:', { clientId: quote.clientId, amount: quote.amount, property: quote.property });
+    console.log('🎯 QUOTE STORE: Quote details:', { 
+      clientId: quote.clientId, 
+      requestId: quote.requestId || 'NONE (standalone)',
+      amount: quote.amount, 
+      property: quote.property,
+      status: quote.status,
+      createdDate: quote.createdDate
+    });
+    
+    // ENHANCED: Ensure standalone quotes have "Draft" status if not specified
+    const enhancedQuote = {
+      ...quote,
+      status: quote.status || 'Draft' as Quote['status'], // Default to Draft for new quotes
+      createdDate: quote.createdDate || new Date().toISOString() // Ensure createdDate exists
+    };
+    
+    console.log('🎯 QUOTE STORE: Enhanced quote before adding:', {
+      id: enhancedQuote.id,
+      status: enhancedQuote.status,
+      amount: enhancedQuote.amount,
+      createdDate: enhancedQuote.createdDate,
+      isStandalone: !enhancedQuote.requestId
+    });
     
     set((state) => {
       const newState = {
-        sessionQuotes: [...state.sessionQuotes, quote],
+        sessionQuotes: [...state.sessionQuotes, enhancedQuote],
       };
       
       console.log('🎯 QUOTE STORE: New state will have', newState.sessionQuotes.length, 'quotes');
-      console.log('🎯 QUOTE STORE: Latest quotes:', newState.sessionQuotes.slice(-3).map(q => ({ id: q.id, status: q.status, clientId: q.clientId, amount: q.amount })));
+      console.log('🎯 QUOTE STORE: Latest quotes:', newState.sessionQuotes.slice(-3).map(q => ({ 
+        id: q.id, 
+        status: q.status, 
+        clientId: q.clientId, 
+        amount: q.amount,
+        isStandalone: !q.requestId
+      })));
       
       return newState;
     });
@@ -58,7 +86,17 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
     setTimeout(() => {
       const currentState = get();
       console.log('🎯 QUOTE STORE VERIFICATION: Current quotes after add:', currentState.sessionQuotes.length);
-      console.log('🎯 QUOTE STORE VERIFICATION: Added quote exists:', !!currentState.sessionQuotes.find(q => q.id === quote.id));
+      const addedQuote = currentState.sessionQuotes.find(q => q.id === enhancedQuote.id);
+      console.log('🎯 QUOTE STORE VERIFICATION: Added quote exists:', !!addedQuote);
+      if (addedQuote) {
+        console.log('🎯 QUOTE STORE VERIFICATION: Added quote details:', {
+          id: addedQuote.id,
+          status: addedQuote.status,
+          amount: addedQuote.amount,
+          isStandalone: !addedQuote.requestId,
+          createdDate: addedQuote.createdDate
+        });
+      }
     }, 100);
   },
   
