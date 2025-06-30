@@ -75,7 +75,7 @@ const SalesPipeline = ({
     padding: 32
   });
 
-  // SIMPLIFIED: Initialize deals only once when component mounts
+  // Initialize deals only once when component mounts
   useEffect(() => {
     if (!isInitialized && sessionClients.length > 0 && stages.length > 0) {
       console.log('🚀 PIPELINE INIT: Initializing deals for the first time');
@@ -89,7 +89,7 @@ const SalesPipeline = ({
     }
   }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange]);
 
-  // SIMPLIFIED: Only regenerate deals when new data is added/removed (not for updates)
+  // Only regenerate deals when new data is added/removed (not for updates)
   useEffect(() => {
     if (!isInitialized) return;
     
@@ -106,16 +106,28 @@ const SalesPipeline = ({
       console.log('  - Has new deals:', hasNewDeals);
       console.log('  - Has removed deals:', hasRemovedDeals);
       
-      // Preserve manual positions for existing deals
+      // Preserve manual positions for existing deals but update amounts and stage dates for changed deals
       const updatedDeals = newDeals.map(newDeal => {
         const existingDeal = deals.find(d => d.id === newDeal.id);
-        if (existingDeal && !isJobberStageId(existingDeal.status)) {
-          // Keep manual position for custom columns
-          return {
-            ...newDeal,
-            status: existingDeal.status,
-            stageEnteredDate: existingDeal.stageEnteredDate
-          };
+        if (existingDeal) {
+          // Check if the deal should be in a different stage due to data changes
+          if (isJobberStageId(newDeal.status) && existingDeal.status !== newDeal.status) {
+            // Automatic stage change - reset stage entered date and update amount
+            console.log(`🔄 PIPELINE: Auto-moving deal ${newDeal.id} from ${existingDeal.status} to ${newDeal.status}`);
+            return {
+              ...newDeal,
+              stageEnteredDate: new Date().toISOString() // Reset stage entered date
+            };
+          } else if (!isJobberStageId(existingDeal.status)) {
+            // Keep manual position for custom columns but update amount if changed
+            return {
+              ...newDeal,
+              status: existingDeal.status,
+              stageEnteredDate: existingDeal.stageEnteredDate,
+              // Update amount if it changed (e.g., new quote created)
+              amount: newDeal.amount !== existingDeal.amount ? newDeal.amount : existingDeal.amount
+            };
+          }
         }
         return newDeal;
       });
@@ -267,7 +279,7 @@ const SalesPipeline = ({
             return {
               ...deal,
               status: overContainer,
-              stageEnteredDate: new Date().toISOString()
+              stageEnteredDate: new Date().toISOString() // Reset stage entered date on manual move
             };
           }
           return deal;
@@ -382,7 +394,7 @@ const SalesPipeline = ({
             return {
               ...deal,
               status: overContainer,
-              stageEnteredDate: new Date().toISOString()
+              stageEnteredDate: new Date().toISOString() // Reset stage entered date on manual move
             };
           }
           return deal;

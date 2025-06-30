@@ -40,7 +40,7 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
   },
   
   addSessionQuote: (quote) => {
-    console.log('🎯 QUOTE STORE: Adding new quote:', quote.id, quote.title, 'status:', quote.status);
+    console.log('🎯 QUOTE STORE: Adding new quote:', quote.id, quote.title, 'status:', quote.status, 'amount:', quote.amount);
     console.log('🎯 QUOTE STORE: Quote details:', { clientId: quote.clientId, amount: quote.amount, property: quote.property });
     
     set((state) => {
@@ -49,7 +49,7 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
       };
       
       console.log('🎯 QUOTE STORE: New state will have', newState.sessionQuotes.length, 'quotes');
-      console.log('🎯 QUOTE STORE: Latest quotes:', newState.sessionQuotes.slice(-3).map(q => ({ id: q.id, status: q.status, clientId: q.clientId })));
+      console.log('🎯 QUOTE STORE: Latest quotes:', newState.sessionQuotes.slice(-3).map(q => ({ id: q.id, status: q.status, clientId: q.clientId, amount: q.amount })));
       
       return newState;
     });
