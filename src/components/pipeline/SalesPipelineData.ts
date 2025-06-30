@@ -1,4 +1,3 @@
-
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -56,6 +55,13 @@ const generateStageEnteredDate = (createdAt: string): string => {
   const stageTime = Math.random() * (timeDiff * 0.7); // Use 70% of time range for more realistic staging
   const stageDate = new Date(createdDate.getTime() + stageTime);
   return stageDate.toISOString();
+};
+
+// NEW: Helper to determine if a quote was just created (within last 5 minutes)
+const isRecentlyCreatedQuote = (quoteCreatedDate: string): boolean => {
+  const createdTime = new Date(quoteCreatedDate).getTime();
+  const fiveMinutesAgo = new Date().getTime() - (5 * 60 * 1000);
+  return createdTime > fiveMinutesAgo;
 };
 
 // Helper function to find the newest quote for a request
@@ -253,7 +259,7 @@ const createDealsFromRequests = (
   const deals = openRequests.map((request) => {
     // Find the newest quote for this request
     const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
-    console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none');
+    console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none', 'amount:', newestQuote?.amount);
     
     // ENHANCED AUTO CLOSED-WON LOGIC: Exclude deals with approved/converted quotes
     if (newestQuote && (newestQuote.status === 'Approved' || newestQuote.status === 'Converted')) {
@@ -272,11 +278,23 @@ const createDealsFromRequests = (
     
     // FIXED: Only include amount if there's a quote with valid numeric amount
     const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
+    console.log(`Request ${request.id} final amount:`, amount);
     
-    // Generate realistic dates based on pipeline stage
+    // FIXED: Generate realistic dates based on pipeline stage, but use current time for recent quotes
     const isNewDeal = pipelineStage === 'new-deals';
-    const createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
-    const stageEnteredDate = generateStageEnteredDate(createdAt);
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    // If there's a recent quote that moved this to a Jobber stage, use current time
+    if (newestQuote && isJobberStageId(pipelineStage) && isRecentlyCreatedQuote(newestQuote.createdDate)) {
+      console.log(`🕐 Request ${request.id} using current timestamp due to recent quote ${newestQuote.id}`);
+      createdAt = newestQuote.createdDate;
+      stageEnteredDate = new Date().toISOString(); // Current time for stage entry
+    } else {
+      // Use existing logic for older deals
+      createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt);
+    }
     
     return {
       id: request.id,
@@ -382,7 +400,7 @@ const createDealsFromStandaloneQuotes = (
   
   // Create deals
   const deals = standaloneQuotes.map((quote) => {
-    console.log(`🔧 Creating deal for standalone quote ${quote.id}`);
+    console.log(`🔧 Creating deal for standalone quote ${quote.id} with amount ${quote.amount}`);
     
     const pipelineStage = assignQuotePipelineStage(quote, stages);
     
@@ -392,11 +410,21 @@ const createDealsFromStandaloneQuotes = (
       return null;
     }
     
-    console.log(`✅ Creating deal for standalone quote ${quote.id} in stage ${pipelineStage}`);
+    console.log(`✅ Creating deal for standalone quote ${quote.id} in stage ${pipelineStage} with amount ${quote.amount}`);
     
-    // Generate realistic dates - standalone quotes are typically older (not new deals)
-    const createdAt = generateOtherDealDate();
-    const stageEnteredDate = generateStageEnteredDate(createdAt);
+    // FIXED: Generate realistic dates, but use current time for recently created quotes
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    if (isRecentlyCreatedQuote(quote.createdDate)) {
+      console.log(`🕐 Standalone quote ${quote.id} using current timestamp due to recent creation`);
+      createdAt = quote.createdDate;
+      stageEnteredDate = new Date().toISOString(); // Current time for stage entry
+    } else {
+      // Use existing logic for older quotes
+      createdAt = generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt);
+    }
     
     // Enhanced validation for deal creation
     const dealData = {
@@ -419,14 +447,15 @@ const createDealsFromStandaloneQuotes = (
       client: dealData.client,
       status: dealData.status,
       amount: dealData.amount,
-      title: dealData.title
+      title: dealData.title,
+      stageEnteredDate: dealData.stageEnteredDate
     });
     
     return dealData;
   }).filter(Boolean); // Remove null entries
   
   console.log('✅ Final deals from standalone quotes:', deals.length);
-  deals.forEach(d => console.log(`  - Deal created: ${d.id} (${d.status}, $${d.amount}) for ${d.client} - Title: ${d.title}`));
+  deals.forEach(d => console.log(`  - Deal created: ${d.id} (${d.status}, $${d.amount}) for ${d.client} - Stage entered: ${d.stageEnteredDate}`));
   return deals;
 };
 
