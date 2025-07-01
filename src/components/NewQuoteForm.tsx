@@ -113,6 +113,18 @@ const NewQuoteForm = () => {
       return;
     }
 
+    // PHASE 1: Fix Form Data Type Conversion
+    console.log('💰 FORM SUBMIT: Raw amount data:', data.amount, 'type:', typeof data.amount);
+    
+    const numericAmount = typeof data.amount === 'string' ? parseFloat(data.amount) : Number(data.amount);
+    console.log('💰 FORM SUBMIT: Converted amount:', numericAmount, 'type:', typeof numericAmount);
+    
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      console.error('💰 FORM SUBMIT: Invalid amount after conversion:', numericAmount);
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
     const requestId = searchParams.get('requestId') || location.state?.requestId;
 
     const newQuote: Quote = {
@@ -123,12 +135,21 @@ const NewQuoteForm = () => {
       jobTitle: data.jobTitle,
       property: data.property,
       status: 'Draft',
-      amount: data.amount,
+      amount: numericAmount, // FIXED: Ensure numeric amount
       createdDate: new Date().toISOString(),
       notes: data.notes,
       rating: data.rating,
       salesperson: data.salesperson,
     };
+
+    console.log('💰 FORM SUBMIT: Final quote object:', {
+      id: newQuote.id,
+      amount: newQuote.amount,
+      amountType: typeof newQuote.amount,
+      clientId: newQuote.clientId,
+      status: newQuote.status,
+      isStandalone: !newQuote.requestId
+    });
 
     addSessionQuote(newQuote);
     console.log('New quote created and added to session:', newQuote.id);
@@ -235,7 +256,10 @@ const NewQuoteForm = () => {
             id="amount"
             type="number"
             step="0.01"
-            {...register("amount", { required: "Amount is required" })}
+            {...register("amount", { 
+              required: "Amount is required",
+              min: { value: 0.01, message: "Amount must be greater than 0" }
+            })}
             placeholder="0.00"
             className="text-base"
           />

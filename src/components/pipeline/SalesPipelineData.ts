@@ -1,3 +1,4 @@
+
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 
 interface Deal {
@@ -349,7 +350,7 @@ const createDealsFromStandaloneQuotes = (
   // Log all quotes for debugging
   console.log('\n📋 ALL QUOTES ANALYSIS:');
   sessionQuotes.forEach((quote, index) => {
-    console.log(`  Quote ${index + 1}: id="${quote.id}", status="${quote.status}", amount=${quote.amount}, clientId="${quote.clientId}", requestId="${quote.requestId || 'NONE'}", createdDate="${quote.createdDate}"`);
+    console.log(`  Quote ${index + 1}: id="${quote.id}", status="${quote.status}", amount=${quote.amount} (type: ${typeof quote.amount}), clientId="${quote.clientId}", requestId="${quote.requestId || 'NONE'}", createdDate="${quote.createdDate}"`);
   });
   
   // SIMPLIFIED: Filter to just standalone quotes with basic validation
@@ -379,12 +380,16 @@ const createDealsFromStandaloneQuotes = (
       return false;
     }
     
-    // SIMPLIFIED VALIDATION: Just check for basic requirements
-    const hasValidAmount = typeof quote.amount === 'number' && quote.amount > 0;
+    // PHASE 2: Add Defensive Type Handling in Pipeline Logic
+    console.log(`💰 AMOUNT VALIDATION: Original amount: ${quote.amount} (type: ${typeof quote.amount})`);
+    const numericAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
+    console.log(`💰 AMOUNT VALIDATION: Converted amount: ${numericAmount} (type: ${typeof numericAmount})`);
+    
+    const hasValidAmount = typeof numericAmount === 'number' && !isNaN(numericAmount) && numericAmount > 0;
     const hasValidClient = !!quote.clientId;
     
     if (!hasValidAmount) {
-      console.log(`❌ INVALID AMOUNT: Quote ${quote.id} EXCLUDED - amount: ${quote.amount} (type: ${typeof quote.amount})`);
+      console.log(`❌ INVALID AMOUNT: Quote ${quote.id} EXCLUDED - amount: ${quote.amount} -> ${numericAmount} (valid: ${hasValidAmount})`);
       return false;
     }
     
@@ -424,6 +429,10 @@ const createDealsFromStandaloneQuotes = (
     
     console.log(`✅ STAGE ASSIGNED: Quote ${quote.id} will be placed in stage: ${pipelineStage}`);
     
+    // PHASE 2: Ensure proper amount handling in deal creation
+    const finalAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
+    console.log(`💰 DEAL CREATION: Final amount for deal: ${finalAmount} (type: ${typeof finalAmount})`);
+    
     // FIXED: Generate realistic dates, but use current time for recently created quotes
     let createdAt: string;
     let stageEnteredDate: string;
@@ -446,7 +455,7 @@ const createDealsFromStandaloneQuotes = (
       property: quote.property || client.primaryAddress || 'Property not specified',
       contact: [client.phone, client.email].filter(Boolean).join('\n') || 'No contact info',
       requested: quote.createdDate || new Date().toISOString(),
-      amount: quote.amount, // Always present for quotes and validated above
+      amount: finalAmount, // Always present for quotes and validated above
       status: pipelineStage,
       type: 'quote' as const,
       quoteId: quote.id,
@@ -457,7 +466,7 @@ const createDealsFromStandaloneQuotes = (
     console.log(`✅ DEAL CREATED: ${dealData.id}`);
     console.log(`  - Client: ${dealData.client}`);
     console.log(`  - Status: ${dealData.status}`);
-    console.log(`  - Amount: $${dealData.amount}`);
+    console.log(`  - Amount: $${dealData.amount} (type: ${typeof dealData.amount})`);
     console.log(`  - Title: ${dealData.title}`);
     console.log(`  - Stage entered: ${dealData.stageEnteredDate}`);
     
