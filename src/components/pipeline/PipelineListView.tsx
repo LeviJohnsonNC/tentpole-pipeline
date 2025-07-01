@@ -11,12 +11,8 @@ interface PipelineListViewProps {
 }
 
 const PipelineListView: React.FC<PipelineListViewProps> = ({ deals }) => {
-  // Filter out only archived deals, but keep closed won and closed lost
-  const filteredDeals = deals.filter(deal => 
-    deal.status !== 'Archived' || 
-    deal.status === 'Closed Won' || 
-    deal.status === 'Closed Lost'
-  );
+  // Filter out only archived deals, keep all others including closed won and closed lost
+  const filteredDeals = deals.filter(deal => deal.status !== 'Archived');
   
   const { sortedDeals, sortConfig, handleSort } = useSortableTable(filteredDeals);
 
