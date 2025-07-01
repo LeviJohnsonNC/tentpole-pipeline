@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -12,8 +11,12 @@ interface PipelineListViewProps {
 }
 
 const PipelineListView: React.FC<PipelineListViewProps> = ({ deals }) => {
-  // Filter out archived deals but include closed lost and closed won
-  const filteredDeals = deals.filter(deal => deal.status !== 'Archived');
+  // Filter out only archived deals, but keep closed won and closed lost
+  const filteredDeals = deals.filter(deal => 
+    deal.status !== 'Archived' || 
+    deal.status === 'Closed Won' || 
+    deal.status === 'Closed Lost'
+  );
   
   const { sortedDeals, sortConfig, handleSort } = useSortableTable(filteredDeals);
 
@@ -39,6 +42,9 @@ const PipelineListView: React.FC<PipelineListViewProps> = ({ deals }) => {
       </Button>
     );
   };
+
+  console.log('PipelineListView deals:', deals.length, 'filtered:', filteredDeals.length);
+  console.log('Deal statuses:', deals.map(d => d.status));
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
