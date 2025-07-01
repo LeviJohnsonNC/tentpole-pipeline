@@ -357,6 +357,7 @@ const createAllDealsFromRequests = (
       if (pipelineStage) {
         finalStatus = pipelineStage;
       }
+      // If no pipeline stage assigned, keep the original request status
     }
     
     // FIXED: Only include amount if there's a quote with valid numeric amount
@@ -387,7 +388,7 @@ const createAllDealsFromRequests = (
       contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
       requested: request.requestDate,
       amount: amount,
-      status: finalStatus,
+      status: finalStatus, // This can be either a Request status or a pipeline stage ID
       type: 'request' as const,
       quoteId: newestQuote?.id,
       createdAt,
