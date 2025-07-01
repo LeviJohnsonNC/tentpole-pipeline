@@ -38,6 +38,21 @@ const DealTableRow: React.FC<DealTableRowProps> = ({ deal }) => {
   };
 
   const getStageDisplayInfo = (status: string) => {
+    // Check for closed statuses first - these trump all other stages
+    if (status === 'Closed Won') {
+      return {
+        title: 'Closed Won',
+        color: 'bg-green-100 text-green-800'
+      };
+    }
+    
+    if (status === 'Closed Lost') {
+      return {
+        title: 'Closed Lost',
+        color: 'bg-red-100 text-red-800'
+      };
+    }
+    
     // First try to find by exact title match
     let stage = stages.find(s => s.title.toLowerCase() === status.toLowerCase());
     

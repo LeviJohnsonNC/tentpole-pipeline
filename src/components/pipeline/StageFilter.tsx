@@ -28,6 +28,8 @@ const StageFilter: React.FC<StageFilterProps> = ({ selectedStage, onStageChange,
                 {stage.title}
               </SelectItem>
             ))}
+          <SelectItem value="closed-won">Closed Won</SelectItem>
+          <SelectItem value="closed-lost">Closed Lost</SelectItem>
         </SelectContent>
       </Select>
       <span className="text-sm text-gray-400">({resultsCount} results)</span>

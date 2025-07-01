@@ -46,11 +46,13 @@ const Sales = () => {
     setSearchTerm(value);
   };
 
-  // Filter deals based on selected stage and search term - now includes title search
+  // Filter deals based on selected stage and search term - now includes title search and closed statuses
   const filteredDeals = deals.filter(deal => {
     const matchesStage = selectedStage === 'all' || 
       deal.status.toLowerCase().replace(/\s+/g, '-') === selectedStage || 
-      deal.status.toLowerCase() === selectedStage;
+      deal.status.toLowerCase() === selectedStage ||
+      (selectedStage === 'closed-won' && deal.status === 'Closed Won') ||
+      (selectedStage === 'closed-lost' && deal.status === 'Closed Lost');
     
     const matchesSearch = searchTerm === '' ||
       deal.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
