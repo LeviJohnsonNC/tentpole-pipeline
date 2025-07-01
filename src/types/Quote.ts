@@ -1,4 +1,5 @@
 
+
 export interface Quote {
   id: string;
   clientId: string;
@@ -7,7 +8,7 @@ export interface Quote {
   title?: string; // Made optional - only present for quotes linked to requests
   jobTitle?: string; // New field for job title
   property: string;
-  status: 'Draft' | 'Awaiting Response' | 'Changes Requested' | 'Approved' | 'Converted' | 'Archived';
+  status: 'Draft' | 'Awaiting Response' | 'Changes Requested' | 'Approved' | 'Converted' | 'Archived' | 'Closed Won' | 'Closed Lost';
   amount: number;
   createdDate: string;
   sentDate?: string;
@@ -33,3 +34,4 @@ export interface Quote {
     type: 'text' | 'number' | 'dropdown';
   }[];
 }
+

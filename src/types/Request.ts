@@ -1,4 +1,5 @@
 
+
 export interface Request {
   id: string;
   clientId: string; // Required reference to Client
@@ -7,7 +8,7 @@ export interface Request {
   requestDate: string;
   customFields?: Record<string, any>;
   assignedTeamMember?: string;
-  status: 'New' | 'Converted' | 'Archived' | 'Assessment complete' | 'Overdue' | 'Unscheduled';
+  status: 'New' | 'Converted' | 'Archived' | 'Assessment complete' | 'Overdue' | 'Unscheduled' | 'Closed Won' | 'Closed Lost';
   quoteId?: string;
   jobId?: string;
   attachments?: string[];
@@ -15,3 +16,4 @@ export interface Request {
   urgency?: 'Low' | 'Medium' | 'High';
   preferredTime?: string;
 }
+
