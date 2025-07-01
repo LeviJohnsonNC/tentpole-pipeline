@@ -1,5 +1,6 @@
 
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
+import { toast } from 'sonner';
 
 interface Deal {
   id: string;
@@ -258,7 +259,9 @@ const createDealsFromRequests = (
   // Include requests with statuses that should appear in pipeline
   const openRequests = requestsWithClients.filter(request => {
     console.log(`Request ${request.id} has status: ${request.status}`);
-    return ['New', 'Assessment complete', 'Overdue', 'Unscheduled'].includes(request.status);
+    // Exclude archived, closed lost, and closed won requests from pipeline
+    return ['New', 'Assessment complete', 'Overdue', 'Unscheduled'].includes(request.status) &&
+           !['Archived', 'Closed Lost', 'Closed Won'].includes(request.status);
   });
   console.log('Open requests for pipeline:', openRequests.length);
   
@@ -368,15 +371,15 @@ const createDealsFromStandaloneQuotes = (
       return false;
     }
     
-    // AUTO CLOSED-WON LOGIC: Exclude approved/converted quotes
+    // AUTO CLOSED-WON LOGIC: Exclude approved/converted quotes from pipeline
     if (quote.status === 'Approved' || quote.status === 'Converted') {
-      console.log(`❌ AUTO CLOSED-WON: Quote ${quote.id} EXCLUDED - status is ${quote.status}`);
+      console.log(`❌ AUTO CLOSED-WON: Quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status}`);
       return false;
     }
     
-    // Must not be archived
-    if (quote.status === 'Archived') {
-      console.log(`❌ ARCHIVED: Quote ${quote.id} EXCLUDED - status is archived`);
+    // Must not be archived, closed lost, or closed won for pipeline
+    if (['Archived', 'Closed Lost', 'Closed Won'].includes(quote.status)) {
+      console.log(`❌ EXCLUDED STATUS: Quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status}`);
       return false;
     }
     
@@ -565,15 +568,15 @@ export const canDragFromJobberStage = (dealId: string, sourceStageId: string): {
   };
 };
 
-// Enhanced action handlers that update source data instead of just local state
-export const handleDeleteAction = (
+// Enhanced action handlers that update source data and show toast notifications
+export const handleArchiveAction = (
   dealId: string, 
   deals: Deal[], 
   setDeals: (deals: Deal[]) => void,
   updateSessionRequest: (id: string, updates: Partial<any>) => void,
   updateSessionQuote: (id: string, updates: Partial<any>) => void
 ) => {
-  console.log('Deleting deal:', dealId);
+  console.log('Archiving deal:', dealId);
   
   const deal = deals.find(d => d.id === dealId);
   if (!deal) return;
@@ -585,7 +588,7 @@ export const handleDeleteAction = (
     updateSessionQuote(deal.quoteId, { status: 'Archived' });
   }
   
-  // Local state will be updated by the pipeline regeneration
+  toast.success(`Deal archived: ${deal.client}`);
   console.log('Deal archived in source data, pipeline will regenerate');
 };
 
@@ -601,13 +604,14 @@ export const handleLostAction = (
   const deal = deals.find(d => d.id === dealId);
   if (!deal) return;
   
-  // Update source data to archived status (lost deals are archived)
+  // Update source data to closed lost status
   if (deal.type === 'request') {
-    updateSessionRequest(dealId, { status: 'Archived' });
+    updateSessionRequest(dealId, { status: 'Closed Lost' });
   } else if (deal.type === 'quote' && deal.quoteId) {
-    updateSessionQuote(deal.quoteId, { status: 'Archived' });
+    updateSessionQuote(deal.quoteId, { status: 'Closed Lost' });
   }
   
+  toast.error(`Deal marked as lost: ${deal.client}`);
   console.log('Deal marked as lost in source data, pipeline will regenerate');
 };
 
@@ -625,11 +629,11 @@ export const handleWonAction = (
   const deal = deals.find(d => d.id === dealId);
   if (!deal) return;
   
-  // Update source data to converted/approved status
+  // Update source data to closed won status
   if (deal.type === 'request') {
-    updateSessionRequest(dealId, { status: 'Converted' });
+    updateSessionRequest(dealId, { status: 'Closed Won' });
   } else if (deal.type === 'quote' && deal.quoteId) {
-    updateSessionQuote(deal.quoteId, { status: 'Approved' });
+    updateSessionQuote(deal.quoteId, { status: 'Closed Won' });
   }
   
   // Update client status to Active if they're currently a Lead
@@ -639,7 +643,19 @@ export const handleWonAction = (
     updateSessionClient(client.id, { status: 'Active' });
   }
   
+  toast.success(`Deal won: ${deal.client}!`);
   console.log('Deal marked as won in source data, pipeline will regenerate');
+};
+
+// Legacy function kept for compatibility (now calls handleArchiveAction)
+export const handleDeleteAction = (
+  dealId: string, 
+  deals: Deal[], 
+  setDeals: (deals: Deal[]) => void,
+  updateSessionRequest: (id: string, updates: Partial<any>) => void,
+  updateSessionQuote: (id: string, updates: Partial<any>) => void
+) => {
+  handleArchiveAction(dealId, deals, setDeals, updateSessionRequest, updateSessionQuote);
 };
 
 export type { Deal };

@@ -12,7 +12,10 @@ interface PipelineListViewProps {
 }
 
 const PipelineListView: React.FC<PipelineListViewProps> = ({ deals }) => {
-  const { sortedDeals, sortConfig, handleSort } = useSortableTable(deals);
+  // Filter out archived deals but include closed lost and closed won
+  const filteredDeals = deals.filter(deal => deal.status !== 'Archived');
+  
+  const { sortedDeals, sortConfig, handleSort } = useSortableTable(filteredDeals);
 
   const SortButton: React.FC<{ field: string; children: React.ReactNode }> = ({ field, children }) => {
     const isActive = sortConfig.field === field;

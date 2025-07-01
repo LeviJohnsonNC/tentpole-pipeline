@@ -14,7 +14,7 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
-import { createInitialDeals, Deal, handleDeleteAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
+import { createInitialDeals, Deal, handleArchiveAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
 import { Request } from "@/types/Request";
 
 interface SalesPipelineProps {
@@ -347,12 +347,12 @@ const SalesPipeline = ({
       return;
     }
 
-    // Handle action zone drops
+    // Handle action zone drops with new action types
     if (overContainer.startsWith('action-')) {
       console.log('🏁 DRAG END: Handling action zone drop:', overContainer);
       switch (overContainer) {
-        case 'action-delete':
-          handleDeleteAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote);
+        case 'action-archive':
+          handleArchiveAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote);
           break;
         case 'action-lost':
           handleLostAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote);

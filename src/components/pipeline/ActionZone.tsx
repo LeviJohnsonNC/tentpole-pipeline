@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { Trash2, TrendingDown, TrendingUp } from 'lucide-react';
+import { Archive, TrendingDown, TrendingUp } from 'lucide-react';
 
 interface ActionZoneProps {
   id: string;
-  type: 'delete' | 'lost' | 'won';
+  type: 'archive' | 'lost' | 'won';
 }
 
 const ActionZone = ({ id, type }: ActionZoneProps) => {
@@ -15,10 +15,10 @@ const ActionZone = ({ id, type }: ActionZoneProps) => {
 
   const getZoneConfig = () => {
     switch (type) {
-      case 'delete':
+      case 'archive':
         return {
-          icon: Trash2,
-          label: 'Delete',
+          icon: Archive,
+          label: 'Archive',
           bgColor: isOver ? 'bg-gray-600' : 'bg-gray-500',
           textColor: 'text-white',
           borderColor: 'border-gray-400'
