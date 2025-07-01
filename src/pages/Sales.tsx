@@ -17,7 +17,8 @@ import SearchBar from "@/components/pipeline/SearchBar";
 const Sales = () => {
   const navigate = useNavigate();
   const [isInsightsOpen, setIsInsightsOpen] = useState(false);
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]); // Pipeline deals
+  const [allDeals, setAllDeals] = useState<Deal[]>([]); // All deals including closed
   const [pipelineView, setPipelineView] = useState<'kanban' | 'list'>('kanban');
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -38,6 +39,10 @@ const Sales = () => {
     setDeals(newDeals);
   };
 
+  const handleAllDealsChange = (newAllDeals: Deal[]) => {
+    setAllDeals(newAllDeals);
+  };
+
   const handleStageChange = (stage: string) => {
     setSelectedStage(stage);
   };
@@ -46,8 +51,8 @@ const Sales = () => {
     setSearchTerm(value);
   };
 
-  // Filter deals based on selected stage and search term - now includes title search and closed statuses
-  const filteredDeals = deals.filter(deal => {
+  // Filter deals based on selected stage and search term - use allDeals for list view
+  const filteredDeals = (pipelineView === 'list' ? allDeals : deals).filter(deal => {
     const matchesStage = selectedStage === 'all' || 
       deal.status.toLowerCase().replace(/\s+/g, '-') === selectedStage || 
       deal.status.toLowerCase() === selectedStage ||
@@ -137,7 +142,11 @@ const Sales = () => {
             {pipelineView === 'kanban' ? (
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <div className="p-4">
-                  <SalesPipeline onDealsChange={handleDealsChange} searchTerm={searchTerm} />
+                  <SalesPipeline 
+                    onDealsChange={handleDealsChange} 
+                    onAllDealsChange={handleAllDealsChange}
+                    searchTerm={searchTerm} 
+                  />
                 </div>
               </div>
             ) : (
@@ -150,7 +159,7 @@ const Sales = () => {
       <PipelineInsights 
         isOpen={isInsightsOpen}
         onClose={handleCloseInsights}
-        deals={deals}
+        deals={pipelineView === 'list' ? allDeals : deals}
       />
     </SidebarProvider>
   );

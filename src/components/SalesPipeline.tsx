@@ -14,11 +14,12 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
-import { createInitialDeals, Deal, handleArchiveAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
+import { createInitialDeals, createAllDeals, Deal, handleArchiveAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
 import { Request } from "@/types/Request";
 
 interface SalesPipelineProps {
   onDealsChange?: (deals: Deal[]) => void;
+  onAllDealsChange?: (allDeals: Deal[]) => void;
   searchTerm?: string;
 }
 
@@ -37,6 +38,7 @@ const isJobberStageId = (stageId: string): boolean => {
 
 const SalesPipeline = ({
   onDealsChange,
+  onAllDealsChange,
   searchTerm = ''
 }: SalesPipelineProps) => {
   const {
@@ -57,7 +59,8 @@ const SalesPipeline = ({
 
   // Simplified state management
   const [isInitialized, setIsInitialized] = useState(false);
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]); // Pipeline deals
+  const [allDeals, setAllDeals] = useState<Deal[]>([]); // All deals including closed
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
@@ -87,14 +90,19 @@ const SalesPipeline = ({
         stages: stages.length
       });
       const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-      console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'initial deals');
+      const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+      console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'pipeline deals and', initialAllDeals.length, 'all deals');
       setDeals(initialDeals);
+      setAllDeals(initialAllDeals);
       setIsInitialized(true);
       if (onDealsChange) {
         onDealsChange(initialDeals);
       }
+      if (onAllDealsChange) {
+        onAllDealsChange(initialAllDeals);
+      }
     }
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange, onAllDealsChange]);
 
   // ENHANCED: Better detection of new data changes
   useEffect(() => {
@@ -108,16 +116,26 @@ const SalesPipeline = ({
     });
     
     const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages);
     const currentDealIds = new Set(deals.map(d => d.id));
     const newDealIds = new Set(newDeals.map(d => d.id));
+    const currentAllDealIds = new Set(allDeals.map(d => d.id));
+    const newAllDealIds = new Set(newAllDeals.map(d => d.id));
     
     // Check for new or removed deals
     const hasNewDeals = newDeals.some(deal => !currentDealIds.has(deal.id));
     const hasRemovedDeals = deals.some(deal => !newDealIds.has(deal.id));
+    const hasNewAllDeals = newAllDeals.some(deal => !currentAllDealIds.has(deal.id));
+    const hasRemovedAllDeals = allDeals.some(deal => !newAllDealIds.has(deal.id));
     
     // ENHANCED: Also check for amount changes on existing deals
     const hasAmountChanges = newDeals.some(newDeal => {
       const existingDeal = deals.find(d => d.id === newDeal.id);
+      return existingDeal && existingDeal.amount !== newDeal.amount;
+    });
+
+    const hasAllAmountChanges = newAllDeals.some(newDeal => {
+      const existingDeal = allDeals.find(d => d.id === newDeal.id);
       return existingDeal && existingDeal.amount !== newDeal.amount;
     });
     
@@ -125,21 +143,17 @@ const SalesPipeline = ({
       hasNewDeals,
       hasRemovedDeals,
       hasAmountChanges,
+      hasNewAllDeals,
+      hasRemovedAllDeals,
+      hasAllAmountChanges,
       currentDeals: deals.length,
-      newDeals: newDeals.length
+      newDeals: newDeals.length,
+      currentAllDeals: allDeals.length,
+      newAllDeals: newAllDeals.length
     });
     
     if (hasNewDeals || hasRemovedDeals || hasAmountChanges) {
-      console.log('📡 PIPELINE: Detected changes, updating pipeline');
-      console.log('  - Has new deals:', hasNewDeals);
-      console.log('  - Has removed deals:', hasRemovedDeals);
-      console.log('  - Has amount changes:', hasAmountChanges);
-      
-      // Show which deals are new
-      if (hasNewDeals) {
-        const newDealsList = newDeals.filter(deal => !currentDealIds.has(deal.id));
-        console.log('📡 NEW DEALS:', newDealsList.map(d => ({ id: d.id, client: d.client, status: d.status, amount: d.amount })));
-      }
+      console.log('📡 PIPELINE: Detected pipeline changes, updating pipeline');
       
       // Preserve manual positions for existing deals but update amounts and stage dates for changed deals
       const updatedDeals = newDeals.map(newDeal => {
@@ -172,7 +186,15 @@ const SalesPipeline = ({
         onDealsChange(updatedDeals);
       }
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange]);
+
+    if (hasNewAllDeals || hasRemovedAllDeals || hasAllAmountChanges) {
+      console.log('📡 ALL DEALS: Detected all deals changes, updating all deals');
+      setAllDeals(newAllDeals);
+      if (onAllDealsChange) {
+        onAllDealsChange(newAllDeals);
+      }
+    }
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange, onAllDealsChange]);
 
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
@@ -356,13 +378,13 @@ const SalesPipeline = ({
       return;
     }
 
-    // ENHANCED: Handle action zone drops with immediate state updates
+    // ENHANCED: Handle action zone drops with immediate state updates for both collections
     if (overContainer.startsWith('action-')) {
       console.log('🏁 DRAG END: Handling action zone drop:', overContainer);
       
-      // Create enhanced handlers that update both source data AND deal state immediately
+      // Create enhanced handlers that update both source data AND both deal collections immediately
       const enhancedArchiveAction = (dealId: string) => {
-        const deal = deals.find(d => d.id === dealId);
+        const deal = deals.find(d => d.id === dealId) || allDeals.find(d => d.id === dealId);
         if (!deal) return;
         
         // Update source data
@@ -372,8 +394,9 @@ const SalesPipeline = ({
           updateSessionQuote(deal.quoteId, { status: 'Archived' });
         }
         
-        // IMMEDIATE: Update deal state to remove from pipeline instantly
+        // IMMEDIATE: Update both deal collections to remove from both instantly
         setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
+        setAllDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
         
         toast.success(`Deal archived: ${deal.client}`);
         
@@ -381,10 +404,14 @@ const SalesPipeline = ({
           const updatedDeals = deals.filter(d => d.id !== dealId);
           onDealsChange(updatedDeals);
         }
+        if (onAllDealsChange) {
+          const updatedAllDeals = allDeals.filter(d => d.id !== dealId);
+          onAllDealsChange(updatedAllDeals);
+        }
       };
       
       const enhancedLostAction = (dealId: string) => {
-        const deal = deals.find(d => d.id === dealId);
+        const deal = deals.find(d => d.id === dealId) || allDeals.find(d => d.id === dealId);
         if (!deal) return;
         
         // Update source data
@@ -394,8 +421,11 @@ const SalesPipeline = ({
           updateSessionQuote(deal.quoteId, { status: 'Closed Lost' });
         }
         
-        // IMMEDIATE: Update deal state to remove from pipeline instantly
+        // IMMEDIATE: Remove from pipeline deals, update status in all deals
         setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
+        setAllDeals(prevDeals => prevDeals.map(d => 
+          d.id === dealId ? { ...d, status: 'Closed Lost', stageEnteredDate: new Date().toISOString() } : d
+        ));
         
         toast.error(`Deal marked as lost: ${deal.client}`);
         
@@ -403,10 +433,16 @@ const SalesPipeline = ({
           const updatedDeals = deals.filter(d => d.id !== dealId);
           onDealsChange(updatedDeals);
         }
+        if (onAllDealsChange) {
+          const updatedAllDeals = allDeals.map(d => 
+            d.id === dealId ? { ...d, status: 'Closed Lost', stageEnteredDate: new Date().toISOString() } : d
+          );
+          onAllDealsChange(updatedAllDeals);
+        }
       };
       
       const enhancedWonAction = (dealId: string) => {
-        const deal = deals.find(d => d.id === dealId);
+        const deal = deals.find(d => d.id === dealId) || allDeals.find(d => d.id === dealId);
         if (!deal) return;
         
         // Update source data
@@ -423,14 +459,23 @@ const SalesPipeline = ({
           updateSessionClient(client.id, { status: 'Active' });
         }
         
-        // IMMEDIATE: Update deal state to remove from pipeline instantly
+        // IMMEDIATE: Remove from pipeline deals, update status in all deals
         setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
+        setAllDeals(prevDeals => prevDeals.map(d => 
+          d.id === dealId ? { ...d, status: 'Closed Won', stageEnteredDate: new Date().toISOString() } : d
+        ));
         
         toast.success(`Deal won: ${deal.client}!`);
         
         if (onDealsChange) {
           const updatedDeals = deals.filter(d => d.id !== dealId);
           onDealsChange(updatedDeals);
+        }
+        if (onAllDealsChange) {
+          const updatedAllDeals = allDeals.map(d => 
+            d.id === dealId ? { ...d, status: 'Closed Won', stageEnteredDate: new Date().toISOString() } : d
+          );
+          onAllDealsChange(updatedAllDeals);
         }
       };
       

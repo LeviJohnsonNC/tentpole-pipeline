@@ -1,4 +1,3 @@
-
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 import { toast } from 'sonner';
 
@@ -325,6 +324,81 @@ const createDealsFromRequests = (
   return deals;
 };
 
+// NEW: Create deals from requests including closed won/lost for list view
+const createAllDealsFromRequests = (
+  sessionClients: any[] = [], 
+  sessionRequests: any[] = [], 
+  sessionQuotes: any[] = [], 
+  stages: any[] = []
+): Deal[] => {
+  console.log('Creating ALL deals from requests (including closed). Session requests:', sessionRequests.length);
+  const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
+  console.log('Requests with client info:', requestsWithClients.length);
+  
+  // Include all requests except archived ones
+  const allRequests = requestsWithClients.filter(request => {
+    console.log(`Request ${request.id} has status: ${request.status}`);
+    // Only exclude archived requests from list view
+    return request.status !== 'Archived';
+  });
+  console.log('All requests for list view:', allRequests.length);
+  
+  const deals = allRequests.map((request) => {
+    // Find the newest quote for this request
+    const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
+    console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none', 'amount:', newestQuote?.amount);
+    
+    // For closed won/lost deals, use the request status directly
+    let finalStatus = request.status;
+    
+    // For open deals, determine pipeline stage
+    if (!['Closed Won', 'Closed Lost'].includes(request.status)) {
+      const pipelineStage = assignPipelineStage(request, newestQuote, stages);
+      if (pipelineStage) {
+        finalStatus = pipelineStage;
+      }
+    }
+    
+    // FIXED: Only include amount if there's a quote with valid numeric amount
+    const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
+    console.log(`Request ${request.id} final amount:`, amount);
+    
+    // FIXED: Generate realistic dates
+    const isNewDeal = finalStatus === 'new-deals';
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    // If there's a recent quote that moved this to a Jobber stage, use current time
+    if (newestQuote && isJobberStageId(finalStatus) && isRecentlyCreatedQuote(newestQuote.createdDate)) {
+      console.log(`🕐 Request ${request.id} using current timestamp due to recent quote ${newestQuote.id}`);
+      createdAt = newestQuote.createdDate;
+      stageEnteredDate = new Date().toISOString(); // Current time for stage entry
+    } else {
+      // Use existing logic for older deals
+      createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt);
+    }
+    
+    return {
+      id: request.id,
+      client: request.client.name,
+      title: request.title || 'Service Request',
+      property: request.client.primaryAddress,
+      contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
+      requested: request.requestDate,
+      amount: amount,
+      status: finalStatus,
+      type: 'request' as const,
+      quoteId: newestQuote?.id,
+      createdAt,
+      stageEnteredDate
+    };
+  });
+  
+  console.log('Final ALL deals from requests:', deals.length);
+  return deals;
+};
+
 // FIXED: Comprehensive standalone quote processing with better validation
 const createDealsFromStandaloneQuotes = (
   sessionClients: any[] = [], 
@@ -483,6 +557,162 @@ const createDealsFromStandaloneQuotes = (
   return deals;
 };
 
+// NEW: Create deals from standalone quotes including closed won/lost for list view
+const createAllDealsFromStandaloneQuotes = (
+  sessionClients: any[] = [], 
+  sessionQuotes: any[] = [], 
+  stages: any[] = []
+): Deal[] => {
+  console.log('\n🚀 ALL STANDALONE QUOTE PROCESSING: Starting conversion to deals (including closed)');
+  console.log(`📊 Input: ${sessionQuotes.length} quotes, ${sessionClients.length} clients, ${stages.length} stages`);
+  
+  // Enhanced validation and error handling
+  if (!sessionQuotes || sessionQuotes.length === 0) {
+    console.log('⚠️ NO QUOTES: No session quotes available');
+    return [];
+  }
+  
+  if (!sessionClients || sessionClients.length === 0) {
+    console.log('⚠️ NO CLIENTS: No session clients available');
+    return [];
+  }
+  
+  if (!stages || stages.length === 0) {
+    console.log('⚠️ NO STAGES: No stages available');
+    return [];
+  }
+  
+  // Log all quotes for debugging
+  console.log('\n📋 ALL QUOTES ANALYSIS:');
+  sessionQuotes.forEach((quote, index) => {
+    console.log(`  Quote ${index + 1}: id="${quote.id}", status="${quote.status}", amount=${quote.amount} (type: ${typeof quote.amount}), clientId="${quote.clientId}", requestId="${quote.requestId || 'NONE'}", createdDate="${quote.createdDate}"`);
+  });
+  
+  // SIMPLIFIED: Filter to just standalone quotes with basic validation (including closed statuses)
+  console.log('\n🔍 ALL STANDALONE QUOTE FILTERING:');
+  const standaloneQuotes = sessionQuotes.filter(quote => {
+    console.log(`\n--- Filtering quote ${quote.id} ---`);
+    console.log(`  requestId: ${quote.requestId || 'NONE (standalone)'}`);
+    console.log(`  status: ${quote.status}`);
+    console.log(`  amount: ${quote.amount} (type: ${typeof quote.amount})`);
+    console.log(`  clientId: ${quote.clientId}`);
+    
+    // Must be standalone (no requestId)
+    if (quote.requestId) {
+      console.log(`❌ HAS REQUEST ID: Quote ${quote.id} EXCLUDED - linked to request: ${quote.requestId}`);
+      return false;
+    }
+    
+    // Only exclude archived quotes from list view
+    if (quote.status === 'Archived') {
+      console.log(`❌ ARCHIVED: Quote ${quote.id} EXCLUDED from list - status is archived`);
+      return false;
+    }
+    
+    // PHASE 2: Add Defensive Type Handling in Pipeline Logic
+    console.log(`💰 AMOUNT VALIDATION: Original amount: ${quote.amount} (type: ${typeof quote.amount})`);
+    const numericAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
+    console.log(`💰 AMOUNT VALIDATION: Converted amount: ${numericAmount} (type: ${typeof numericAmount})`);
+    
+    const hasValidAmount = typeof numericAmount === 'number' && !isNaN(numericAmount) && numericAmount > 0;
+    const hasValidClient = !!quote.clientId;
+    
+    if (!hasValidAmount) {
+      console.log(`❌ INVALID AMOUNT: Quote ${quote.id} EXCLUDED - amount: ${quote.amount} -> ${numericAmount} (valid: ${hasValidAmount})`);
+      return false;
+    }
+    
+    if (!hasValidClient) {
+      console.log(`❌ INVALID CLIENT: Quote ${quote.id} EXCLUDED - missing clientId`);
+      return false;
+    }
+    
+    console.log(`✅ QUOTE PASSED FILTERING: ${quote.id} is a valid standalone quote`);
+    return true;
+  });
+  
+  console.log(`\n📊 FILTERING RESULTS: ${standaloneQuotes.length} standalone quotes passed filtering`);
+  standaloneQuotes.forEach(q => console.log(`  ✅ Standalone: ${q.id} (${q.status}, $${q.amount}) for client ${q.clientId}`));
+  
+  // Create deals with enhanced client lookup
+  console.log('\n🔧 DEAL CREATION: Converting standalone quotes to deals');
+  const deals = standaloneQuotes.map((quote) => {
+    console.log(`\n--- Creating deal for quote ${quote.id} ---`);
+    
+    // Find client for this quote
+    const client = sessionClients.find(c => c.id === quote.clientId);
+    if (!client) {
+      console.log(`❌ CLIENT NOT FOUND: Quote ${quote.id} references missing client ${quote.clientId}, SKIPPING`);
+      return null;
+    }
+    
+    console.log(`✅ CLIENT FOUND: ${client.name} for quote ${quote.id}`);
+    
+    // For closed won/lost/approved/converted quotes, use those statuses directly
+    let finalStatus = quote.status;
+    if (quote.status === 'Approved' || quote.status === 'Converted') {
+      finalStatus = 'Closed Won';
+    } else if (!['Closed Won', 'Closed Lost'].includes(quote.status)) {
+      // For open quotes, determine pipeline stage
+      const pipelineStage = assignQuotePipelineStage(quote, stages);
+      if (pipelineStage) {
+        finalStatus = pipelineStage;
+      }
+    }
+    
+    console.log(`✅ STAGE ASSIGNED: Quote ${quote.id} will have status: ${finalStatus}`);
+    
+    // PHASE 2: Ensure proper amount handling in deal creation
+    const finalAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
+    console.log(`💰 DEAL CREATION: Final amount for deal: ${finalAmount} (type: ${typeof finalAmount})`);
+    
+    // FIXED: Generate realistic dates, but use current time for recently created quotes
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    if (isRecentlyCreatedQuote(quote.createdDate)) {
+      console.log(`🕐 RECENT QUOTE: Using current timestamps for quote ${quote.id}`);
+      createdAt = quote.createdDate;
+      stageEnteredDate = new Date().toISOString(); // Current time for stage entry
+    } else {
+      console.log(`🕐 OLDER QUOTE: Using generated timestamps for quote ${quote.id}`);
+      createdAt = generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt);
+    }
+    
+    // Enhanced validation for deal creation
+    const dealData = {
+      id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
+      client: client.name,
+      title: quote.quoteNumber, // Use quote number as title for standalone quotes
+      property: quote.property || client.primaryAddress || 'Property not specified',
+      contact: [client.phone, client.email].filter(Boolean).join('\n') || 'No contact info',
+      requested: quote.createdDate || new Date().toISOString(),
+      amount: finalAmount, // Always present for quotes and validated above
+      status: finalStatus,
+      type: 'quote' as const,
+      quoteId: quote.id,
+      createdAt,
+      stageEnteredDate
+    };
+    
+    console.log(`✅ DEAL CREATED: ${dealData.id}`);
+    console.log(`  - Client: ${dealData.client}`);
+    console.log(`  - Status: ${dealData.status}`);
+    console.log(`  - Amount: $${dealData.amount} (type: ${typeof dealData.amount})`);
+    console.log(`  - Title: ${dealData.title}`);
+    console.log(`  - Stage entered: ${dealData.stageEnteredDate}`);
+    
+    return dealData;
+  }).filter(Boolean); // Remove null entries
+  
+  console.log(`\n📊 FINAL RESULTS: ${deals.length} deals created from standalone quotes`);
+  deals.forEach(d => console.log(`  📋 Deal: ${d.id} (${d.status}, $${d.amount}) for ${d.client}`));
+  console.log('🏁 ALL STANDALONE QUOTE PROCESSING: Complete\n');
+  
+  return deals;
+};
+
 // SIMPLIFIED: Main function
 export const createInitialDeals = (
   sessionClients: any[] = [], 
@@ -520,6 +750,47 @@ export const createInitialDeals = (
     return acc;
   }, {} as Record<string, number>));
   console.log('=== 🏁 END SIMPLIFIED PIPELINE DATA CREATION ===\n');
+  
+  return totalDeals;
+};
+
+// NEW: Main function for creating ALL deals (including closed won/lost)
+export const createAllDeals = (
+  sessionClients: any[] = [], 
+  sessionRequests: any[] = [], 
+  sessionQuotes: any[] = [], 
+  stages: any[] = []
+): Deal[] => {
+  console.log('\n=== 🚀 ALL DEALS CREATION (INCLUDING CLOSED) ===');
+  console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
+  console.log('Available stages:', stages.map(s => ({ id: s.id, title: s.title, isJobberStage: s.isJobberStage, order: s.order })));
+  
+  // Enhanced error handling for missing data
+  if (!sessionClients || sessionClients.length === 0) {
+    console.warn('⚠️ No clients available - all deals will be empty');
+    return [];
+  }
+  
+  if (!stages || stages.length === 0) {
+    console.warn('⚠️ No stages available - all deals will be empty');
+    return [];
+  }
+  
+  // Create deals from all requests (including closed)
+  const requestDeals = createAllDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
+  
+  // Create deals from standalone quotes (including closed)
+  const standaloneQuoteDeals = createAllDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
+  
+  const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
+  console.log('✅ Total ALL deals created:', totalDeals.length);
+  console.log('  - Request deals:', requestDeals.length);
+  console.log('  - Standalone quote deals:', standaloneQuoteDeals.length);
+  console.log('📊 All deals by status:', totalDeals.reduce((acc, deal) => {
+    acc[deal.status] = (acc[deal.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>));
+  console.log('=== 🏁 END ALL DEALS CREATION ===\n');
   
   return totalDeals;
 };
