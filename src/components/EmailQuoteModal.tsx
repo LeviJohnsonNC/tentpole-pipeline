@@ -26,7 +26,7 @@ export const EmailQuoteModal = ({ quote, isOpen, onClose, onSend }: EmailQuoteMo
 
 Thank you for asking us to quote on your project.
 
-The quote total is $${quote.amount.toFixed(2)} as of 22/06/2025.
+The quote total is $${quote.amount.toLocaleString()} as of 22/06/2025.
 
 If you have any questions or concerns regarding this quote, please don't hesitate to get in touch with us at pd_operations+grow1@getjobber.com.
 

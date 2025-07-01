@@ -193,7 +193,7 @@ const SalesPipeline = ({
   }));
   
   const formatAmount = (amount: number) => {
-    return `$ ${amount.toLocaleString()}.00`;
+    return `$${amount.toLocaleString()}`;
   };
 
   // Use filteredDeals for display but original deals for column height calculation

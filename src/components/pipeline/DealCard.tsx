@@ -47,7 +47,7 @@ const DealCard = ({
   const isBeingDragged = isDragging || isSortableDragging;
 
   const formatAmount = (amount: number) => {
-    return `$ ${amount.toLocaleString()}.00`;
+    return `$${amount.toLocaleString()}`;
   };
 
   // Calculate days in stage
