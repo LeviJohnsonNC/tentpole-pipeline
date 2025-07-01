@@ -1,3 +1,4 @@
+
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 import { toast } from 'sonner';
 
@@ -9,7 +10,7 @@ interface Deal {
   contact: string;
   requested: string;
   amount?: number; // Made optional - only present when there's a quote
-  status: string; // Pipeline status, not request status
+  status: string; // Can be either Request status or pipeline stage ID
   type: 'request' | 'quote'; // New field to distinguish between requests and quotes
   quoteId?: string; // Optional field for quote-based deals
   createdAt: string; // Enhanced creation date tracking
@@ -349,7 +350,7 @@ const createAllDealsFromRequests = (
     console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none', 'amount:', newestQuote?.amount);
     
     // For closed won/lost deals, use the request status directly
-    let finalStatus = request.status;
+    let finalStatus: string = request.status;
     
     // For open deals, determine pipeline stage
     if (!['Closed Won', 'Closed Lost'].includes(request.status)) {
