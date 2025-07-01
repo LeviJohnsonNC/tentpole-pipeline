@@ -79,6 +79,12 @@ const SalesPipeline = ({
   useEffect(() => {
     if (!isInitialized && sessionClients.length > 0 && stages.length > 0) {
       console.log('🚀 PIPELINE INIT: Initializing deals for the first time');
+      console.log('🚀 PIPELINE INIT: Session data:', {
+        clients: sessionClients.length,
+        requests: sessionRequests.length,
+        quotes: sessionQuotes.length,
+        stages: stages.length
+      });
       const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
       console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'initial deals');
       setDeals(initialDeals);
@@ -89,22 +95,50 @@ const SalesPipeline = ({
     }
   }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange]);
 
-  // Only regenerate deals when new data is added/removed (not for updates)
+  // ENHANCED: Better detection of new data changes
   useEffect(() => {
     if (!isInitialized) return;
+    
+    console.log('📡 PIPELINE UPDATE CHECK: Checking for data changes');
+    console.log('📡 Current session data:', {
+      clients: sessionClients.length,
+      requests: sessionRequests.length,
+      quotes: sessionQuotes.length
+    });
     
     const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
     const currentDealIds = new Set(deals.map(d => d.id));
     const newDealIds = new Set(newDeals.map(d => d.id));
     
-    // Only update if we have genuinely new deals or removed deals
+    // Check for new or removed deals
     const hasNewDeals = newDeals.some(deal => !currentDealIds.has(deal.id));
     const hasRemovedDeals = deals.some(deal => !newDealIds.has(deal.id));
     
-    if (hasNewDeals || hasRemovedDeals) {
-      console.log('📡 PIPELINE: Detected new/removed deals, updating pipeline');
+    // ENHANCED: Also check for amount changes on existing deals
+    const hasAmountChanges = newDeals.some(newDeal => {
+      const existingDeal = deals.find(d => d.id === newDeal.id);
+      return existingDeal && existingDeal.amount !== newDeal.amount;
+    });
+    
+    console.log('📡 PIPELINE UPDATE CHECK Results:', {
+      hasNewDeals,
+      hasRemovedDeals,
+      hasAmountChanges,
+      currentDeals: deals.length,
+      newDeals: newDeals.length
+    });
+    
+    if (hasNewDeals || hasRemovedDeals || hasAmountChanges) {
+      console.log('📡 PIPELINE: Detected changes, updating pipeline');
       console.log('  - Has new deals:', hasNewDeals);
       console.log('  - Has removed deals:', hasRemovedDeals);
+      console.log('  - Has amount changes:', hasAmountChanges);
+      
+      // Show which deals are new
+      if (hasNewDeals) {
+        const newDealsList = newDeals.filter(deal => !currentDealIds.has(deal.id));
+        console.log('📡 NEW DEALS:', newDealsList.map(d => ({ id: d.id, client: d.client, status: d.status, amount: d.amount })));
+      }
       
       // Preserve manual positions for existing deals but update amounts and stage dates for changed deals
       const updatedDeals = newDeals.map(newDeal => {
@@ -137,7 +171,7 @@ const SalesPipeline = ({
         onDealsChange(updatedDeals);
       }
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, isInitialized, onDealsChange]);
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange]);
 
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
