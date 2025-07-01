@@ -60,6 +60,7 @@ const SalesPipeline = ({
   const [deals, setDeals] = useState<Deal[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
 
   // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
@@ -276,6 +277,7 @@ const SalesPipeline = ({
     } = event;
     console.log('🚀 DRAG START: Active ID:', active.id);
     setActiveId(active.id as string);
+    setIsDraggingToActionZone(false);
   };
   
   const handleDragOver = (event: DragOverEvent) => {
@@ -293,8 +295,14 @@ const SalesPipeline = ({
     console.log('🔄 DRAG OVER: Active container:', activeContainer, 'Over container:', overContainer);
     if (!activeContainer || !overContainer) return;
 
-    // Don't move to action zones during drag over
-    if (overContainer.startsWith('action-')) return;
+    // ENHANCED: Check if dragging towards action zone and prevent intermediate updates
+    if (overContainer.startsWith('action-')) {
+      console.log('🔄 DRAG OVER: Detected drag towards action zone, preventing intermediate updates');
+      setIsDraggingToActionZone(true);
+      return;
+    } else {
+      setIsDraggingToActionZone(false);
+    }
 
     // Use validation function
     const validation = validateDragOperation(activeId, activeContainer, overContainer);
@@ -303,8 +311,8 @@ const SalesPipeline = ({
       return;
     }
 
-    // Only move between containers during drag over
-    if (activeContainer !== overContainer) {
+    // Only move between containers during drag over if not targeting action zones
+    if (activeContainer !== overContainer && !isDraggingToActionZone) {
       console.log('🔄 DRAG OVER: Moving between containers');
       setDeals(prevDeals => {
         return prevDeals.map(deal => {
@@ -329,6 +337,7 @@ const SalesPipeline = ({
     } = event;
     console.log('🏁 DRAG END: Active:', active.id, 'Over:', over?.id);
     setActiveId(null);
+    setIsDraggingToActionZone(false);
     
     if (!over || !active) {
       console.log('🏁 DRAG END: No over target, ending drag');
@@ -347,18 +356,93 @@ const SalesPipeline = ({
       return;
     }
 
-    // Handle action zone drops with new action types
+    // ENHANCED: Handle action zone drops with immediate state updates
     if (overContainer.startsWith('action-')) {
       console.log('🏁 DRAG END: Handling action zone drop:', overContainer);
+      
+      // Create enhanced handlers that update both source data AND deal state immediately
+      const enhancedArchiveAction = (dealId: string) => {
+        const deal = deals.find(d => d.id === dealId);
+        if (!deal) return;
+        
+        // Update source data
+        if (deal.type === 'request') {
+          updateSessionRequest(dealId, { status: 'Archived' });
+        } else if (deal.type === 'quote' && deal.quoteId) {
+          updateSessionQuote(deal.quoteId, { status: 'Archived' });
+        }
+        
+        // IMMEDIATE: Update deal state to remove from pipeline instantly
+        setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
+        
+        toast.success(`Deal archived: ${deal.client}`);
+        
+        if (onDealsChange) {
+          const updatedDeals = deals.filter(d => d.id !== dealId);
+          onDealsChange(updatedDeals);
+        }
+      };
+      
+      const enhancedLostAction = (dealId: string) => {
+        const deal = deals.find(d => d.id === dealId);
+        if (!deal) return;
+        
+        // Update source data
+        if (deal.type === 'request') {
+          updateSessionRequest(dealId, { status: 'Closed Lost' });
+        } else if (deal.type === 'quote' && deal.quoteId) {
+          updateSessionQuote(deal.quoteId, { status: 'Closed Lost' });
+        }
+        
+        // IMMEDIATE: Update deal state to remove from pipeline instantly
+        setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
+        
+        toast.error(`Deal marked as lost: ${deal.client}`);
+        
+        if (onDealsChange) {
+          const updatedDeals = deals.filter(d => d.id !== dealId);
+          onDealsChange(updatedDeals);
+        }
+      };
+      
+      const enhancedWonAction = (dealId: string) => {
+        const deal = deals.find(d => d.id === dealId);
+        if (!deal) return;
+        
+        // Update source data
+        if (deal.type === 'request') {
+          updateSessionRequest(dealId, { status: 'Closed Won' });
+        } else if (deal.type === 'quote' && deal.quoteId) {
+          updateSessionQuote(deal.quoteId, { status: 'Closed Won' });
+        }
+        
+        // Update client status to Active if they're currently a Lead
+        const client = sessionClients.find(c => c.name === deal.client);
+        if (client && client.status === 'Lead') {
+          console.log('Updating client status from Lead to Active:', client.id);
+          updateSessionClient(client.id, { status: 'Active' });
+        }
+        
+        // IMMEDIATE: Update deal state to remove from pipeline instantly
+        setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
+        
+        toast.success(`Deal won: ${deal.client}!`);
+        
+        if (onDealsChange) {
+          const updatedDeals = deals.filter(d => d.id !== dealId);
+          onDealsChange(updatedDeals);
+        }
+      };
+      
       switch (overContainer) {
         case 'action-archive':
-          handleArchiveAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote);
+          enhancedArchiveAction(activeId);
           break;
         case 'action-lost':
-          handleLostAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote);
+          enhancedLostAction(activeId);
           break;
         case 'action-won':
-          handleWonAction(activeId, deals, setDeals, updateSessionRequest, updateSessionQuote, updateSessionClient, sessionClients);
+          enhancedWonAction(activeId);
           break;
       }
       return;
