@@ -47,7 +47,7 @@ const generateOtherDealDate = (): string => {
   return otherDealDate.toISOString();
 };
 
-// Helper function to generate stage entered date that respects time limits
+// FIXED: Helper function to generate stage entered date that respects time limits with specific overdue deals
 const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: string): string => {
   const createdDate = new Date(createdAt);
   const now = new Date();
@@ -255,13 +255,10 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   return assignedStage;
 };
 
-// SIMPLIFIED: Function to determine pipeline stage for standalone quotes
+// RESTORED: Original function to determine pipeline stage for standalone quotes
 const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
   console.log(`\n🔍 STANDALONE QUOTE STAGE ASSIGNMENT: Starting for quote ${quote.id}`);
   console.log(`📋 Quote details: status="${quote.status}", amount=${quote.amount}, clientId="${quote.clientId}", requestId="${quote.requestId || 'NONE'}"`);
-  
-  // SIMPLIFIED VALIDATION: Only check essentials
-  console.log(`✅ VALIDATION: Quote has clientId and amount, proceeding with stage assignment`);
   
   // Check for priority-based Jobber stage matches
   console.log(`🎯 PRIORITY CHECK: Looking for Jobber stage matches for status "${quote.status}"`);
@@ -285,17 +282,9 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
     return null;
   }
   
-  // Check if draft-quote stage exists for fallback
-  const draftQuoteStage = stages.find(s => s.id === JOBBER_STAGE_IDS['Draft Quote']);
-  if (!draftQuoteStage) {
-    console.log(`❌ MISSING STAGE: draft-quote stage not found in available stages`);
-    return null;
-  }
-  
-  // Fallback to "draft-quote" for other valid statuses
-  const fallbackStage = JOBBER_STAGE_IDS['Draft Quote'];
-  console.log(`✅ FALLBACK ASSIGNMENT: Standalone quote ${quote.id} using fallback draft-quote stage for status: ${quote.status}`);
-  return fallbackStage;
+  // RESTORED: Original fallback logic - use new-deals for standalone quotes that don't match Jobber stages
+  console.log(`✅ FALLBACK ASSIGNMENT: Standalone quote ${quote.id} using fallback new-deals stage for status: ${quote.status}`);
+  return 'new-deals';
 };
 
 // SIMPLIFIED: Convert requests to deals for the pipeline
@@ -454,7 +443,7 @@ const createAllDealsFromRequests = (
   return deals;
 };
 
-// FIXED: Comprehensive standalone quote processing with better validation
+// RESTORED: Original comprehensive standalone quote processing
 const createDealsFromStandaloneQuotes = (
   sessionClients: any[] = [], 
   sessionQuotes: any[] = [], 
@@ -512,7 +501,6 @@ const createDealsFromStandaloneQuotes = (
       return false;
     }
     
-    // PHASE 2: Add Defensive Type Handling in Pipeline Logic
     console.log(`💰 AMOUNT VALIDATION: Original amount: ${quote.amount} (type: ${typeof quote.amount})`);
     const numericAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
     console.log(`💰 AMOUNT VALIDATION: Converted amount: ${numericAmount} (type: ${typeof numericAmount})`);
@@ -561,7 +549,6 @@ const createDealsFromStandaloneQuotes = (
     
     console.log(`✅ STAGE ASSIGNED: Quote ${quote.id} will be placed in stage: ${pipelineStage}`);
     
-    // PHASE 2: Ensure proper amount handling in deal creation
     const finalAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
     console.log(`💰 DEAL CREATION: Final amount for deal: ${finalAmount} (type: ${typeof finalAmount})`);
     
