@@ -18,13 +18,51 @@ export const resetToSampleData = () => {
   clearAllClients();
   clearAllQuotes();
   
-  // Reset stages to default state
+  // Reset stages to default state with time limit properties
   const defaultStages = [
-    { id: "new-deals", title: "New Lead", order: 1, isImmutable: true },
-    { id: "contacted", title: "Contacted", order: 2 },
-    { id: "draft-quote", title: "Draft Quote", order: 3, isJobberStage: true },
-    { id: "quote-awaiting-response", title: "Quote Awaiting Response", order: 4, isJobberStage: true },
-    { id: "followup", title: "Followup", order: 5 }
+    { 
+      id: "new-deals", 
+      title: "New Lead", 
+      order: 1, 
+      isImmutable: true,
+      timeLimitEnabled: true,
+      timeLimitDays: 0,
+      timeLimitHours: 3
+    },
+    { 
+      id: "contacted", 
+      title: "Contacted", 
+      order: 2,
+      timeLimitEnabled: true,
+      timeLimitDays: 3,
+      timeLimitHours: 0
+    },
+    { 
+      id: "draft-quote", 
+      title: "Draft Quote", 
+      order: 3, 
+      isJobberStage: true,
+      timeLimitEnabled: true,
+      timeLimitDays: 1,
+      timeLimitHours: 0
+    },
+    { 
+      id: "quote-awaiting-response", 
+      title: "Quote Awaiting Response", 
+      order: 4, 
+      isJobberStage: true,
+      timeLimitEnabled: true,
+      timeLimitDays: 7,
+      timeLimitHours: 0
+    },
+    { 
+      id: "followup", 
+      title: "Followup", 
+      order: 5,
+      timeLimitEnabled: true,
+      timeLimitDays: 7,
+      timeLimitHours: 0
+    }
   ];
   updateStages(defaultStages);
   
