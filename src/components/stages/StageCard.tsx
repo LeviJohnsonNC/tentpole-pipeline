@@ -6,12 +6,14 @@ import { GripVertical, Check, X, Trash2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Stage } from '@/store/stagesStore';
 
 interface StageCardProps {
   stage: Stage;
   onUpdateTitle: (id: string, title: string) => void;
+  onUpdateTimeLimit: (id: string, enabled: boolean, days: number, hours: number) => void;
   onDelete: (id: string) => void;
   canDelete?: boolean;
 }
@@ -19,6 +21,7 @@ interface StageCardProps {
 const StageCard = ({
   stage,
   onUpdateTitle,
+  onUpdateTimeLimit,
   onDelete,
   canDelete = true
 }: StageCardProps) => {
@@ -64,11 +67,24 @@ const StageCard = ({
   };
 
   const handleEditClick = () => {
-    // Prevent editing of immutable stages AND Jobber stages
     if (stage.isImmutable || stage.isJobberStage) {
       return;
     }
     setIsEditing(true);
+  };
+
+  const handleTimeLimitToggle = (enabled: boolean) => {
+    onUpdateTimeLimit(stage.id, enabled, stage.timeLimitDays, stage.timeLimitHours);
+  };
+
+  const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const days = Math.max(0, parseInt(e.target.value) || 0);
+    onUpdateTimeLimit(stage.id, stage.timeLimitEnabled, days, stage.timeLimitHours);
+  };
+
+  const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const hours = Math.max(0, Math.min(23, parseInt(e.target.value) || 0));
+    onUpdateTimeLimit(stage.id, stage.timeLimitEnabled, stage.timeLimitDays, hours);
   };
 
   const canEdit = !stage.isImmutable && !stage.isJobberStage;
@@ -77,10 +93,10 @@ const StageCard = ({
     <Card 
       ref={setNodeRef} 
       style={style} 
-      className={`relative h-48 ${isDragging ? 'opacity-50' : ''} ${stage.isJobberStage ? 'bg-gray-100 border-gray-300' : 'bg-white'} ${stage.isImmutable ? 'bg-gray-50 border-gray-300' : ''}`}
+      className={`relative h-64 ${isDragging ? 'opacity-50' : ''} ${stage.isJobberStage ? 'bg-gray-100 border-gray-300' : 'bg-white'} ${stage.isImmutable ? 'bg-gray-50 border-gray-300' : ''}`}
     >
       <CardContent className="p-4 h-full flex flex-col">
-        <div className="flex items-start space-x-2">
+        <div className="flex items-start space-x-2 mb-4">
           <div 
             {...attributes} 
             {...listeners} 
@@ -157,9 +173,48 @@ const StageCard = ({
           </div>
         </div>
         
-        {/* Empty space for future content */}
-        <div className="flex-1 mt-4">
-          {/* Content will be added here later */}
+        {/* Time Limit Controls */}
+        <div className="flex-1 space-y-3">
+          <div className="border-t border-gray-200 pt-3">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-xs font-medium text-gray-700">Time limit</label>
+              <Switch
+                checked={stage.timeLimitEnabled}
+                onCheckedChange={handleTimeLimitToggle}
+                className="scale-75"
+              />
+            </div>
+            
+            {stage.timeLimitEnabled && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Days</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={stage.timeLimitDays}
+                      onChange={handleDaysChange}
+                      className="h-7 text-xs"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Hours</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="23"
+                      value={stage.timeLimitHours}
+                      onChange={handleHoursChange}
+                      className="h-7 text-xs"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

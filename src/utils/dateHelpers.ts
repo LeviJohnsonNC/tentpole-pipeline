@@ -45,3 +45,33 @@ export const calculateDaysAndHours = (stageEnteredDate: string): { days: number;
     return { days: 0, hours: 0 };
   }
 };
+
+export const calculateTotalTimeLimitHours = (days: number, hours: number): number => {
+  return days * 24 + hours;
+};
+
+export const isOverTimeLimit = (stageEnteredDate: string, timeLimitDays: number, timeLimitHours: number): boolean => {
+  try {
+    const enteredDate = parseISO(stageEnteredDate);
+    const now = new Date();
+    const hoursInStage = differenceInHours(now, enteredDate);
+    const timeLimitTotalHours = calculateTotalTimeLimitHours(timeLimitDays, timeLimitHours);
+    return hoursInStage > timeLimitTotalHours;
+  } catch (error) {
+    console.error('Error checking time limit:', error);
+    return false;
+  }
+};
+
+export const getTimeExceededHours = (stageEnteredDate: string, timeLimitDays: number, timeLimitHours: number): number => {
+  try {
+    const enteredDate = parseISO(stageEnteredDate);
+    const now = new Date();
+    const hoursInStage = differenceInHours(now, enteredDate);
+    const timeLimitTotalHours = calculateTotalTimeLimitHours(timeLimitDays, timeLimitHours);
+    return Math.max(0, hoursInStage - timeLimitTotalHours);
+  } catch (error) {
+    console.error('Error calculating time exceeded:', error);
+    return 0;
+  }
+};

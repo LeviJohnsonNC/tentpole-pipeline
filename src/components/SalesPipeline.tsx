@@ -592,7 +592,15 @@ const SalesPipeline = ({
               return <div key={stage.id} style={{
                 width: `${columnWidth}px`
               }} className="flex-shrink-0">
-                      <PipelineColumn id={stage.id} title={stage.title} deals={columnDeals} count={columnDeals.length} totalValue={getColumnTotalValue(stage.id)} fixedHeight={fixedColumnHeight} />
+                      <PipelineColumn 
+                        id={stage.id} 
+                        title={stage.title} 
+                        deals={columnDeals} 
+                        count={columnDeals.length} 
+                        totalValue={getColumnTotalValue(stage.id)} 
+                        fixedHeight={fixedColumnHeight}
+                        stage={stage}
+                      />
                     </div>;
             })}
               </div>
@@ -603,7 +611,16 @@ const SalesPipeline = ({
         }}>
               {stages.sort((a, b) => a.order - b.order).map(stage => {
             const columnDeals = getColumnDeals(stage.id);
-            return <PipelineColumn key={stage.id} id={stage.id} title={stage.title} deals={columnDeals} count={columnDeals.length} totalValue={getColumnTotalValue(stage.id)} fixedHeight={fixedColumnHeight} />;
+            return <PipelineColumn 
+              key={stage.id} 
+              id={stage.id} 
+              title={stage.title} 
+              deals={columnDeals} 
+              count={columnDeals.length} 
+              totalValue={getColumnTotalValue(stage.id)} 
+              fixedHeight={fixedColumnHeight}
+              stage={stage}
+            />;
           })}
             </div>}
         </div>

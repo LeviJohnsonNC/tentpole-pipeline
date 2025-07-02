@@ -18,6 +18,7 @@ const EditStages = () => {
   const {
     stages,
     updateStageTitle,
+    updateStageTimeLimit,
     reorderStages,
     addCustomStage,
     addJobberStage,
@@ -26,7 +27,7 @@ const EditStages = () => {
   const [localStages, setLocalStages] = useState<Stage[]>(stages);
   const [showJobberSelector, setShowJobberSelector] = useState(false);
 
-  // Responsive columns setup
+  // Responsive columns setup - updated for taller cards
   const containerRef = useRef<HTMLDivElement>(null);
   const { columnWidth, shouldUseHorizontalScroll } = useResponsiveColumns({
     containerRef,
@@ -54,14 +55,12 @@ const EditStages = () => {
       const oldIndex = localStages.findIndex(stage => stage.id === active.id);
       const newIndex = localStages.findIndex(stage => stage.id === over.id);
 
-      // Prevent moving immutable stages
       const activeStage = localStages[oldIndex];
       if (activeStage?.isImmutable) {
         toast.error("Cannot reorder locked stages");
         return;
       }
 
-      // Prevent moving other stages to the first position if "New Lead" exists
       const hasImmutableFirst = localStages.some(stage => stage.isImmutable && stage.id === "new-deals");
       if (hasImmutableFirst && newIndex === 0) {
         toast.error("Cannot move stages before the locked 'New Lead' stage");
@@ -84,6 +83,15 @@ const EditStages = () => {
       title
     } : stage));
     updateStageTitle(id, title);
+  };
+
+  const handleTimeLimitChange = (id: string, enabled: boolean, days: number, hours: number) => {
+    setLocalStages(prev => prev.map(stage => 
+      stage.id === id 
+        ? { ...stage, timeLimitEnabled: enabled, timeLimitDays: days, timeLimitHours: hours }
+        : stage
+    ));
+    updateStageTimeLimit(id, enabled, days, hours);
   };
 
   const handleDelete = (id: string) => {
@@ -131,7 +139,7 @@ const EditStages = () => {
               <h1 className="text-2xl font-semibold text-gray-900 mb-2">Edit Pipeline Stages</h1>
               <p className="text-gray-600">
                 Customize your sales pipeline by adding, removing, or reordering stages. 
-                Locked stages cannot be modified and maintain their position.
+                Set time limits to track deal progress and identify bottlenecks.
               </p>
             </div>
 
@@ -146,7 +154,8 @@ const EditStages = () => {
                           <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
                             <StageCard 
                               stage={stage} 
-                              onUpdateTitle={handleTitleChange} 
+                              onUpdateTitle={handleTitleChange}
+                              onUpdateTimeLimit={handleTimeLimitChange}
                               onDelete={handleDelete} 
                               canDelete={!stage.isImmutable} 
                             />
@@ -167,7 +176,8 @@ const EditStages = () => {
                         <StageCard 
                           key={stage.id}
                           stage={stage} 
-                          onUpdateTitle={handleTitleChange} 
+                          onUpdateTitle={handleTitleChange}
+                          onUpdateTimeLimit={handleTimeLimitChange}
                           onDelete={handleDelete} 
                           canDelete={!stage.isImmutable} 
                         />

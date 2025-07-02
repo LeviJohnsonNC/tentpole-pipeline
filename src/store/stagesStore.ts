@@ -6,13 +6,17 @@ export interface Stage {
   title: string;
   order: number;
   isJobberStage?: boolean;
-  isImmutable?: boolean; // New field to mark stages that cannot be modified
+  isImmutable?: boolean;
+  timeLimitEnabled: boolean;
+  timeLimitDays: number;
+  timeLimitHours: number;
 }
 
 interface StagesState {
   stages: Stage[];
   updateStages: (stages: Stage[]) => void;
   updateStageTitle: (id: string, title: string) => void;
+  updateStageTimeLimit: (id: string, enabled: boolean, days: number, hours: number) => void;
   reorderStages: (reorderedStages: Stage[]) => void;
   addCustomStage: () => void;
   addJobberStage: (title: string) => void;
@@ -21,11 +25,49 @@ interface StagesState {
 }
 
 const defaultStages: Stage[] = [
-  { id: "new-deals", title: "New Deals", order: 1, isImmutable: true }, // Changed title from "New Lead" to "New Deals"
-  { id: "contacted", title: "Contacted", order: 2 },
-  { id: "draft-quote", title: "Draft Quote", order: 3, isJobberStage: true },
-  { id: "quote-awaiting-response", title: "Quote Awaiting Response", order: 4, isJobberStage: true },
-  { id: "followup", title: "Followup", order: 5 }
+  { 
+    id: "new-deals", 
+    title: "New Deals", 
+    order: 1, 
+    isImmutable: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 0,
+    timeLimitHours: 3
+  },
+  { 
+    id: "contacted", 
+    title: "Contacted", 
+    order: 2,
+    timeLimitEnabled: true,
+    timeLimitDays: 3,
+    timeLimitHours: 0
+  },
+  { 
+    id: "draft-quote", 
+    title: "Draft Quote", 
+    order: 3, 
+    isJobberStage: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 1,
+    timeLimitHours: 0
+  },
+  { 
+    id: "quote-awaiting-response", 
+    title: "Quote Awaiting Response", 
+    order: 4, 
+    isJobberStage: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 7,
+    timeLimitHours: 0
+  },
+  { 
+    id: "followup", 
+    title: "Followup", 
+    order: 5,
+    timeLimitEnabled: true,
+    timeLimitDays: 7,
+    timeLimitHours: 0
+  }
 ];
 
 export const useStagesStore = create<StagesState>((set, get) => ({
@@ -34,7 +76,6 @@ export const useStagesStore = create<StagesState>((set, get) => ({
   
   updateStageTitle: (id, title) => set((state) => ({
     stages: state.stages.map(stage => {
-      // Prevent updating immutable stages
       if (stage.isImmutable && stage.id === id) {
         console.warn(`Cannot update title of immutable stage: ${id}`);
         return stage;
@@ -42,18 +83,23 @@ export const useStagesStore = create<StagesState>((set, get) => ({
       return stage.id === id ? { ...stage, title } : stage;
     })
   })),
+
+  updateStageTimeLimit: (id, enabled, days, hours) => set((state) => ({
+    stages: state.stages.map(stage => 
+      stage.id === id 
+        ? { ...stage, timeLimitEnabled: enabled, timeLimitDays: days, timeLimitHours: hours }
+        : stage
+    )
+  })),
   
   reorderStages: (reorderedStages) => {
-    // Ensure immutable stages maintain their position
     const stagesWithUpdatedOrder = reorderedStages.map((stage, index) => {
       if (stage.isImmutable && stage.id === "new-deals") {
-        // Keep "New Lead" at position 1
         return { ...stage, order: 1 };
       }
       return { ...stage, order: index + 1 };
     });
     
-    // Sort to ensure "New Lead" is always first
     const sortedStages = stagesWithUpdatedOrder.sort((a, b) => {
       if (a.isImmutable && a.id === "new-deals") return -1;
       if (b.isImmutable && b.id === "new-deals") return 1;
@@ -69,7 +115,10 @@ export const useStagesStore = create<StagesState>((set, get) => ({
     const newStage: Stage = {
       id: newStageId,
       title: "New Stage",
-      order: newOrder
+      order: newOrder,
+      timeLimitEnabled: true,
+      timeLimitDays: 2,
+      timeLimitHours: 0
     };
     return { stages: [...state.stages, newStage] };
   }),
@@ -81,13 +130,15 @@ export const useStagesStore = create<StagesState>((set, get) => ({
       id: newStageId,
       title,
       order: newOrder,
-      isJobberStage: true
+      isJobberStage: true,
+      timeLimitEnabled: true,
+      timeLimitDays: 2,
+      timeLimitHours: 0
     };
     return { stages: [...state.stages, newStage] };
   }),
   
   deleteStage: (id) => set((state) => {
-    // Prevent deletion of immutable stages
     const stageToDelete = state.stages.find(stage => stage.id === id);
     if (stageToDelete?.isImmutable) {
       console.warn(`Cannot delete immutable stage: ${id}`);

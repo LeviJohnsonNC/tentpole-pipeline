@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -5,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useStagesStore } from "@/store/stagesStore";
+import { Stage } from "@/store/stagesStore";
 import DealCard from './DealCard';
 
 interface Deal {
@@ -28,6 +29,7 @@ interface PipelineColumnProps {
   count: number;
   totalValue: string;
   fixedHeight: number;
+  stage: Stage;
 }
 
 const PipelineColumn = ({
@@ -36,7 +38,8 @@ const PipelineColumn = ({
   deals,
   count,
   totalValue,
-  fixedHeight
+  fixedHeight,
+  stage
 }: PipelineColumnProps) => {
   const {
     setNodeRef,
@@ -44,10 +47,7 @@ const PipelineColumn = ({
   } = useDroppable({
     id
   });
-  const {
-    stages
-  } = useStagesStore();
-  const stage = stages.find(s => s.id === id);
+
   const isJobberStage = stage?.isJobberStage;
 
   // Don't show amount for New Deals, Contacted, and assessment-related stages
@@ -106,7 +106,7 @@ const PipelineColumn = ({
       >
         <SortableContext items={dealIds} strategy={verticalListSortingStrategy}>
           {deals.map(deal => (
-            <DealCard key={deal.id} deal={deal} />
+            <DealCard key={deal.id} deal={deal} stage={stage} />
           ))}
         </SortableContext>
         
