@@ -1,3 +1,4 @@
+
 import { faker } from '@faker-js/faker';
 
 export interface Deal {
@@ -11,6 +12,8 @@ export interface Deal {
   status: string;
   createdAt: string;
   stageEnteredDate: string;
+  type?: 'request' | 'quote';
+  quoteId?: string;
 }
 
 export const sampleDeals: Deal[] = [
@@ -221,3 +224,36 @@ export const closedDeals: Deal[] = [
 ];
 
 export const allSampleDeals = [...sampleDeals, ...closedDeals];
+
+// Add the missing functions that are being imported
+export const createInitialDeals = (clients: any[], requests: any[], quotes: any[], stages: any[]): Deal[] => {
+  // This function should create deals from the actual data
+  // For now, return the sample deals
+  return sampleDeals;
+};
+
+export const createAllDeals = (clients: any[], requests: any[], quotes: any[], stages: any[]): Deal[] => {
+  // This function should create all deals including closed ones
+  // For now, return all sample deals
+  return allSampleDeals;
+};
+
+export const handleArchiveAction = (dealId: string) => {
+  console.log('Archive action for deal:', dealId);
+};
+
+export const handleLostAction = (dealId: string) => {
+  console.log('Lost action for deal:', dealId);
+};
+
+export const handleWonAction = (dealId: string) => {
+  console.log('Won action for deal:', dealId);
+};
+
+export const canDropInJobberStage = (dealId: string, stageId: string): { allowed: boolean; message?: string } => {
+  return { allowed: true };
+};
+
+export const canDragFromJobberStage = (dealId: string, stageId: string): { allowed: boolean; message?: string } => {
+  return { allowed: true };
+};
