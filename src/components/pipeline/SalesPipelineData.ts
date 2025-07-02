@@ -1,4 +1,3 @@
-
 import { getRequestsWithClientInfo, RequestWithClient, getQuotesWithClientInfo, QuoteWithClient, getAllQuotes } from '@/utils/dataHelpers';
 import { toast } from 'sonner';
 
@@ -48,15 +47,69 @@ const generateOtherDealDate = (): string => {
   return otherDealDate.toISOString();
 };
 
-// Helper function to generate stage entered date (between creation and now)
-const generateStageEnteredDate = (createdAt: string): string => {
+// Helper function to generate stage entered date that respects time limits
+const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: string): string => {
   const createdDate = new Date(createdAt);
   const now = new Date();
-  const timeDiff = now.getTime() - createdDate.getTime();
-  // Stage entered date should be between creation date and now, but closer to creation
-  const stageTime = Math.random() * (timeDiff * 0.7); // Use 70% of time range for more realistic staging
-  const stageDate = new Date(createdDate.getTime() + stageTime);
-  return stageDate.toISOString();
+  
+  // Define which specific deals should be overdue
+  const overdueDeals = [
+    { id: 'request-10', stage: 'followup' },
+    { id: 'request-4', stage: 'quote-awaiting-response' }
+  ];
+  
+  // Check if this deal should be overdue
+  const shouldBeOverdue = overdueDeals.some(od => od.id === dealId && od.stage === stageId);
+  
+  if (shouldBeOverdue) {
+    // Make this deal overdue by setting stage entered date well before the time limit
+    let daysOverdue: number;
+    if (stageId === 'followup') {
+      daysOverdue = 10; // 10 days ago (limit is 7 days)
+    } else if (stageId === 'quote-awaiting-response') {
+      daysOverdue = 10; // 10 days ago (limit is 7 days)
+    } else {
+      daysOverdue = 5; // Default overdue amount
+    }
+    
+    const overdueDate = new Date(now.getTime() - (daysOverdue * 24 * 60 * 60 * 1000));
+    console.log(`Making deal ${dealId} in stage ${stageId} overdue: ${overdueDate.toISOString()}`);
+    return overdueDate.toISOString();
+  }
+  
+  // For all other deals, ensure they are within time limits
+  let maxDaysInStage: number;
+  
+  // Set conservative limits to ensure deals stay within bounds
+  switch (stageId) {
+    case 'new-deals':
+      maxDaysInStage = 0.1; // Stay well within 3 hours (convert to days)
+      break;
+    case 'contacted':
+      maxDaysInStage = 2; // Stay within 3 day limit
+      break;
+    case 'draft-quote':
+      maxDaysInStage = 0.8; // Stay within 1 day limit
+      break;
+    case 'quote-awaiting-response':
+      maxDaysInStage = 5; // Stay within 7 day limit
+      break;
+    case 'followup':
+      maxDaysInStage = 5; // Stay within 7 day limit
+      break;
+    default:
+      maxDaysInStage = 1; // Conservative default
+  }
+  
+  // Generate a random time within the safe limit
+  const maxTimeInStage = maxDaysInStage * 24 * 60 * 60 * 1000; // Convert to milliseconds
+  const randomTimeInStage = Math.random() * maxTimeInStage;
+  const stageEnteredDate = new Date(now.getTime() - randomTimeInStage);
+  
+  // Ensure stage entered date is not before creation date
+  const finalStageDate = stageEnteredDate < createdDate ? createdDate : stageEnteredDate;
+  
+  return finalStageDate.toISOString();
 };
 
 // NEW: Helper to determine if a quote was just created (within last 5 minutes)
@@ -182,12 +235,12 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
     const distributionMapping: Record<string, string> = {
       'request-1': 'new-deals',
       'request-2': 'new-deals', 
-      'request-4': 'new-deals',
+      'request-4': 'quote-awaiting-response', // This one will be overdue
       'request-6': 'new-deals',
       'request-7': 'contacted',
       'request-8': 'contacted',
       'request-9': 'contacted',
-      'request-10': 'followup',
+      'request-10': 'followup', // This one will be overdue
       'request-11': 'followup',
       'request-12': 'followup'
     };
@@ -289,7 +342,7 @@ const createDealsFromRequests = (
     const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
     console.log(`Request ${request.id} final amount:`, amount);
     
-    // FIXED: Generate realistic dates based on pipeline stage, but use current time for recent quotes
+    // UPDATED: Generate realistic dates using the improved function
     const isNewDeal = pipelineStage === 'new-deals';
     let createdAt: string;
     let stageEnteredDate: string;
@@ -302,7 +355,7 @@ const createDealsFromRequests = (
     } else {
       // Use existing logic for older deals
       createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
-      stageEnteredDate = generateStageEnteredDate(createdAt);
+      stageEnteredDate = generateStageEnteredDate(createdAt, pipelineStage, request.id);
     }
     
     return {
@@ -365,7 +418,7 @@ const createAllDealsFromRequests = (
     const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
     console.log(`Request ${request.id} final amount:`, amount);
     
-    // FIXED: Generate realistic dates
+    // UPDATED: Generate realistic dates using the improved function
     const isNewDeal = finalStatus === 'new-deals';
     let createdAt: string;
     let stageEnteredDate: string;
@@ -378,7 +431,7 @@ const createAllDealsFromRequests = (
     } else {
       // Use existing logic for older deals
       createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
-      stageEnteredDate = generateStageEnteredDate(createdAt);
+      stageEnteredDate = generateStageEnteredDate(createdAt, finalStatus, request.id);
     }
     
     return {
@@ -512,7 +565,7 @@ const createDealsFromStandaloneQuotes = (
     const finalAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
     console.log(`💰 DEAL CREATION: Final amount for deal: ${finalAmount} (type: ${typeof finalAmount})`);
     
-    // FIXED: Generate realistic dates, but use current time for recently created quotes
+    // UPDATED: Generate realistic dates using the improved function
     let createdAt: string;
     let stageEnteredDate: string;
     
@@ -523,7 +576,7 @@ const createDealsFromStandaloneQuotes = (
     } else {
       console.log(`🕐 OLDER QUOTE: Using generated timestamps for quote ${quote.id}`);
       createdAt = generateOtherDealDate();
-      stageEnteredDate = generateStageEnteredDate(createdAt);
+      stageEnteredDate = generateStageEnteredDate(createdAt, pipelineStage, `quote-${quote.id}`);
     }
     
     // Enhanced validation for deal creation
@@ -668,7 +721,7 @@ const createAllDealsFromStandaloneQuotes = (
     const finalAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
     console.log(`💰 DEAL CREATION: Final amount for deal: ${finalAmount} (type: ${typeof finalAmount})`);
     
-    // FIXED: Generate realistic dates, but use current time for recently created quotes
+    // UPDATED: Generate realistic dates using the improved function
     let createdAt: string;
     let stageEnteredDate: string;
     
@@ -679,7 +732,7 @@ const createAllDealsFromStandaloneQuotes = (
     } else {
       console.log(`🕐 OLDER QUOTE: Using generated timestamps for quote ${quote.id}`);
       createdAt = generateOtherDealDate();
-      stageEnteredDate = generateStageEnteredDate(createdAt);
+      stageEnteredDate = generateStageEnteredDate(createdAt, finalStatus, `quote-${quote.id}`);
     }
     
     // Enhanced validation for deal creation
