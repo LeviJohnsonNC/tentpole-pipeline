@@ -4,7 +4,6 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Lock } from 'lucide-react';
 import DealCard from './DealCard';
 import { Stage } from '@/store/stagesStore';
 
@@ -89,16 +88,6 @@ const PipelineColumn = ({
       style={getColumnStyles()}
       className={getColumnClasses()}
     >
-      {/* Automated Stage Indicator */}
-      {isJobberStage && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs">
-            <Lock className="h-3 w-3" />
-            <span>Auto</span>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className={`p-3 border-b flex flex-col h-20 ${
         isJobberStage 
@@ -120,11 +109,6 @@ const PipelineColumn = ({
         }`}>
           {totalValue}
         </p>
-        {isJobberStage && (
-          <p className="text-xs text-gray-500 mt-1 italic">
-            Automated by Jobber
-          </p>
-        )}
       </div>
       
       {/* Deals */}
