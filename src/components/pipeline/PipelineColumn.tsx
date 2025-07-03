@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -57,9 +56,6 @@ const PipelineColumn = ({
       return {
         ...baseStyles,
         backgroundColor: isOver ? '#f3f4f6' : '#f9fafb',
-        borderColor: '#d1d5db',
-        borderStyle: 'dashed',
-        borderWidth: '2px',
       };
     } else {
       // Manual stage styling
@@ -72,7 +68,7 @@ const PipelineColumn = ({
 
   const getColumnClasses = () => {
     if (isJobberStage) {
-      return `bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-300 flex flex-col relative ${
+      return `bg-gray-50/50 rounded-lg border-2 border-solid border-gray-400 flex flex-col relative ${
         isOver ? 'ring-1 ring-gray-400 bg-gray-100/50' : ''
       }`;
     } else {
@@ -94,7 +90,7 @@ const PipelineColumn = ({
       {/* Header */}
       <div className={`p-3 border-b flex flex-col h-20 ${
         isJobberStage 
-          ? 'border-gray-300 bg-gray-100/50 rounded-t-lg' 
+          ? 'border-gray-400 bg-gray-100/50 rounded-t-lg' 
           : 'border-gray-200 bg-white rounded-t-lg'
       }`}>
         <div className="flex items-center justify-between">
