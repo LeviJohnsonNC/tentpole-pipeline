@@ -45,21 +45,18 @@ const PipelineColumn = ({
     id: id,
   });
 
-  const droppableStyle = {
+  const combinedStyle = {
+    height: `${fixedHeight}px`,
     backgroundColor: isOver ? 'lightblue' : undefined,
   };
 
   return (
     <div
       ref={setNodeRef}
-      style={droppableStyle}
+      style={combinedStyle}
       className={`bg-gray-50 rounded-lg border border-gray-200 flex flex-col ${
         isOver ? 'ring-2 ring-blue-300 bg-blue-50' : ''
       }`}
-      style={{
-        height: `${fixedHeight}px`,
-        ...droppableStyle
-      }}
     >
       {/* Header */}
       <div className="p-3 border-b border-gray-200 bg-white rounded-t-lg">
