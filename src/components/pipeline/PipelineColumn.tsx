@@ -100,18 +100,18 @@ const PipelineColumn = ({
       )}
 
       {/* Header */}
-      <div className={`p-3 border-b flex flex-col ${
+      <div className={`p-3 border-b flex flex-col h-20 ${
         isJobberStage 
           ? 'border-gray-300 bg-gray-100/50 rounded-t-lg' 
           : 'border-gray-200 bg-white rounded-t-lg'
       }`}>
         <div className="flex items-center justify-between mb-1">
-          <h3 className={`font-medium text-sm ${
+          <h3 className={`font-medium text-sm truncate pr-2 ${
             isJobberStage ? 'text-gray-700' : 'text-gray-900'
-          }`}>
+          }`} title={title}>
             {title}
           </h3>
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-xs flex-shrink-0">
             {count}
           </Badge>
         </div>
