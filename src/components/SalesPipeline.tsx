@@ -256,7 +256,7 @@ const SalesPipeline = ({
     return container;
   };
 
-  // Calculate fixed height based on original deals array
+  // Calculate fixed height based on original deals array - INCREASED HEIGHT
   const fixedColumnHeight = useMemo(() => {
     const getOriginalColumnDeals = (columnId: string) => {
       return deals.filter(deal => deal.status === columnId);
@@ -265,7 +265,7 @@ const SalesPipeline = ({
     const headerHeight = 80;
     const cardHeight = 65;
     const cardSpacing = 8;
-    const bufferSpace = 20;
+    const bufferSpace = 85; // Increased from 20 to 85 to fit one more card
     const totalSpacing = maxDeals > 1 ? (maxDeals - 1) * cardSpacing : 0;
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
