@@ -21,6 +21,7 @@ interface SalesPipelineProps {
   onDealsChange?: (deals: Deal[]) => void;
   onAllDealsChange?: (allDeals: Deal[]) => void;
   searchTerm?: string;
+  onDealClick?: (dealId: string) => void;
 }
 
 // Helper function to check if a stage ID is a Jobber stage
@@ -39,7 +40,8 @@ const isJobberStageId = (stageId: string): boolean => {
 const SalesPipeline = ({
   onDealsChange,
   onAllDealsChange,
-  searchTerm = ''
+  searchTerm = '',
+  onDealClick
 }: SalesPipelineProps) => {
   const {
     sessionClients,
@@ -600,6 +602,7 @@ const SalesPipeline = ({
                         totalValue={getColumnTotalValue(stage.id)} 
                         fixedHeight={fixedColumnHeight}
                         stage={stage}
+                        onDealClick={onDealClick}
                       />
                     </div>;
             })}
@@ -620,6 +623,7 @@ const SalesPipeline = ({
               totalValue={getColumnTotalValue(stage.id)} 
               fixedHeight={fixedColumnHeight}
               stage={stage}
+              onDealClick={onDealClick}
             />;
           })}
             </div>}

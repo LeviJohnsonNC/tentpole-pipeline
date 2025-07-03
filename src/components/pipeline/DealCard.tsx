@@ -24,12 +24,14 @@ interface DealCardProps {
   deal: Deal;
   stage?: Stage;
   isDragging?: boolean;
+  onDealClick?: (dealId: string) => void;
 }
 
 const DealCard = ({
   deal,
   stage,
-  isDragging
+  isDragging,
+  onDealClick
 }: DealCardProps) => {
   const {
     attributes,
@@ -37,7 +39,8 @@ const DealCard = ({
     setNodeRef,
     transform,
     transition,
-    isDragging: isSortableDragging
+    isDragging: isSortableDragging,
+    active
   } = useSortable({
     id: deal.id
   });
@@ -67,6 +70,23 @@ const DealCard = ({
   const isOverLimit = stage?.timeLimitEnabled && 
     isOverTimeLimit(deal.stageEnteredDate, stage.timeLimitDays, stage.timeLimitHours);
 
+  // Handle card click - only if not actively dragging
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent click if we're in the middle of a drag operation
+    if (active && active.id === deal.id) {
+      return;
+    }
+    
+    // Prevent click if onDealClick is not provided
+    if (!onDealClick) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    onDealClick(deal.id);
+  };
+
   return (
     <TooltipPrimitive.Provider delayDuration={300}>
       <div 
@@ -74,6 +94,7 @@ const DealCard = ({
         style={style} 
         {...attributes} 
         {...listeners} 
+        onClick={handleCardClick}
         className={`
           bg-white border-2 rounded-lg p-2 shadow-sm 
           cursor-grab active:cursor-grabbing
@@ -82,6 +103,7 @@ const DealCard = ({
           ${isBeingDragged ? 'shadow-lg scale-105 rotate-1 opacity-90 z-50 ring-2 ring-blue-200' : 'shadow-sm'}
           ${isDragging ? 'pointer-events-none' : ''}
           ${isOverLimit ? 'border-red-500' : 'border-gray-200'}
+          ${onDealClick && !isBeingDragged ? 'hover:cursor-pointer' : ''}
         `}
       >
         {/* Main content */}

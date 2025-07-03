@@ -6,6 +6,7 @@ import CommonHeader from "@/components/CommonHeader";
 import Sidebar from "@/components/Sidebar";
 import SalesPipeline from "@/components/SalesPipeline";
 import PipelineInsights from "@/components/insights/PipelineInsights";
+import DealDetailSidebar from "@/components/dealDetail/DealDetailSidebar";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Deal } from "@/components/pipeline/SalesPipelineData";
@@ -22,6 +23,10 @@ const Sales = () => {
   const [pipelineView, setPipelineView] = useState<'kanban' | 'list'>('kanban');
   const [selectedStage, setSelectedStage] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  
+  // Add deal sidebar state
+  const [isDealSidebarOpen, setIsDealSidebarOpen] = useState(false);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
   const handleEditStages = () => {
     navigate('/requests/edit-stages');
@@ -49,6 +54,16 @@ const Sales = () => {
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
+  };
+
+  const handleDealClick = (dealId: string) => {
+    setSelectedDealId(dealId);
+    setIsDealSidebarOpen(true);
+  };
+
+  const handleCloseDealSidebar = () => {
+    setIsDealSidebarOpen(false);
+    setSelectedDealId(null);
   };
 
   // Filter deals based on selected stage and search term - use allDeals for list view
@@ -145,7 +160,8 @@ const Sales = () => {
                   <SalesPipeline 
                     onDealsChange={handleDealsChange} 
                     onAllDealsChange={handleAllDealsChange}
-                    searchTerm={searchTerm} 
+                    searchTerm={searchTerm}
+                    onDealClick={handleDealClick}
                   />
                 </div>
               </div>
@@ -159,6 +175,13 @@ const Sales = () => {
       <PipelineInsights 
         isOpen={isInsightsOpen}
         onClose={handleCloseInsights}
+        deals={pipelineView === 'list' ? allDeals : deals}
+      />
+      
+      <DealDetailSidebar
+        isOpen={isDealSidebarOpen}
+        onClose={handleCloseDealSidebar}
+        selectedDealId={selectedDealId}
         deals={pipelineView === 'list' ? allDeals : deals}
       />
     </SidebarProvider>
