@@ -92,7 +92,7 @@ const PipelineColumn = ({
       className={getColumnClasses()}
     >
       {/* Header */}
-      <div className={`p-3 border-b flex flex-col justify-center h-20 ${
+      <div className={`p-3 border-b flex flex-col h-20 ${
         isJobberStage 
           ? 'border-gray-300 bg-gray-100/50 rounded-t-lg' 
           : 'border-gray-200 bg-white rounded-t-lg'
@@ -107,11 +107,13 @@ const PipelineColumn = ({
             {count}
           </Badge>
         </div>
-        {shouldShowAmount && (
-          <p className="text-xs font-medium text-green-600 mt-1">
-            {totalValue}
-          </p>
-        )}
+        <div className="mt-1 h-4 flex items-start">
+          {shouldShowAmount && (
+            <p className="text-xs font-medium text-green-600">
+              {totalValue}
+            </p>
+          )}
+        </div>
       </div>
       
       {/* Deals */}
