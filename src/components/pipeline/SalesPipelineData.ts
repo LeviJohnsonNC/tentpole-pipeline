@@ -378,18 +378,32 @@ const createAllDealsFromRequests = (
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
   console.log('Requests with client info:', requestsWithClients.length);
   
-  // Include all requests except archived ones
-  const allRequests = requestsWithClients.filter(request => {
+  // ALIGNED: Use same filtering logic as createDealsFromRequests for active deals
+  const activeRequests = requestsWithClients.filter(request => {
     console.log(`Request ${request.id} has status: ${request.status}`);
-    // Only exclude archived requests from list view
-    return request.status !== 'Archived';
+    // Include requests with statuses that should appear in pipeline
+    return ['New', 'Assessment complete', 'Overdue', 'Unscheduled'].includes(request.status) &&
+           !['Archived', 'Closed Lost', 'Closed Won'].includes(request.status);
   });
-  console.log('All requests for list view:', allRequests.length);
+  
+  // SEPARATE: Also get explicitly closed deals for list view reporting
+  const closedRequests = requestsWithClients.filter(request => {
+    return ['Closed Won', 'Closed Lost'].includes(request.status);
+  });
+  
+  const allRequests = [...activeRequests, ...closedRequests];
+  console.log('Active requests for list view:', activeRequests.length, 'Closed requests:', closedRequests.length, 'Total:', allRequests.length);
   
   const deals = allRequests.map((request) => {
     // Find the newest quote for this request
     const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
     console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none', 'amount:', newestQuote?.amount);
+    
+    // ALIGNED: Apply same exclusion logic for approved/converted quotes
+    if (newestQuote && (newestQuote.status === 'Approved' || newestQuote.status === 'Converted')) {
+      console.log(`Request ${request.id} EXCLUDED from list - newest quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
+      return null; // This ensures the deal won't appear in the list
+    }
     
     // For closed won/lost deals, use the request status directly
     let finalStatus: string = request.status;
@@ -437,7 +451,7 @@ const createAllDealsFromRequests = (
       createdAt,
       stageEnteredDate
     };
-  });
+  }).filter(Boolean); // Remove null entries
   
   console.log('Final ALL deals from requests:', deals.length);
   return deals;
