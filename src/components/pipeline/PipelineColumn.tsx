@@ -82,6 +82,9 @@ const PipelineColumn = ({
     }
   };
 
+  // Don't show amount if it's $0
+  const shouldShowAmount = totalValue !== '$0';
+
   return (
     <div
       ref={setNodeRef}
@@ -89,12 +92,12 @@ const PipelineColumn = ({
       className={getColumnClasses()}
     >
       {/* Header */}
-      <div className={`p-3 border-b flex flex-col h-20 ${
+      <div className={`p-3 border-b flex flex-col justify-center h-20 ${
         isJobberStage 
           ? 'border-gray-300 bg-gray-100/50 rounded-t-lg' 
           : 'border-gray-200 bg-white rounded-t-lg'
       }`}>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between">
           <h3 className={`font-medium text-sm truncate pr-2 ${
             isJobberStage ? 'text-gray-700' : 'text-gray-900'
           }`} title={title}>
@@ -104,11 +107,11 @@ const PipelineColumn = ({
             {count}
           </Badge>
         </div>
-        <p className={`text-xs font-medium ${
-          isJobberStage ? 'text-gray-500' : 'text-gray-600'
-        }`}>
-          {totalValue}
-        </p>
+        {shouldShowAmount && (
+          <p className="text-xs font-medium text-green-600 mt-1">
+            {totalValue}
+          </p>
+        )}
       </div>
       
       {/* Deals */}
