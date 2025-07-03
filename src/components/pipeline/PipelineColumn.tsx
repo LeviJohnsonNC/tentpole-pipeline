@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Lock } from 'lucide-react';
 import DealCard from './DealCard';
 import { Stage } from '@/store/stagesStore';
 
@@ -45,28 +46,85 @@ const PipelineColumn = ({
     id: id,
   });
 
-  const combinedStyle = {
-    height: `${fixedHeight}px`,
-    backgroundColor: isOver ? 'lightblue' : undefined,
+  const isJobberStage = stage?.isJobberStage;
+
+  const getColumnStyles = () => {
+    const baseStyles = {
+      height: `${fixedHeight}px`,
+    };
+
+    if (isJobberStage) {
+      // Automated Jobber stage styling
+      return {
+        ...baseStyles,
+        backgroundColor: isOver ? '#f3f4f6' : '#f9fafb',
+        borderColor: '#d1d5db',
+        borderStyle: 'dashed',
+        borderWidth: '2px',
+      };
+    } else {
+      // Manual stage styling
+      return {
+        ...baseStyles,
+        backgroundColor: isOver ? 'lightblue' : undefined,
+      };
+    }
+  };
+
+  const getColumnClasses = () => {
+    if (isJobberStage) {
+      return `bg-gray-50/50 rounded-lg border-2 border-dashed border-gray-300 flex flex-col relative ${
+        isOver ? 'ring-1 ring-gray-400 bg-gray-100/50' : ''
+      }`;
+    } else {
+      return `bg-gray-50 rounded-lg border border-gray-200 flex flex-col ${
+        isOver ? 'ring-2 ring-blue-300 bg-blue-50' : ''
+      }`;
+    }
   };
 
   return (
     <div
       ref={setNodeRef}
-      style={combinedStyle}
-      className={`bg-gray-50 rounded-lg border border-gray-200 flex flex-col ${
-        isOver ? 'ring-2 ring-blue-300 bg-blue-50' : ''
-      }`}
+      style={getColumnStyles()}
+      className={getColumnClasses()}
     >
+      {/* Automated Stage Indicator */}
+      {isJobberStage && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="flex items-center gap-1 bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs">
+            <Lock className="h-3 w-3" />
+            <span>Auto</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="p-3 border-b border-gray-200 bg-white rounded-t-lg">
+      <div className={`p-3 border-b flex flex-col ${
+        isJobberStage 
+          ? 'border-gray-300 bg-gray-100/50 rounded-t-lg' 
+          : 'border-gray-200 bg-white rounded-t-lg'
+      }`}>
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-medium text-gray-900 text-sm">{title}</h3>
+          <h3 className={`font-medium text-sm ${
+            isJobberStage ? 'text-gray-700' : 'text-gray-900'
+          }`}>
+            {title}
+          </h3>
           <Badge variant="secondary" className="text-xs">
             {count}
           </Badge>
         </div>
-        <p className="text-xs text-gray-600 font-medium">{totalValue}</p>
+        <p className={`text-xs font-medium ${
+          isJobberStage ? 'text-gray-500' : 'text-gray-600'
+        }`}>
+          {totalValue}
+        </p>
+        {isJobberStage && (
+          <p className="text-xs text-gray-500 mt-1 italic">
+            Automated by Jobber
+          </p>
+        )}
       </div>
       
       {/* Deals */}
