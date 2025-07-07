@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,6 @@ import SalespersonSelector from "./SalespersonSelector";
 import { Quote } from "@/types/Quote";
 import { getAllClients, getRequestById } from "@/utils/dataHelpers";
 import { useClientStore } from "@/store/clientStore";
-import { createMinimalRequestForQuote } from "@/utils/autoRequestHelpers";
 
 interface QuoteFormData {
   jobTitle: string;
@@ -34,7 +32,6 @@ const NewQuoteForm = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [quoteNumber, setQuoteNumber] = useState(`Q-${Date.now()}`);
   const { addSessionQuote } = useQuoteStore();
-  const { addSessionRequest } = useRequestStore();
   const { sessionClients } = useClientStore();
   const { sessionRequests } = useRequestStore();
   const navigate = useNavigate();
@@ -130,36 +127,10 @@ const NewQuoteForm = () => {
 
     const requestId = searchParams.get('requestId') || location.state?.requestId;
 
-    // NEW: If no requestId (standalone quote), create a minimal request first
-    let finalRequestId = requestId;
-    if (!requestId) {
-      console.log('💰 FORM SUBMIT: Creating standalone quote, generating auto-request');
-      
-      const tempQuote: Quote = {
-        id: crypto.randomUUID(),
-        clientId: selectedClientId,
-        quoteNumber: quoteNumber,
-        jobTitle: data.jobTitle,
-        property: data.property,
-        status: 'Draft',
-        amount: numericAmount,
-        createdDate: new Date().toISOString(),
-        notes: data.notes,
-        rating: data.rating,
-        salesperson: data.salesperson,
-      };
-      
-      const autoRequest = createMinimalRequestForQuote(tempQuote);
-      addSessionRequest(autoRequest);
-      finalRequestId = autoRequest.id;
-      
-      console.log('💰 FORM SUBMIT: Auto-request created:', autoRequest.id);
-    }
-
     const newQuote: Quote = {
       id: crypto.randomUUID(),
       clientId: selectedClientId,
-      requestId: finalRequestId, // Always has a request ID now
+      requestId: requestId || undefined, // Link to request if created from request
       quoteNumber: quoteNumber,
       jobTitle: data.jobTitle,
       property: data.property,
@@ -176,9 +147,8 @@ const NewQuoteForm = () => {
       amount: newQuote.amount,
       amountType: typeof newQuote.amount,
       clientId: newQuote.clientId,
-      requestId: newQuote.requestId,
       status: newQuote.status,
-      isStandalone: false // Always false now
+      isStandalone: !newQuote.requestId
     });
 
     addSessionQuote(newQuote);

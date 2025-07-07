@@ -71,6 +71,5 @@ export const resetToSampleData = () => {
   initRequests();
   initQuotes();
   
-  // Signal that migration state should be reset
-  console.log('Sample data reset complete - migration state should be reset');
+  console.log('Sample data reset complete');
 };
