@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import StarRating from "./StarRating";
 import QuoteNumberSection from "./QuoteNumberSection";
 import SalespersonSelector from "./SalespersonSelector";
 import { Quote } from "@/types/Quote";
+import { Request } from "@/types/Request";
 import { getAllClients, getRequestById } from "@/utils/dataHelpers";
 import { useClientStore } from "@/store/clientStore";
 
@@ -32,6 +34,7 @@ const NewQuoteForm = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [quoteNumber, setQuoteNumber] = useState(`Q-${Date.now()}`);
   const { addSessionQuote } = useQuoteStore();
+  const { addSessionRequest } = useRequestStore();
   const { sessionClients } = useClientStore();
   const { sessionRequests } = useRequestStore();
   const navigate = useNavigate();
@@ -126,16 +129,55 @@ const NewQuoteForm = () => {
     }
 
     const requestId = searchParams.get('requestId') || location.state?.requestId;
+    let finalRequestId = requestId;
+
+    // PHASE 2: Auto-generate request if this is a standalone quote
+    if (!requestId) {
+      console.log('🔄 CREATING STANDALONE QUOTE: Auto-generating request');
+      
+      const newRequestId = crypto.randomUUID();
+      const newRequest: Request = {
+        id: newRequestId,
+        clientId: selectedClientId,
+        title: data.jobTitle || 'New Quote Request',
+        serviceDetails: data.notes || 'Quote request generated automatically',
+        requestDate: new Date().toISOString(),
+        status: 'New',
+        assignedTeamMember: data.salesperson || 'Unassigned',
+        urgency: 'Medium',
+        preferredTime: 'To be determined',
+        notes: 'Auto-generated request for standalone quote'
+      };
+
+      console.log('🔄 AUTO-GENERATED REQUEST:', {
+        id: newRequest.id,
+        clientId: newRequest.clientId,
+        title: newRequest.title,
+        status: newRequest.status
+      });
+
+      // Add the request to the store
+      addSessionRequest(newRequest);
+      finalRequestId = newRequestId;
+    }
+
+    // Ensure we always have a requestId
+    if (!finalRequestId) {
+      console.error('❌ FORM SUBMIT: No requestId available after processing');
+      toast.error("Failed to create quote: No associated request");
+      return;
+    }
 
     const newQuote: Quote = {
       id: crypto.randomUUID(),
       clientId: selectedClientId,
-      requestId: requestId || undefined, // Link to request if created from request
+      requestId: finalRequestId, // Always present now
       quoteNumber: quoteNumber,
+      title: data.jobTitle, // Set the title from job title
       jobTitle: data.jobTitle,
       property: data.property,
       status: 'Draft',
-      amount: numericAmount, // FIXED: Ensure numeric amount
+      amount: numericAmount,
       createdDate: new Date().toISOString(),
       notes: data.notes,
       rating: data.rating,
@@ -147,12 +189,14 @@ const NewQuoteForm = () => {
       amount: newQuote.amount,
       amountType: typeof newQuote.amount,
       clientId: newQuote.clientId,
+      requestId: newQuote.requestId,
+      title: newQuote.title,
       status: newQuote.status,
-      isStandalone: !newQuote.requestId
+      isStandalone: !requestId // Original request, not auto-generated
     });
 
     addSessionQuote(newQuote);
-    console.log('New quote created and added to session:', newQuote.id);
+    console.log('✅ QUOTE CREATED: Quote and request successfully created');
     toast.success("Quote saved successfully");
     navigate("/quotes");
   };
@@ -191,10 +235,13 @@ const NewQuoteForm = () => {
           <Label htmlFor="jobTitle" className="text-base font-medium">Job title</Label>
           <Input
             id="jobTitle"
-            {...register("jobTitle")}
+            {...register("jobTitle", { required: "Job title is required" })}
             placeholder="Enter job title"
             className="text-base"
           />
+          {errors.jobTitle && (
+            <p className="text-sm text-red-600">{errors.jobTitle.message}</p>
+          )}
         </div>
 
         {/* Quote Number Section */}
