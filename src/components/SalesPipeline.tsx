@@ -82,6 +82,14 @@ const SalesPipeline = ({
     padding: 32
   });
 
+  // FIXED: Create stable references for session data lengths to prevent infinite loops
+  const sessionDataRef = useRef({
+    clientsLength: 0,
+    requestsLength: 0,
+    quotesLength: 0,
+    stagesLength: 0
+  });
+
   // Initialize deals only once when component mounts
   useEffect(() => {
     if (!isInitialized && sessionClients.length > 0 && stages.length > 0) {
@@ -98,6 +106,15 @@ const SalesPipeline = ({
       setDeals(initialDeals);
       setAllDeals(initialAllDeals);
       setIsInitialized(true);
+      
+      // Update session data reference
+      sessionDataRef.current = {
+        clientsLength: sessionClients.length,
+        requestsLength: sessionRequests.length,
+        quotesLength: sessionQuotes.length,
+        stagesLength: stages.length
+      };
+      
       if (onDealsChange) {
         onDealsChange(initialDeals);
       }
@@ -105,99 +122,74 @@ const SalesPipeline = ({
         onAllDealsChange(initialAllDeals);
       }
     }
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange, onAllDealsChange, addSessionRequest]);
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized, addSessionRequest]);
 
-  // ENHANCED: Better detection of new data changes
+  // FIXED: Better detection of data changes with stable comparison
   useEffect(() => {
     if (!isInitialized) return;
     
-    console.log('📡 PIPELINE UPDATE CHECK: Checking for data changes');
-    console.log('📡 Current session data:', {
-      clients: sessionClients.length,
-      requests: sessionRequests.length,
-      quotes: sessionQuotes.length
+    const currentLengths = {
+      clientsLength: sessionClients.length,
+      requestsLength: sessionRequests.length,
+      quotesLength: sessionQuotes.length,
+      stagesLength: stages.length
+    };
+    
+    // Only update if lengths actually changed
+    const hasDataChanges = 
+      currentLengths.clientsLength !== sessionDataRef.current.clientsLength ||
+      currentLengths.requestsLength !== sessionDataRef.current.requestsLength ||
+      currentLengths.quotesLength !== sessionDataRef.current.quotesLength ||
+      currentLengths.stagesLength !== sessionDataRef.current.stagesLength;
+    
+    if (!hasDataChanges) return;
+    
+    console.log('📡 PIPELINE UPDATE CHECK: Detected data changes', {
+      old: sessionDataRef.current,
+      new: currentLengths
     });
     
     const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
     const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
-    const currentDealIds = new Set(deals.map(d => d.id));
-    const newDealIds = new Set(newDeals.map(d => d.id));
-    const currentAllDealIds = new Set(allDeals.map(d => d.id));
-    const newAllDealIds = new Set(newAllDeals.map(d => d.id));
     
-    // Check for new or removed deals
-    const hasNewDeals = newDeals.some(deal => !currentDealIds.has(deal.id));
-    const hasRemovedDeals = deals.some(deal => !newDealIds.has(deal.id));
-    const hasNewAllDeals = newAllDeals.some(deal => !currentAllDealIds.has(deal.id));
-    const hasRemovedAllDeals = allDeals.some(deal => !newAllDealIds.has(deal.id));
+    // Update session data reference
+    sessionDataRef.current = currentLengths;
     
-    // ENHANCED: Also check for amount changes on existing deals
-    const hasAmountChanges = newDeals.some(newDeal => {
+    // Preserve manual positions for existing deals but update amounts and stage dates for changed deals
+    const updatedDeals = newDeals.map(newDeal => {
       const existingDeal = deals.find(d => d.id === newDeal.id);
-      return existingDeal && existingDeal.amount !== newDeal.amount;
-    });
-
-    const hasAllAmountChanges = newAllDeals.some(newDeal => {
-      const existingDeal = allDeals.find(d => d.id === newDeal.id);
-      return existingDeal && existingDeal.amount !== newDeal.amount;
-    });
-    
-    console.log('📡 PIPELINE UPDATE CHECK Results:', {
-      hasNewDeals,
-      hasRemovedDeals,
-      hasAmountChanges,
-      hasNewAllDeals,
-      hasRemovedAllDeals,
-      hasAllAmountChanges,
-      currentDeals: deals.length,
-      newDeals: newDeals.length,
-      currentAllDeals: allDeals.length,
-      newAllDeals: newAllDeals.length
-    });
-    
-    if (hasNewDeals || hasRemovedDeals || hasAmountChanges) {
-      console.log('📡 PIPELINE: Detected pipeline changes, updating pipeline');
-      
-      // Preserve manual positions for existing deals but update amounts and stage dates for changed deals
-      const updatedDeals = newDeals.map(newDeal => {
-        const existingDeal = deals.find(d => d.id === newDeal.id);
-        if (existingDeal) {
-          // Check if the deal should be in a different stage due to data changes
-          if (isJobberStageId(newDeal.status) && existingDeal.status !== newDeal.status) {
-            // Automatic stage change - reset stage entered date and update amount
-            console.log(`🔄 PIPELINE: Auto-moving deal ${newDeal.id} from ${existingDeal.status} to ${newDeal.status}`);
-            return {
-              ...newDeal,
-              stageEnteredDate: new Date().toISOString() // Reset stage entered date
-            };
-          } else if (!isJobberStageId(existingDeal.status)) {
-            // Keep manual position for custom columns but update amount if changed
-            return {
-              ...newDeal,
-              status: existingDeal.status,
-              stageEnteredDate: existingDeal.stageEnteredDate,
-              // Update amount if it changed (e.g., new quote created)
-              amount: newDeal.amount !== existingDeal.amount ? newDeal.amount : existingDeal.amount
-            };
-          }
+      if (existingDeal) {
+        // Check if the deal should be in a different stage due to data changes
+        if (isJobberStageId(newDeal.status) && existingDeal.status !== newDeal.status) {
+          // Automatic stage change - reset stage entered date and update amount
+          console.log(`🔄 PIPELINE: Auto-moving deal ${newDeal.id} from ${existingDeal.status} to ${newDeal.status}`);
+          return {
+            ...newDeal,
+            stageEnteredDate: new Date().toISOString()
+          };
+        } else if (!isJobberStageId(existingDeal.status)) {
+          // Keep manual position for custom columns but update amount if changed
+          return {
+            ...newDeal,
+            status: existingDeal.status,
+            stageEnteredDate: existingDeal.stageEnteredDate,
+            amount: newDeal.amount !== existingDeal.amount ? newDeal.amount : existingDeal.amount
+          };
         }
-        return newDeal;
-      });
-      
-      setDeals(updatedDeals);
-      if (onDealsChange) {
-        onDealsChange(updatedDeals);
       }
+      return newDeal;
+    });
+    
+    setDeals(updatedDeals);
+    setAllDeals(newAllDeals);
+    
+    if (onDealsChange) {
+      onDealsChange(updatedDeals);
     }
-
-    if (hasNewAllDeals || hasRemovedAllDeals || hasAllAmountChanges) {
-      console.log('📡 ALL DEALS: Detected all deals changes, updating all deals');
-      setAllDeals(newAllDeals);
-      if (onAllDealsChange) {
-        onAllDealsChange(newAllDeals);
-      }
+    if (onAllDealsChange) {
+      onAllDealsChange(newAllDeals);
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange, onAllDealsChange, addSessionRequest]);
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]);
 
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
@@ -266,7 +258,7 @@ const SalesPipeline = ({
     const headerHeight = 80;
     const cardHeight = 65;
     const cardSpacing = 8;
-    const bufferSpace = 85; // Increased from 20 to 85 to fit one more card
+    const bufferSpace = 85;
     const totalSpacing = maxDeals > 1 ? (maxDeals - 1) * cardSpacing : 0;
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
