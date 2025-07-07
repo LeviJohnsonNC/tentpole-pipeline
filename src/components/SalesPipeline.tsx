@@ -49,7 +49,8 @@ const SalesPipeline = ({
   } = useClientStore();
   const {
     sessionRequests,
-    updateSessionRequest
+    updateSessionRequest,
+    addSessionRequest
   } = useRequestStore();
   const {
     sessionQuotes,
@@ -91,8 +92,8 @@ const SalesPipeline = ({
         quotes: sessionQuotes.length,
         stages: stages.length
       });
-      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-      const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
+      const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
       console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'pipeline deals and', initialAllDeals.length, 'all deals');
       setDeals(initialDeals);
       setAllDeals(initialAllDeals);
@@ -104,7 +105,7 @@ const SalesPipeline = ({
         onAllDealsChange(initialAllDeals);
       }
     }
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange, onAllDealsChange]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange, onAllDealsChange, addSessionRequest]);
 
   // ENHANCED: Better detection of new data changes
   useEffect(() => {
@@ -117,8 +118,8 @@ const SalesPipeline = ({
       quotes: sessionQuotes.length
     });
     
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-    const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
+    const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
     const currentDealIds = new Set(deals.map(d => d.id));
     const newDealIds = new Set(newDeals.map(d => d.id));
     const currentAllDealIds = new Set(allDeals.map(d => d.id));
@@ -196,7 +197,7 @@ const SalesPipeline = ({
         onAllDealsChange(newAllDeals);
       }
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange, onAllDealsChange]);
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange, onAllDealsChange, addSessionRequest]);
 
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {

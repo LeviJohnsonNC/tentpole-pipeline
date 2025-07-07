@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { Quote } from '@/types/Quote';
 import { quotesData } from '@/data/quotesData';
+import { createMinimalRequestForQuote } from '@/utils/autoRequestHelpers';
 
 interface QuoteStore {
   sessionQuotes: Quote[];
@@ -57,11 +58,32 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
       createdDate: quote.createdDate || new Date().toISOString() // Ensure createdDate exists
     };
     
+    // NEW: Auto-create request for standalone quotes
+    if (!enhancedQuote.requestId) {
+      console.log('🎯 QUOTE STORE: Standalone quote detected, creating auto-request');
+      const autoRequest = createMinimalRequestForQuote(enhancedQuote);
+      
+      // Add the request to the request store
+      try {
+        const { useRequestStore } = require('@/store/requestStore');
+        const requestStore = useRequestStore.getState();
+        requestStore.addSessionRequest(autoRequest);
+        
+        // Link the quote to the auto-generated request
+        enhancedQuote.requestId = autoRequest.id;
+        console.log('🎯 QUOTE STORE: Auto-request created with ID:', autoRequest.id);
+      } catch (error) {
+        console.error('🎯 QUOTE STORE: Failed to create auto-request:', error);
+        // Continue without request linking if there's an error
+      }
+    }
+    
     console.log('🎯 QUOTE STORE: Enhanced quote before adding:', {
       id: enhancedQuote.id,
       status: enhancedQuote.status,
       amount: enhancedQuote.amount,
       createdDate: enhancedQuote.createdDate,
+      requestId: enhancedQuote.requestId,
       isStandalone: !enhancedQuote.requestId
     });
     
@@ -76,6 +98,7 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
         status: q.status, 
         clientId: q.clientId, 
         amount: q.amount,
+        requestId: q.requestId,
         isStandalone: !q.requestId
       })));
       
@@ -93,6 +116,7 @@ export const useQuoteStore = create<QuoteStore>((set, get) => ({
           id: addedQuote.id,
           status: addedQuote.status,
           amount: addedQuote.amount,
+          requestId: addedQuote.requestId,
           isStandalone: !addedQuote.requestId,
           createdDate: addedQuote.createdDate
         });
