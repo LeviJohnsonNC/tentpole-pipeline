@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, arrayMove, sortableKeyboardCoordinates, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Calendar, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -196,7 +197,7 @@ const SalesPipeline = ({
       onDealsChange(updatedDeals);
     }
     if (onAllDealsChange) {
-      onAllDeals(newAllDeals);
+      onAllDealsChange(newAllDeals);
     }
   }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]); // REMOVED addSessionRequest from dependencies
 
