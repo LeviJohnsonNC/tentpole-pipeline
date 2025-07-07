@@ -12,14 +12,7 @@ export const createMinimalRequestForQuote = (quote: Quote): Request => {
     serviceDetails: quote.notes || 'Auto-generated request for quote',
     requestDate: quote.createdDate,
     status: 'New',
-    // Optional fields can be undefined
-    contactMethod: undefined,
-    priority: undefined,
-    estimatedValue: quote.amount,
-    followUpDate: undefined,
     notes: `Auto-generated request for quote ${quote.quoteNumber}`,
-    lastActivityDate: quote.createdDate,
-    source: 'Quote Creation'
   };
 };
 
