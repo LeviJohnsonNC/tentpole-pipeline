@@ -48,7 +48,7 @@ const generateOtherDealDate = (): string => {
   return otherDealDate.toISOString();
 };
 
-// FIXED: Helper function to generate stage entered date that respects time limits with specific overdue deals
+// Helper function to generate stage entered date that respects time limits with specific overdue deals
 const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: string): string => {
   const createdDate = new Date(createdAt);
   const now = new Date();
@@ -113,50 +113,7 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
   return finalStageDate.toISOString();
 };
 
-// NEW: Helper to check if an auto-request already exists for a quote
-const hasExistingAutoRequest = (quoteId: string, sessionRequests: any[]): boolean => {
-  return sessionRequests.some(request => 
-    request.id === `auto-request-${quoteId}` || 
-    request.quoteId === quoteId
-  );
-};
-
-// NEW: Migration function to ensure all quotes have requests - OPTIMIZED to prevent duplicates
-const migrateStandaloneQuotes = (
-  sessionClients: any[], 
-  sessionQuotes: any[], 
-  addSessionRequest?: (request: any) => void
-): any[] => {
-  // If no migration function provided, return quotes as-is
-  if (!addSessionRequest) {
-    console.log('🔄 MIGRATION: Skipping migration - no addSessionRequest function provided');
-    return sessionQuotes;
-  }
-
-  console.log('\n🔄 MIGRATION: Checking for standalone quotes needing auto-requests');
-  
-  const migratedQuotes = sessionQuotes.map(quote => {
-    if (!quote.requestId) {
-      console.log(`🔄 MIGRATION: Found standalone quote ${quote.id}, creating auto-request`);
-      
-      const autoRequest = createMinimalRequestForQuote(quote);
-      addSessionRequest(autoRequest);
-      
-      console.log(`🔄 MIGRATION: Auto-request ${autoRequest.id} created for quote ${quote.id}`);
-      
-      return {
-        ...quote,
-        requestId: autoRequest.id
-      };
-    }
-    return quote;
-  });
-  
-  console.log('🔄 MIGRATION: Migration complete');
-  return migratedQuotes;
-};
-
-// NEW: Helper to determine if a quote was just created (within last 5 minutes)
+// Helper to check if a quote was just created (within last 5 minutes)
 const isRecentlyCreatedQuote = (quoteCreatedDate: string): boolean => {
   const createdTime = new Date(quoteCreatedDate).getTime();
   const fiveMinutesAgo = new Date().getTime() - (5 * 60 * 1000);
@@ -299,7 +256,42 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   return assignedStage;
 };
 
-// SIMPLIFIED: Convert requests to deals for the pipeline (now handles all quotes since they all have requests)
+// SIMPLIFIED: Migrate standalone quotes to ensure all quotes have requests
+const migrateStandaloneQuotes = (
+  sessionClients: any[], 
+  sessionQuotes: any[], 
+  addSessionRequest?: (request: any) => void
+): any[] => {
+  // If no migration function provided, return quotes as-is
+  if (!addSessionRequest) {
+    console.log('🔄 MIGRATION: Skipping migration - no addSessionRequest function provided');
+    return sessionQuotes;
+  }
+
+  console.log('\n🔄 MIGRATION: Checking for standalone quotes needing auto-requests');
+  
+  const migratedQuotes = sessionQuotes.map(quote => {
+    if (!quote.requestId) {
+      console.log(`🔄 MIGRATION: Found standalone quote ${quote.id}, creating auto-request`);
+      
+      const autoRequest = createMinimalRequestForQuote(quote);
+      addSessionRequest(autoRequest);
+      
+      console.log(`🔄 MIGRATION: Auto-request ${autoRequest.id} created for quote ${quote.id}`);
+      
+      return {
+        ...quote,
+        requestId: autoRequest.id
+      };
+    }
+    return quote;
+  });
+  
+  console.log('🔄 MIGRATION: Migration complete');
+  return migratedQuotes;
+};
+
+// SIMPLIFIED: Convert requests to deals for the pipeline
 const createDealsFromRequests = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
@@ -309,7 +301,7 @@ const createDealsFromRequests = (
 ): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   
-  // NEW: Migrate standalone quotes first if addSessionRequest is provided
+  // Migrate standalone quotes first if addSessionRequest is provided
   let workingQuotes = sessionQuotes;
   if (addSessionRequest) {
     workingQuotes = migrateStandaloneQuotes(sessionClients, sessionQuotes, addSessionRequest);
@@ -347,11 +339,11 @@ const createDealsFromRequests = (
       return null;
     }
     
-    // FIXED: Only include amount if there's a quote with valid numeric amount
+    // Only include amount if there's a quote with valid numeric amount
     const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
     console.log(`Request ${request.id} final amount:`, amount);
     
-    // UPDATED: Generate realistic dates using the improved function
+    // Generate realistic dates using the improved function
     const isNewDeal = pipelineStage === 'new-deals';
     let createdAt: string;
     let stageEnteredDate: string;
@@ -387,7 +379,7 @@ const createDealsFromRequests = (
   return deals;
 };
 
-// NEW: Create deals from requests including closed won/lost for list view
+// Create deals from requests including closed won/lost for list view
 const createAllDealsFromRequests = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
@@ -397,7 +389,7 @@ const createAllDealsFromRequests = (
 ): Deal[] => {
   console.log('Creating ALL deals from requests (including closed). Session requests:', sessionRequests.length);
   
-  // NEW: Migrate standalone quotes first if addSessionRequest is provided
+  // Migrate standalone quotes first if addSessionRequest is provided
   let workingQuotes = sessionQuotes;
   if (addSessionRequest) {
     workingQuotes = migrateStandaloneQuotes(sessionClients, sessionQuotes, addSessionRequest);
@@ -406,7 +398,7 @@ const createAllDealsFromRequests = (
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
   console.log('Requests with client info:', requestsWithClients.length);
   
-  // ALIGNED: Use same filtering logic as createDealsFromRequests for active deals
+  // Use same filtering logic as createDealsFromRequests for active deals
   const activeRequests = requestsWithClients.filter(request => {
     console.log(`Request ${request.id} has status: ${request.status}`);
     // Include requests with statuses that should appear in pipeline
@@ -414,7 +406,7 @@ const createAllDealsFromRequests = (
            !['Archived', 'Closed Lost', 'Closed Won'].includes(request.status);
   });
   
-  // SEPARATE: Also get explicitly closed deals for list view reporting
+  // Also get explicitly closed deals for list view reporting
   const closedRequests = requestsWithClients.filter(request => {
     return ['Closed Won', 'Closed Lost'].includes(request.status);
   });
@@ -427,7 +419,7 @@ const createAllDealsFromRequests = (
     const newestQuote = getNewestQuoteForRequest(request.id, workingQuotes);
     console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none', 'amount:', newestQuote?.amount);
     
-    // ALIGNED: Apply same exclusion logic for approved/converted quotes
+    // Apply same exclusion logic for approved/converted quotes
     if (newestQuote && (newestQuote.status === 'Approved' || newestQuote.status === 'Converted')) {
       console.log(`Request ${request.id} EXCLUDED from list - newest quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
       return null; // This ensures the deal won't appear in the list
@@ -445,11 +437,11 @@ const createAllDealsFromRequests = (
       // If no pipeline stage assigned, keep the original request status
     }
     
-    // FIXED: Only include amount if there's a quote with valid numeric amount
+    // Only include amount if there's a quote with valid numeric amount
     const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
     console.log(`Request ${request.id} final amount:`, amount);
     
-    // UPDATED: Generate realistic dates using the improved function
+    // Generate realistic dates using the improved function
     const isNewDeal = finalStatus === 'new-deals';
     let createdAt: string;
     let stageEnteredDate: string;
@@ -485,7 +477,7 @@ const createAllDealsFromRequests = (
   return deals;
 };
 
-// SIMPLIFIED: Main function (now only needs to handle requests since all quotes have requests)
+// Main function for creating pipeline deals
 export const createInitialDeals = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
@@ -521,7 +513,7 @@ export const createInitialDeals = (
   return allDeals;
 };
 
-// NEW: Main function for creating ALL deals (including closed won/lost)
+// Main function for creating ALL deals (including closed won/lost)
 export const createAllDeals = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 

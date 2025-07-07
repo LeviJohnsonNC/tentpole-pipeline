@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Calendar, MessageSquare } from "lucide-react";
@@ -14,7 +14,7 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
-import { createInitialDeals, createAllDeals, Deal, handleArchiveAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
+import { createInitialDeals, createAllDeals, Deal, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
 import { Request } from "@/types/Request";
 
 interface SalesPipelineProps {
@@ -68,12 +68,8 @@ const SalesPipeline = ({
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
 
-  // NEW: Add state for drag operation management
-  const [dragSnapshot, setDragSnapshot] = useState<Deal[] | null>(null);
-  const [visualDragDeals, setVisualDragDeals] = useState<Deal[]>([]);
-
-  // FIXED: Migration completion tracking to prevent infinite loops
-  const migrationCompletedRef = useRef(false);
+  // FIXED: Component-level migration tracking instead of ref
+  const [migrationCompleted, setMigrationCompleted] = useState(false);
 
   // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
@@ -89,15 +85,7 @@ const SalesPipeline = ({
     padding: 32
   });
 
-  // FIXED: Stable references for session data lengths to prevent infinite loops
-  const sessionDataRef = useRef({
-    clientsLength: 0,
-    requestsLength: 0,
-    quotesLength: 0,
-    stagesLength: 0
-  });
-
-  // FIXED: Initialize deals only once when component mounts - removed addSessionRequest from dependencies
+  // FIXED: Initialize deals only once when component mounts
   useEffect(() => {
     if (!isInitialized && sessionClients.length > 0 && stages.length > 0) {
       console.log('🚀 PIPELINE INIT: Initializing deals for the first time');
@@ -108,26 +96,20 @@ const SalesPipeline = ({
         stages: stages.length
       });
       
-      // Run migration only once during initialization
-      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, migrationCompletedRef.current ? undefined : addSessionRequest);
-      const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages, migrationCompletedRef.current ? undefined : addSessionRequest);
+      // Run migration only if not completed
+      const migrationFunction = migrationCompleted ? undefined : addSessionRequest;
+      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, migrationFunction);
+      const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages, migrationFunction);
       
       // Mark migration as completed
-      migrationCompletedRef.current = true;
+      if (!migrationCompleted) {
+        setMigrationCompleted(true);
+      }
       
       console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'pipeline deals and', initialAllDeals.length, 'all deals');
       setDeals(initialDeals);
       setAllDeals(initialAllDeals);
-      setVisualDragDeals(initialDeals); // Initialize visual drag state
       setIsInitialized(true);
-      
-      // Update session data reference
-      sessionDataRef.current = {
-        clientsLength: sessionClients.length,
-        requestsLength: sessionRequests.length,
-        quotesLength: sessionQuotes.length,
-        stagesLength: stages.length
-      };
       
       if (onDealsChange) {
         onDealsChange(initialDeals);
@@ -136,39 +118,28 @@ const SalesPipeline = ({
         onAllDealsChange(initialAllDeals);
       }
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]);
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized, migrationCompleted]);
 
-  // FIXED: Better detection of data changes with stable comparison - removed addSessionRequest from dependencies
+  // Reset migration state when data is reset
+  useEffect(() => {
+    // Check if data has been reset to initial state
+    if (sessionClients.length > 0 && sessionRequests.length > 0 && sessionQuotes.length > 0 && 
+        !migrationCompleted && isInitialized) {
+      console.log('📡 PIPELINE: Detected data reset, resetting migration state');
+      setMigrationCompleted(false);
+      setIsInitialized(false);
+    }
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, migrationCompleted, isInitialized]);
+
+  // IMPROVED: Better detection of data changes
   useEffect(() => {
     if (!isInitialized) return;
     
-    const currentLengths = {
-      clientsLength: sessionClients.length,
-      requestsLength: sessionRequests.length,
-      quotesLength: sessionQuotes.length,
-      stagesLength: stages.length
-    };
-    
-    // Only update if lengths actually changed
-    const hasDataChanges = 
-      currentLengths.clientsLength !== sessionDataRef.current.clientsLength ||
-      currentLengths.requestsLength !== sessionDataRef.current.requestsLength ||
-      currentLengths.quotesLength !== sessionDataRef.current.quotesLength ||
-      currentLengths.stagesLength !== sessionDataRef.current.stagesLength;
-    
-    if (!hasDataChanges) return;
-    
-    console.log('📡 PIPELINE UPDATE CHECK: Detected data changes', {
-      old: sessionDataRef.current,
-      new: currentLengths
-    });
+    console.log('📡 PIPELINE UPDATE CHECK: Checking for data changes');
     
     // Don't run migration again, just update deals based on existing data
     const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages); // No migration function
     const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages); // No migration function
-    
-    // Update session data reference
-    sessionDataRef.current = currentLengths;
     
     // Preserve manual positions for existing deals but update amounts and stage dates for changed deals
     const updatedDeals = newDeals.map(newDeal => {
@@ -197,7 +168,6 @@ const SalesPipeline = ({
     
     setDeals(updatedDeals);
     setAllDeals(newAllDeals);
-    setVisualDragDeals(updatedDeals); // Update visual state
     
     if (onDealsChange) {
       onDealsChange(updatedDeals);
@@ -205,19 +175,18 @@ const SalesPipeline = ({
     if (onAllDealsChange) {
       onAllDealsChange(newAllDeals);
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized]);
 
-  // Filter deals based on search term - use visualDragDeals for display during drag
+  // Filter deals based on search term
   const filteredDeals = useMemo(() => {
-    const sourceDeals = activeId ? visualDragDeals : deals;
-    if (!searchTerm) return sourceDeals;
-    return sourceDeals.filter(deal => {
+    if (!searchTerm) return deals;
+    return deals.filter(deal => {
       const matchesClient = deal.client.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesProperty = deal.property.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTitle = deal.title.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesClient || matchesProperty || matchesTitle;
     });
-  }, [activeId, visualDragDeals, deals, searchTerm]);
+  }, [deals, searchTerm]);
   
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
@@ -231,7 +200,6 @@ const SalesPipeline = ({
     return `$${amount.toLocaleString()}`;
   };
 
-  // Use filteredDeals for display but original deals for column height calculation
   const getColumnDeals = (columnId: string) => {
     return filteredDeals.filter(deal => deal.status === columnId);
   };
@@ -259,14 +227,14 @@ const SalesPipeline = ({
       return id;
     }
 
-    // Check if it's a deal id - use original deals array for drag operations
+    // Check if it's a deal id
     const deal = deals.find(deal => deal.id === id);
     const container = deal?.status || null;
     console.log('🔍 FIND CONTAINER: Deal', id, 'found in container:', container);
     return container;
   };
 
-  // Calculate fixed height based on original deals array - INCREASED HEIGHT
+  // Calculate fixed height based on deals array
   const fixedColumnHeight = useMemo(() => {
     const getOriginalColumnDeals = (columnId: string) => {
       return deals.filter(deal => deal.status === columnId);
@@ -280,12 +248,12 @@ const SalesPipeline = ({
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
 
-  // Enhanced validation function with complete Jobber stage blocking
+  // SIMPLIFIED: Validation function
   const validateDragOperation = (dealId: string, sourceStageId: string, targetStageId: string): {
     allowed: boolean;
     message?: string;
   } => {
-    console.log('🔍 DRAG VALIDATION: Full validation for deal:', dealId, 'from:', sourceStageId, 'to:', targetStageId);
+    console.log('🔍 DRAG VALIDATION: Checking drag from:', sourceStageId, 'to:', targetStageId);
     
     // Check if dragging FROM a Jobber stage is allowed
     const fromValidation = canDragFromJobberStage(dealId, sourceStageId);
@@ -309,13 +277,8 @@ const SalesPipeline = ({
     const { active } = event;
     console.log('🚀 DRAG START: Active ID:', active.id);
     
-    // Create snapshot of current state for potential rollback
-    setDragSnapshot([...deals]);
     setActiveId(active.id as string);
     setIsDraggingToActionZone(false);
-    
-    // Initialize visual drag state
-    setVisualDragDeals([...deals]);
   };
   
   const handleDragOver = (event: DragOverEvent) => {
@@ -338,34 +301,19 @@ const SalesPipeline = ({
 
     // Check if dragging towards action zone
     if (overContainer.startsWith('action-')) {
-      console.log('🔄 DRAG OVER: Detected drag towards action zone, preventing visual updates');
+      console.log('🔄 DRAG OVER: Detected drag towards action zone');
       setIsDraggingToActionZone(true);
       return;
     } else {
       setIsDraggingToActionZone(false);
     }
 
-    // Use validation function for visual feedback
+    // REMOVED: Visual state updates during drag over to eliminate race conditions
+    // Only validation check remains for visual feedback
     const validation = validateDragOperation(activeId, activeContainer, overContainer);
     if (!validation.allowed) {
       console.log('🔄 DRAG OVER: Validation failed:', validation.message);
       return;
-    }
-
-    // FIXED: Only update visual state during drag over, not actual data
-    if (activeContainer !== overContainer && !isDraggingToActionZone) {
-      console.log('🔄 DRAG OVER: Updating visual state for cross-container move');
-      setVisualDragDeals(prevVisualDeals => {
-        return prevVisualDeals.map(deal => {
-          if (deal.id === activeId) {
-            return {
-              ...deal,
-              status: overContainer
-            };
-          }
-          return deal;
-        });
-      });
     }
   };
   
@@ -376,12 +324,9 @@ const SalesPipeline = ({
     // Clean up drag state
     setActiveId(null);
     setIsDraggingToActionZone(false);
-    setDragSnapshot(null);
     
     if (!over || !active) {
-      console.log('🏁 DRAG END: No over target, reverting to original state');
-      // Revert visual state to actual data
-      setVisualDragDeals([...deals]);
+      console.log('🏁 DRAG END: No over target');
       return;
     }
     
@@ -389,8 +334,7 @@ const SalesPipeline = ({
     const overId = over.id as string;
     
     if (activeId === overId) {
-      console.log('🏁 DRAG END: Dropped on self, reverting visual state');
-      setVisualDragDeals([...deals]);
+      console.log('🏁 DRAG END: Dropped on self');
       return;
     }
     
@@ -398,123 +342,90 @@ const SalesPipeline = ({
     console.log('🏁 DRAG END: Over container:', overContainer);
     
     if (!overContainer) {
-      console.log('🏁 DRAG END: No valid container found, reverting');
-      setVisualDragDeals([...deals]);
+      console.log('🏁 DRAG END: No valid container found');
       return;
     }
 
-    // Handle action zone drops with immediate state updates for both collections
+    // Handle action zone drops with immediate state updates
     if (overContainer.startsWith('action-')) {
       console.log('🏁 DRAG END: Handling action zone drop:', overContainer);
       
-      // Create enhanced handlers that update both source data AND both deal collections immediately
-      const enhancedArchiveAction = (dealId: string) => {
-        const deal = deals.find(d => d.id === dealId) || allDeals.find(d => d.id === dealId);
-        if (!deal) return;
-        
-        // Update source data
-        if (deal.type === 'request') {
-          updateSessionRequest(dealId, { status: 'Archived' });
-        } else if (deal.type === 'quote' && deal.quoteId) {
-          updateSessionQuote(deal.quoteId, { status: 'Archived' });
-        }
-        
-        // IMMEDIATE: Update both deal collections to remove from both instantly
-        const updatedDeals = deals.filter(d => d.id !== dealId);
-        const updatedAllDeals = allDeals.filter(d => d.id !== dealId);
-        
-        setDeals(updatedDeals);
-        setAllDeals(updatedAllDeals);
-        setVisualDragDeals(updatedDeals);
-        
-        toast.success(`Deal archived: ${deal.client}`);
-        
-        if (onDealsChange) {
-          onDealsChange(updatedDeals);
-        }
-        if (onAllDealsChange) {
-          onAllDealsChange(updatedAllDeals);
-        }
-      };
-      
-      const enhancedLostAction = (dealId: string) => {
-        const deal = deals.find(d => d.id === dealId) || allDeals.find(d => d.id === dealId);
-        if (!deal) return;
-        
-        // Update source data
-        if (deal.type === 'request') {
-          updateSessionRequest(dealId, { status: 'Closed Lost' });
-        } else if (deal.type === 'quote' && deal.quoteId) {
-          updateSessionQuote(deal.quoteId, { status: 'Closed Lost' });
-        }
-        
-        // IMMEDIATE: Remove from pipeline deals, update status in all deals
-        const updatedDeals = deals.filter(d => d.id !== dealId);
-        const updatedAllDeals = allDeals.map(d => 
-          d.id === dealId ? { ...d, status: 'Closed Lost', stageEnteredDate: new Date().toISOString() } : d
-        );
-        
-        setDeals(updatedDeals);
-        setAllDeals(updatedAllDeals);
-        setVisualDragDeals(updatedDeals);
-        
-        toast.error(`Deal marked as lost: ${deal.client}`);
-        
-        if (onDealsChange) {
-          onDealsChange(updatedDeals);
-        }
-        if (onAllDealsChange) {
-          onAllDealsChange(updatedAllDeals);
-        }
-      };
-      
-      const enhancedWonAction = (dealId: string) => {
-        const deal = deals.find(d => d.id === dealId) || allDeals.find(d => d.id === dealId);
-        if (!deal) return;
-        
-        // Update source data
-        if (deal.type === 'request') {
-          updateSessionRequest(dealId, { status: 'Closed Won' });
-        } else if (deal.type === 'quote' && deal.quoteId) {
-          updateSessionQuote(deal.quoteId, { status: 'Closed Won' });
-        }
-        
-        // Update client status to Active if they're currently a Lead
-        const client = sessionClients.find(c => c.name === deal.client);
-        if (client && client.status === 'Lead') {
-          console.log('Updating client status from Lead to Active:', client.id);
-          updateSessionClient(client.id, { status: 'Active' });
-        }
-        
-        // IMMEDIATE: Remove from pipeline deals, update status in all deals
-        const updatedDeals = deals.filter(d => d.id !== dealId);
-        const updatedAllDeals = allDeals.map(d => 
-          d.id === dealId ? { ...d, status: 'Closed Won', stageEnteredDate: new Date().toISOString() } : d
-        );
-        
-        setDeals(updatedDeals);
-        setAllDeals(updatedAllDeals);
-        setVisualDragDeals(updatedDeals);
-        
-        toast.success(`Deal won: ${deal.client}!`);
-        
-        if (onDealsChange) {
-          onDealsChange(updatedDeals);
-        }
-        if (onAllDealsChange) {
-          onAllDealsChange(updatedAllDeals);
-        }
-      };
+      const deal = deals.find(d => d.id === activeId) || allDeals.find(d => d.id === activeId);
+      if (!deal) return;
       
       switch (overContainer) {
         case 'action-archive':
-          enhancedArchiveAction(activeId);
+          // Update source data
+          if (deal.type === 'request') {
+            updateSessionRequest(activeId, { status: 'Archived' });
+          } else if (deal.type === 'quote' && deal.quoteId) {
+            updateSessionQuote(deal.quoteId, { status: 'Archived' });
+          }
+          
+          // Remove from both collections immediately
+          const archivedDeals = deals.filter(d => d.id !== activeId);
+          const archivedAllDeals = allDeals.filter(d => d.id !== activeId);
+          
+          setDeals(archivedDeals);
+          setAllDeals(archivedAllDeals);
+          
+          toast.success(`Deal archived: ${deal.client}`);
+          
+          if (onDealsChange) onDealsChange(archivedDeals);
+          if (onAllDealsChange) onAllDealsChange(archivedAllDeals);
           break;
+          
         case 'action-lost':
-          enhancedLostAction(activeId);
+          // Update source data
+          if (deal.type === 'request') {
+            updateSessionRequest(activeId, { status: 'Closed Lost' });
+          } else if (deal.type === 'quote' && deal.quoteId) {
+            updateSessionQuote(deal.quoteId, { status: 'Closed Lost' });
+          }
+          
+          // Remove from pipeline, update in all deals
+          const lostDeals = deals.filter(d => d.id !== activeId);
+          const lostAllDeals = allDeals.map(d => 
+            d.id === activeId ? { ...d, status: 'Closed Lost', stageEnteredDate: new Date().toISOString() } : d
+          );
+          
+          setDeals(lostDeals);
+          setAllDeals(lostAllDeals);
+          
+          toast.error(`Deal marked as lost: ${deal.client}`);
+          
+          if (onDealsChange) onDealsChange(lostDeals);
+          if (onAllDealsChange) onAllDealsChange(lostAllDeals);
           break;
+          
         case 'action-won':
-          enhancedWonAction(activeId);
+          // Update source data
+          if (deal.type === 'request') {
+            updateSessionRequest(activeId, { status: 'Closed Won' });
+          } else if (deal.type === 'quote' && deal.quoteId) {
+            updateSessionQuote(deal.quoteId, { status: 'Closed Won' });
+          }
+          
+          // Update client status to Active if they're currently a Lead
+          const client = sessionClients.find(c => c.name === deal.client);
+          if (client && client.status === 'Lead') {
+            console.log('Updating client status from Lead to Active:', client.id);
+            updateSessionClient(client.id, { status: 'Active' });
+          }
+          
+          // Remove from pipeline, update in all deals
+          const wonDeals = deals.filter(d => d.id !== activeId);
+          const wonAllDeals = allDeals.map(d => 
+            d.id === activeId ? { ...d, status: 'Closed Won', stageEnteredDate: new Date().toISOString() } : d
+          );
+          
+          setDeals(wonDeals);
+          setAllDeals(wonAllDeals);
+          
+          toast.success(`Deal won: ${deal.client}!`);
+          
+          if (onDealsChange) onDealsChange(wonDeals);
+          if (onAllDealsChange) onAllDealsChange(wonAllDeals);
           break;
       }
       return;
@@ -522,8 +433,7 @@ const SalesPipeline = ({
 
     const activeContainer = findContainer(activeId);
     if (!activeContainer) {
-      console.log('🏁 DRAG END: No active container found, reverting');
-      setVisualDragDeals([...deals]);
+      console.log('🏁 DRAG END: No active container found');
       return;
     }
 
@@ -532,16 +442,10 @@ const SalesPipeline = ({
     if (!validation.allowed) {
       console.log('🏁 DRAG END: Final validation failed:', validation.message);
       toast.error(validation.message);
-
-      // Revert to snapshot
-      if (dragSnapshot) {
-        setDeals([...dragSnapshot]);
-        setVisualDragDeals([...dragSnapshot]);
-      }
       return;
     }
 
-    // FIXED: Now commit the visual changes to actual data
+    // SIMPLIFIED: Handle drag operations
     if (activeContainer === overContainer) {
       // Reordering within the same container
       console.log('🏁 DRAG END: Reordering within same container');
@@ -556,9 +460,6 @@ const SalesPipeline = ({
         const reorderedDeals = arrayMove(containerDeals, activeIndex, overIndex);
         const updatedDeals = [...otherDeals, ...reorderedDeals];
         
-        // Update visual state to match
-        setVisualDragDeals(updatedDeals);
-        
         if (onDealsChange) {
           onDealsChange(updatedDeals);
         }
@@ -566,12 +467,12 @@ const SalesPipeline = ({
         return updatedDeals;
       });
     } else {
-      // Moving between containers - commit the visual state to actual data
-      console.log('🏁 DRAG END: Committing cross-container move');
+      // Moving between containers
+      console.log('🏁 DRAG END: Moving between containers');
 
       const updatedDeals = deals.map(deal => {
         if (deal.id === activeId) {
-          console.log('🏁 DRAG END: Final update - deal', deal.id, 'moved to', overContainer);
+          console.log('🏁 DRAG END: Moving deal', deal.id, 'to', overContainer);
           return {
             ...deal,
             status: overContainer,
@@ -582,7 +483,6 @@ const SalesPipeline = ({
       });
 
       setDeals(updatedDeals);
-      setVisualDragDeals(updatedDeals);
       
       if (onDealsChange) {
         onDealsChange(updatedDeals);

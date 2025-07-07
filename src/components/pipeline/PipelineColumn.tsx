@@ -82,8 +82,8 @@ const PipelineColumn = ({
   // Don't show amount if it's $0
   const shouldShowAmount = totalValue !== '$0';
 
-  // FIXED: Generate truly unique keys for SortableContext
-  const uniqueDealIds = deals.map(deal => `${id}-${deal.id}`);
+  // FIXED: Generate unique keys for each deal in this column
+  const dealIds = deals.map(deal => `column-${id}-deal-${deal.id}`);
 
   return (
     <div
