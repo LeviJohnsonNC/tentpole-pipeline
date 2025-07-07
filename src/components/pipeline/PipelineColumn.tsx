@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -80,6 +81,9 @@ const PipelineColumn = ({
 
   // Don't show amount if it's $0
   const shouldShowAmount = totalValue !== '$0';
+
+  // FIXED: Generate truly unique keys for SortableContext
+  const uniqueDealIds = deals.map(deal => `${id}-${deal.id}`);
 
   return (
     <div

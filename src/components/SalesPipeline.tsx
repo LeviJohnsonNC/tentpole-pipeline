@@ -68,6 +68,10 @@ const SalesPipeline = ({
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
 
+  // NEW: Add state for drag operation management
+  const [dragSnapshot, setDragSnapshot] = useState<Deal[] | null>(null);
+  const [visualDragDeals, setVisualDragDeals] = useState<Deal[]>([]);
+
   // FIXED: Migration completion tracking to prevent infinite loops
   const migrationCompletedRef = useRef(false);
 
@@ -114,6 +118,7 @@ const SalesPipeline = ({
       console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'pipeline deals and', initialAllDeals.length, 'all deals');
       setDeals(initialDeals);
       setAllDeals(initialAllDeals);
+      setVisualDragDeals(initialDeals); // Initialize visual drag state
       setIsInitialized(true);
       
       // Update session data reference
@@ -131,7 +136,7 @@ const SalesPipeline = ({
         onAllDealsChange(initialAllDeals);
       }
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]); // REMOVED addSessionRequest from dependencies
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]);
 
   // FIXED: Better detection of data changes with stable comparison - removed addSessionRequest from dependencies
   useEffect(() => {
@@ -192,6 +197,7 @@ const SalesPipeline = ({
     
     setDeals(updatedDeals);
     setAllDeals(newAllDeals);
+    setVisualDragDeals(updatedDeals); // Update visual state
     
     if (onDealsChange) {
       onDealsChange(updatedDeals);
@@ -199,18 +205,19 @@ const SalesPipeline = ({
     if (onAllDealsChange) {
       onAllDealsChange(newAllDeals);
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]); // REMOVED addSessionRequest from dependencies
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]);
 
-  // Filter deals based on search term
+  // Filter deals based on search term - use visualDragDeals for display during drag
   const filteredDeals = useMemo(() => {
-    if (!searchTerm) return deals;
-    return deals.filter(deal => {
+    const sourceDeals = activeId ? visualDragDeals : deals;
+    if (!searchTerm) return sourceDeals;
+    return sourceDeals.filter(deal => {
       const matchesClient = deal.client.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesProperty = deal.property.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTitle = deal.title.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesClient || matchesProperty || matchesTitle;
     });
-  }, [deals, searchTerm]);
+  }, [activeId, visualDragDeals, deals, searchTerm]);
   
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: {
@@ -299,56 +306,61 @@ const SalesPipeline = ({
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    const {
-      active
-    } = event;
+    const { active } = event;
     console.log('🚀 DRAG START: Active ID:', active.id);
+    
+    // Create snapshot of current state for potential rollback
+    setDragSnapshot([...deals]);
     setActiveId(active.id as string);
     setIsDraggingToActionZone(false);
+    
+    // Initialize visual drag state
+    setVisualDragDeals([...deals]);
   };
   
   const handleDragOver = (event: DragOverEvent) => {
-    const {
-      active,
-      over
-    } = event;
+    const { active, over } = event;
     if (!over || !active) return;
+    
     const activeId = active.id as string;
     const overId = over.id as string;
+    
     console.log('🔄 DRAG OVER: Active:', activeId, 'Over:', overId);
+    
     if (activeId === overId) return;
+    
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
+    
     console.log('🔄 DRAG OVER: Active container:', activeContainer, 'Over container:', overContainer);
+    
     if (!activeContainer || !overContainer) return;
 
-    // ENHANCED: Check if dragging towards action zone and prevent intermediate updates
+    // Check if dragging towards action zone
     if (overContainer.startsWith('action-')) {
-      console.log('🔄 DRAG OVER: Detected drag towards action zone, preventing intermediate updates');
+      console.log('🔄 DRAG OVER: Detected drag towards action zone, preventing visual updates');
       setIsDraggingToActionZone(true);
       return;
     } else {
       setIsDraggingToActionZone(false);
     }
 
-    // Use validation function
+    // Use validation function for visual feedback
     const validation = validateDragOperation(activeId, activeContainer, overContainer);
     if (!validation.allowed) {
       console.log('🔄 DRAG OVER: Validation failed:', validation.message);
       return;
     }
 
-    // Only move between containers during drag over if not targeting action zones
+    // FIXED: Only update visual state during drag over, not actual data
     if (activeContainer !== overContainer && !isDraggingToActionZone) {
-      console.log('🔄 DRAG OVER: Moving between containers');
-      setDeals(prevDeals => {
-        return prevDeals.map(deal => {
+      console.log('🔄 DRAG OVER: Updating visual state for cross-container move');
+      setVisualDragDeals(prevVisualDeals => {
+        return prevVisualDeals.map(deal => {
           if (deal.id === activeId) {
-            console.log('🔄 DRAG OVER: Updated deal', deal.id, 'status to', overContainer);
             return {
               ...deal,
-              status: overContainer,
-              stageEnteredDate: new Date().toISOString() // Reset stage entered date on manual move
+              status: overContainer
             };
           }
           return deal;
@@ -358,32 +370,40 @@ const SalesPipeline = ({
   };
   
   const handleDragEnd = (event: DragEndEvent) => {
-    const {
-      active,
-      over
-    } = event;
+    const { active, over } = event;
     console.log('🏁 DRAG END: Active:', active.id, 'Over:', over?.id);
+    
+    // Clean up drag state
     setActiveId(null);
     setIsDraggingToActionZone(false);
+    setDragSnapshot(null);
     
     if (!over || !active) {
-      console.log('🏁 DRAG END: No over target, ending drag');
+      console.log('🏁 DRAG END: No over target, reverting to original state');
+      // Revert visual state to actual data
+      setVisualDragDeals([...deals]);
       return;
     }
+    
     const activeId = active.id as string;
     const overId = over.id as string;
+    
     if (activeId === overId) {
-      console.log('🏁 DRAG END: Dropped on self, no action needed');
+      console.log('🏁 DRAG END: Dropped on self, reverting visual state');
+      setVisualDragDeals([...deals]);
       return;
     }
+    
     const overContainer = findContainer(overId);
     console.log('🏁 DRAG END: Over container:', overContainer);
+    
     if (!overContainer) {
-      console.log('🏁 DRAG END: No valid container found');
+      console.log('🏁 DRAG END: No valid container found, reverting');
+      setVisualDragDeals([...deals]);
       return;
     }
 
-    // ENHANCED: Handle action zone drops with immediate state updates for both collections
+    // Handle action zone drops with immediate state updates for both collections
     if (overContainer.startsWith('action-')) {
       console.log('🏁 DRAG END: Handling action zone drop:', overContainer);
       
@@ -400,17 +420,19 @@ const SalesPipeline = ({
         }
         
         // IMMEDIATE: Update both deal collections to remove from both instantly
-        setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
-        setAllDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
+        const updatedDeals = deals.filter(d => d.id !== dealId);
+        const updatedAllDeals = allDeals.filter(d => d.id !== dealId);
+        
+        setDeals(updatedDeals);
+        setAllDeals(updatedAllDeals);
+        setVisualDragDeals(updatedDeals);
         
         toast.success(`Deal archived: ${deal.client}`);
         
         if (onDealsChange) {
-          const updatedDeals = deals.filter(d => d.id !== dealId);
           onDealsChange(updatedDeals);
         }
         if (onAllDealsChange) {
-          const updatedAllDeals = allDeals.filter(d => d.id !== dealId);
           onAllDealsChange(updatedAllDeals);
         }
       };
@@ -427,21 +449,21 @@ const SalesPipeline = ({
         }
         
         // IMMEDIATE: Remove from pipeline deals, update status in all deals
-        setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
-        setAllDeals(prevDeals => prevDeals.map(d => 
+        const updatedDeals = deals.filter(d => d.id !== dealId);
+        const updatedAllDeals = allDeals.map(d => 
           d.id === dealId ? { ...d, status: 'Closed Lost', stageEnteredDate: new Date().toISOString() } : d
-        ));
+        );
+        
+        setDeals(updatedDeals);
+        setAllDeals(updatedAllDeals);
+        setVisualDragDeals(updatedDeals);
         
         toast.error(`Deal marked as lost: ${deal.client}`);
         
         if (onDealsChange) {
-          const updatedDeals = deals.filter(d => d.id !== dealId);
           onDealsChange(updatedDeals);
         }
         if (onAllDealsChange) {
-          const updatedAllDeals = allDeals.map(d => 
-            d.id === dealId ? { ...d, status: 'Closed Lost', stageEnteredDate: new Date().toISOString() } : d
-          );
           onAllDealsChange(updatedAllDeals);
         }
       };
@@ -465,21 +487,21 @@ const SalesPipeline = ({
         }
         
         // IMMEDIATE: Remove from pipeline deals, update status in all deals
-        setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
-        setAllDeals(prevDeals => prevDeals.map(d => 
+        const updatedDeals = deals.filter(d => d.id !== dealId);
+        const updatedAllDeals = allDeals.map(d => 
           d.id === dealId ? { ...d, status: 'Closed Won', stageEnteredDate: new Date().toISOString() } : d
-        ));
+        );
+        
+        setDeals(updatedDeals);
+        setAllDeals(updatedAllDeals);
+        setVisualDragDeals(updatedDeals);
         
         toast.success(`Deal won: ${deal.client}!`);
         
         if (onDealsChange) {
-          const updatedDeals = deals.filter(d => d.id !== dealId);
           onDealsChange(updatedDeals);
         }
         if (onAllDealsChange) {
-          const updatedAllDeals = allDeals.map(d => 
-            d.id === dealId ? { ...d, status: 'Closed Won', stageEnteredDate: new Date().toISOString() } : d
-          );
           onAllDealsChange(updatedAllDeals);
         }
       };
@@ -500,7 +522,8 @@ const SalesPipeline = ({
 
     const activeContainer = findContainer(activeId);
     if (!activeContainer) {
-      console.log('🏁 DRAG END: No active container found');
+      console.log('🏁 DRAG END: No active container found, reverting');
+      setVisualDragDeals([...deals]);
       return;
     }
 
@@ -510,27 +533,15 @@ const SalesPipeline = ({
       console.log('🏁 DRAG END: Final validation failed:', validation.message);
       toast.error(validation.message);
 
-      // Revert the deal to its original position
-      setDeals(prevDeals => {
-        const originalDeal = deals.find(d => d.id === activeId);
-        if (originalDeal) {
-          return prevDeals.map(deal => {
-            if (deal.id === activeId) {
-              console.log('🏁 DRAG END: Reverting deal to original status:', originalDeal.status);
-              return {
-                ...deal,
-                status: originalDeal.status,
-                stageEnteredDate: originalDeal.stageEnteredDate
-              };
-            }
-            return deal;
-          });
-        }
-        return prevDeals;
-      });
+      // Revert to snapshot
+      if (dragSnapshot) {
+        setDeals([...dragSnapshot]);
+        setVisualDragDeals([...dragSnapshot]);
+      }
       return;
     }
 
+    // FIXED: Now commit the visual changes to actual data
     if (activeContainer === overContainer) {
       // Reordering within the same container
       console.log('🏁 DRAG END: Reordering within same container');
@@ -545,6 +556,9 @@ const SalesPipeline = ({
         const reorderedDeals = arrayMove(containerDeals, activeIndex, overIndex);
         const updatedDeals = [...otherDeals, ...reorderedDeals];
         
+        // Update visual state to match
+        setVisualDragDeals(updatedDeals);
+        
         if (onDealsChange) {
           onDealsChange(updatedDeals);
         }
@@ -552,36 +566,36 @@ const SalesPipeline = ({
         return updatedDeals;
       });
     } else {
-      // Moving between containers - PURE MANUAL MOVE
-      console.log('🏁 DRAG END: Moving between containers - pure manual move');
+      // Moving between containers - commit the visual state to actual data
+      console.log('🏁 DRAG END: Committing cross-container move');
 
-      setDeals(prevDeals => {
-        const updatedDeals = prevDeals.map(deal => {
-          if (deal.id === activeId) {
-            console.log('🏁 DRAG END: Final update - deal', deal.id, 'moved to', overContainer);
-            return {
-              ...deal,
-              status: overContainer,
-              stageEnteredDate: new Date().toISOString() // Reset stage entered date on manual move
-            };
-          }
-          return deal;
-        });
-        
-        if (onDealsChange) {
-          onDealsChange(updatedDeals);
+      const updatedDeals = deals.map(deal => {
+        if (deal.id === activeId) {
+          console.log('🏁 DRAG END: Final update - deal', deal.id, 'moved to', overContainer);
+          return {
+            ...deal,
+            status: overContainer,
+            stageEnteredDate: new Date().toISOString()
+          };
         }
-        
-        return updatedDeals;
+        return deal;
       });
 
-      console.log('🏁 DRAG END: Manual move completed');
+      setDeals(updatedDeals);
+      setVisualDragDeals(updatedDeals);
+      
+      if (onDealsChange) {
+        onDealsChange(updatedDeals);
+      }
+      
+      console.log('🏁 DRAG END: Cross-container move completed');
     }
   };
   
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
-  return <div className="h-full relative">
+  return (
+    <div className="h-full relative">
       {/* Pipeline Header */}
       <div className="flex justify-end mb-4">
         
@@ -590,13 +604,13 @@ const SalesPipeline = ({
       {/* Pipeline Columns with Dynamic Grid Layout */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div ref={containerRef} className="w-full">
-          {shouldUseHorizontalScroll ? <ScrollArea className="w-full">
+          {shouldUseHorizontalScroll ? (
+            <ScrollArea className="w-full">
               <div className="flex space-x-4 pb-4 min-w-max">
                 {stages.sort((a, b) => a.order - b.order).map(stage => {
-              const columnDeals = getColumnDeals(stage.id);
-              return <div key={stage.id} style={{
-                width: `${columnWidth}px`
-              }} className="flex-shrink-0">
+                  const columnDeals = getColumnDeals(stage.id);
+                  return (
+                    <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
                       <PipelineColumn 
                         id={stage.id} 
                         title={stage.title} 
@@ -607,29 +621,35 @@ const SalesPipeline = ({
                         stage={stage}
                         onDealClick={onDealClick}
                       />
-                    </div>;
-            })}
+                    </div>
+                  );
+                })}
               </div>
               <ScrollBar orientation="horizontal" />
-            </ScrollArea> : <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
-          gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`,
-          justifyContent: 'center'
-        }}>
+            </ScrollArea>
+          ) : (
+            <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
+              gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`,
+              justifyContent: 'center'
+            }}>
               {stages.sort((a, b) => a.order - b.order).map(stage => {
-            const columnDeals = getColumnDeals(stage.id);
-            return <PipelineColumn 
-              key={stage.id} 
-              id={stage.id} 
-              title={stage.title} 
-              deals={columnDeals} 
-              count={columnDeals.length} 
-              totalValue={getColumnTotalValue(stage.id)} 
-              fixedHeight={fixedColumnHeight}
-              stage={stage}
-              onDealClick={onDealClick}
-            />;
-          })}
-            </div>}
+                const columnDeals = getColumnDeals(stage.id);
+                return (
+                  <PipelineColumn 
+                    key={stage.id} 
+                    id={stage.id} 
+                    title={stage.title} 
+                    deals={columnDeals} 
+                    count={columnDeals.length} 
+                    totalValue={getColumnTotalValue(stage.id)} 
+                    fixedHeight={fixedColumnHeight}
+                    stage={stage}
+                    onDealClick={onDealClick}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <DragOverlay>
@@ -642,7 +662,8 @@ const SalesPipeline = ({
 
       {/* Feedback Modal */}
       <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
-    </div>;
+    </div>
+  );
 };
 
 export default SalesPipeline;
