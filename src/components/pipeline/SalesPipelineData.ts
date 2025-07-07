@@ -113,6 +113,49 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
   return finalStageDate.toISOString();
 };
 
+// NEW: Helper to check if an auto-request already exists for a quote
+const hasExistingAutoRequest = (quoteId: string, sessionRequests: any[]): boolean => {
+  return sessionRequests.some(request => 
+    request.id === `auto-request-${quoteId}` || 
+    request.quoteId === quoteId
+  );
+};
+
+// NEW: Migration function to ensure all quotes have requests - OPTIMIZED to prevent duplicates
+const migrateStandaloneQuotes = (
+  sessionClients: any[], 
+  sessionQuotes: any[], 
+  addSessionRequest?: (request: any) => void
+): any[] => {
+  // If no migration function provided, return quotes as-is
+  if (!addSessionRequest) {
+    console.log('🔄 MIGRATION: Skipping migration - no addSessionRequest function provided');
+    return sessionQuotes;
+  }
+
+  console.log('\n🔄 MIGRATION: Checking for standalone quotes needing auto-requests');
+  
+  const migratedQuotes = sessionQuotes.map(quote => {
+    if (!quote.requestId) {
+      console.log(`🔄 MIGRATION: Found standalone quote ${quote.id}, creating auto-request`);
+      
+      const autoRequest = createMinimalRequestForQuote(quote);
+      addSessionRequest(autoRequest);
+      
+      console.log(`🔄 MIGRATION: Auto-request ${autoRequest.id} created for quote ${quote.id}`);
+      
+      return {
+        ...quote,
+        requestId: autoRequest.id
+      };
+    }
+    return quote;
+  });
+  
+  console.log('🔄 MIGRATION: Migration complete');
+  return migratedQuotes;
+};
+
 // NEW: Helper to determine if a quote was just created (within last 5 minutes)
 const isRecentlyCreatedQuote = (quoteCreatedDate: string): boolean => {
   const createdTime = new Date(quoteCreatedDate).getTime();
@@ -254,35 +297,6 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   
   console.log(`Non-Jobber stage assigned: ${assignedStage}`);
   return assignedStage;
-};
-
-// NEW: Migration function to ensure all quotes have requests
-const migrateStandaloneQuotes = (
-  sessionClients: any[], 
-  sessionQuotes: any[], 
-  addSessionRequest: (request: any) => void
-): any[] => {
-  console.log('\n🔄 MIGRATION: Checking for standalone quotes needing auto-requests');
-  
-  const migratedQuotes = sessionQuotes.map(quote => {
-    if (!quote.requestId) {
-      console.log(`🔄 MIGRATION: Found standalone quote ${quote.id}, creating auto-request`);
-      
-      const autoRequest = createMinimalRequestForQuote(quote);
-      addSessionRequest(autoRequest);
-      
-      console.log(`🔄 MIGRATION: Auto-request ${autoRequest.id} created for quote ${quote.id}`);
-      
-      return {
-        ...quote,
-        requestId: autoRequest.id
-      };
-    }
-    return quote;
-  });
-  
-  console.log('🔄 MIGRATION: Migration complete');
-  return migratedQuotes;
 };
 
 // SIMPLIFIED: Convert requests to deals for the pipeline (now handles all quotes since they all have requests)

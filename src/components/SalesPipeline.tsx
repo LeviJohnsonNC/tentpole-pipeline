@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, arrayMove, sortableKeyboardCoordinates, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { Calendar, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -60,13 +59,16 @@ const SalesPipeline = ({
     stages
   } = useStagesStore();
 
-  // Simplified state management
+  // State management
   const [isInitialized, setIsInitialized] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]); // Pipeline deals
   const [allDeals, setAllDeals] = useState<Deal[]>([]); // All deals including closed
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
+
+  // FIXED: Migration completion tracking to prevent infinite loops
+  const migrationCompletedRef = useRef(false);
 
   // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,7 +84,7 @@ const SalesPipeline = ({
     padding: 32
   });
 
-  // FIXED: Create stable references for session data lengths to prevent infinite loops
+  // FIXED: Stable references for session data lengths to prevent infinite loops
   const sessionDataRef = useRef({
     clientsLength: 0,
     requestsLength: 0,
@@ -90,7 +92,7 @@ const SalesPipeline = ({
     stagesLength: 0
   });
 
-  // Initialize deals only once when component mounts
+  // FIXED: Initialize deals only once when component mounts - removed addSessionRequest from dependencies
   useEffect(() => {
     if (!isInitialized && sessionClients.length > 0 && stages.length > 0) {
       console.log('🚀 PIPELINE INIT: Initializing deals for the first time');
@@ -100,8 +102,14 @@ const SalesPipeline = ({
         quotes: sessionQuotes.length,
         stages: stages.length
       });
-      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
-      const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
+      
+      // Run migration only once during initialization
+      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, migrationCompletedRef.current ? undefined : addSessionRequest);
+      const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages, migrationCompletedRef.current ? undefined : addSessionRequest);
+      
+      // Mark migration as completed
+      migrationCompletedRef.current = true;
+      
       console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'pipeline deals and', initialAllDeals.length, 'all deals');
       setDeals(initialDeals);
       setAllDeals(initialAllDeals);
@@ -122,9 +130,9 @@ const SalesPipeline = ({
         onAllDealsChange(initialAllDeals);
       }
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized, addSessionRequest]);
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]); // REMOVED addSessionRequest from dependencies
 
-  // FIXED: Better detection of data changes with stable comparison
+  // FIXED: Better detection of data changes with stable comparison - removed addSessionRequest from dependencies
   useEffect(() => {
     if (!isInitialized) return;
     
@@ -149,8 +157,9 @@ const SalesPipeline = ({
       new: currentLengths
     });
     
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
-    const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages, addSessionRequest);
+    // Don't run migration again, just update deals based on existing data
+    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages); // No migration function
+    const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages); // No migration function
     
     // Update session data reference
     sessionDataRef.current = currentLengths;
@@ -187,9 +196,9 @@ const SalesPipeline = ({
       onDealsChange(updatedDeals);
     }
     if (onAllDealsChange) {
-      onAllDealsChange(newAllDeals);
+      onAllDeals(newAllDeals);
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]);
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, stages.length, isInitialized]); // REMOVED addSessionRequest from dependencies
 
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
