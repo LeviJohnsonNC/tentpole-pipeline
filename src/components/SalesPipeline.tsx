@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import PipelineColumn from './pipeline/PipelineColumn';
+import AggregateColumn from './pipeline/AggregateColumn';
 import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
 import FeedbackModal from './FeedbackModal';
@@ -22,6 +23,7 @@ interface SalesPipelineProps {
   onAllDealsChange?: (allDeals: Deal[]) => void;
   searchTerm?: string;
   onDealClick?: (dealId: string) => void;
+  onAggregateColumnClick?: (type: 'won' | 'lost') => void;
 }
 
 // Helper function to check if a stage ID is a Jobber stage
@@ -41,7 +43,8 @@ const SalesPipeline = ({
   onDealsChange,
   onAllDealsChange,
   searchTerm = '',
-  onDealClick
+  onDealClick,
+  onAggregateColumnClick
 }: SalesPipelineProps) => {
   const {
     sessionClients,
@@ -67,7 +70,7 @@ const SalesPipeline = ({
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
 
-  // Responsive columns setup
+  // Responsive columns setup - now include aggregate columns
   const containerRef = useRef<HTMLDivElement>(null);
   const {
     columnWidth,
@@ -78,7 +81,8 @@ const SalesPipeline = ({
     minColumnWidth: 200,
     maxColumnWidth: 320,
     columnGap: 16,
-    padding: 32
+    padding: 32,
+    includeAggregateColumns: true // Include aggregate columns in calculation
   });
 
   // Initialize deals only once when component mounts
@@ -197,6 +201,21 @@ const SalesPipeline = ({
       }
     }
   }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange, onAllDealsChange]);
+
+  // New: Calculate aggregate column data
+  const getAggregateData = (type: 'won' | 'lost') => {
+    const statusFilter = type === 'won' ? 'Closed Won' : 'Closed Lost';
+    const aggregateDeals = allDeals.filter(deal => deal.status === statusFilter);
+    const count = aggregateDeals.length;
+    const totalValue = aggregateDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
+    return {
+      count,
+      totalValue: formatAmount(totalValue)
+    };
+  };
+
+  const closedWonData = getAggregateData('won');
+  const closedLostData = getAggregateData('lost');
 
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
@@ -576,9 +595,16 @@ const SalesPipeline = ({
     }
   };
   
+  const handleAggregateClick = (type: 'won' | 'lost') => {
+    if (onAggregateColumnClick) {
+      onAggregateColumnClick(type);
+    }
+  };
+  
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
-  return <div className="h-full relative">
+  return (
+    <div className="h-full relative">
       {/* Pipeline Header */}
       <div className="flex justify-end mb-4">
         
@@ -587,13 +613,14 @@ const SalesPipeline = ({
       {/* Pipeline Columns with Dynamic Grid Layout */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div ref={containerRef} className="w-full">
-          {shouldUseHorizontalScroll ? <ScrollArea className="w-full">
+          {shouldUseHorizontalScroll ? (
+            <ScrollArea className="w-full">
               <div className="flex space-x-4 pb-4 min-w-max">
+                {/* Regular pipeline columns */}
                 {stages.sort((a, b) => a.order - b.order).map(stage => {
-              const columnDeals = getColumnDeals(stage.id);
-              return <div key={stage.id} style={{
-                width: `${columnWidth}px`
-              }} className="flex-shrink-0">
+                  const columnDeals = getColumnDeals(stage.id);
+                  return (
+                    <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
                       <PipelineColumn 
                         id={stage.id} 
                         title={stage.title} 
@@ -604,29 +631,76 @@ const SalesPipeline = ({
                         stage={stage}
                         onDealClick={onDealClick}
                       />
-                    </div>;
-            })}
+                    </div>
+                  );
+                })}
+                
+                {/* Aggregate columns */}
+                <div style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                  <AggregateColumn
+                    title="Closed Won"
+                    count={closedWonData.count}
+                    totalValue={closedWonData.totalValue}
+                    type="won"
+                    onClick={() => handleAggregateClick('won')}
+                    fixedHeight={fixedColumnHeight}
+                  />
+                </div>
+                <div style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                  <AggregateColumn
+                    title="Closed Lost"
+                    count={closedLostData.count}
+                    totalValue={closedLostData.totalValue}
+                    type="lost"
+                    onClick={() => handleAggregateClick('lost')}
+                    fixedHeight={fixedColumnHeight}
+                  />
+                </div>
               </div>
               <ScrollBar orientation="horizontal" />
-            </ScrollArea> : <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
-          gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`,
-          justifyContent: 'center'
-        }}>
+            </ScrollArea>
+          ) : (
+            <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
+              gridTemplateColumns: `repeat(${stages.length + 2}, ${columnWidth}px)`, // +2 for aggregate columns
+              justifyContent: 'center'
+            }}>
+              {/* Regular pipeline columns */}
               {stages.sort((a, b) => a.order - b.order).map(stage => {
-            const columnDeals = getColumnDeals(stage.id);
-            return <PipelineColumn 
-              key={stage.id} 
-              id={stage.id} 
-              title={stage.title} 
-              deals={columnDeals} 
-              count={columnDeals.length} 
-              totalValue={getColumnTotalValue(stage.id)} 
-              fixedHeight={fixedColumnHeight}
-              stage={stage}
-              onDealClick={onDealClick}
-            />;
-          })}
-            </div>}
+                const columnDeals = getColumnDeals(stage.id);
+                return (
+                  <PipelineColumn 
+                    key={stage.id} 
+                    id={stage.id} 
+                    title={stage.title} 
+                    deals={columnDeals} 
+                    count={columnDeals.length} 
+                    totalValue={getColumnTotalValue(stage.id)} 
+                    fixedHeight={fixedColumnHeight}
+                    stage={stage}
+                    onDealClick={onDealClick}
+                  />
+                );
+              })}
+              
+              {/* Aggregate columns */}
+              <AggregateColumn
+                title="Closed Won"
+                count={closedWonData.count}
+                totalValue={closedWonData.totalValue}
+                type="won"
+                onClick={() => handleAggregateClick('won')}
+                fixedHeight={fixedColumnHeight}
+              />
+              <AggregateColumn
+                title="Closed Lost"
+                count={closedLostData.count}
+                totalValue={closedLostData.totalValue}
+                type="lost"
+                onClick={() => handleAggregateClick('lost')}
+                fixedHeight={fixedColumnHeight}
+              />
+            </div>
+          )}
         </div>
 
         <DragOverlay>
@@ -639,7 +713,8 @@ const SalesPipeline = ({
 
       {/* Feedback Modal */}
       <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
-    </div>;
+    </div>
+  );
 };
 
 export default SalesPipeline;

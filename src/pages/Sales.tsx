@@ -66,6 +66,21 @@ const Sales = () => {
     setSelectedDealId(null);
   };
 
+  const handleAggregateColumnClick = (type: 'won' | 'lost') => {
+    // Switch to list view
+    setPipelineView('list');
+    
+    // Set the appropriate stage filter
+    if (type === 'won') {
+      setSelectedStage('closed-won');
+    } else {
+      setSelectedStage('closed-lost');
+    }
+    
+    // Clear search to show all results for the selected stage
+    setSearchTerm('');
+  };
+
   // Filter deals based on selected stage and search term - use allDeals for list view
   const filteredDeals = (pipelineView === 'list' ? allDeals : deals).filter(deal => {
     const matchesStage = selectedStage === 'all' || 
@@ -162,6 +177,7 @@ const Sales = () => {
                     onAllDealsChange={handleAllDealsChange}
                     searchTerm={searchTerm}
                     onDealClick={handleDealClick}
+                    onAggregateColumnClick={handleAggregateColumnClick}
                   />
                 </div>
               </div>

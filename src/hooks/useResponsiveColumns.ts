@@ -8,6 +8,7 @@ interface UseResponsiveColumnsProps {
   maxColumnWidth?: number;
   columnGap?: number;
   padding?: number;
+  includeAggregateColumns?: boolean; // New prop for aggregate columns
 }
 
 export const useResponsiveColumns = ({
@@ -16,7 +17,8 @@ export const useResponsiveColumns = ({
   minColumnWidth = 200,
   maxColumnWidth = 320,
   columnGap = 16,
-  padding = 32
+  padding = 32,
+  includeAggregateColumns = false
 }: UseResponsiveColumnsProps) => {
   const [columnWidth, setColumnWidth] = useState(minColumnWidth);
   const [shouldUseHorizontalScroll, setShouldUseHorizontalScroll] = useState(false);
@@ -27,10 +29,13 @@ export const useResponsiveColumns = ({
 
       const containerWidth = containerRef.current.offsetWidth;
       const availableWidth = containerWidth - padding;
-      const totalGapWidth = (columnCount - 1) * columnGap;
-      const widthPerColumn = (availableWidth - totalGapWidth) / columnCount;
+      
+      // Account for aggregate columns if included
+      const totalColumns = includeAggregateColumns ? columnCount + 2 : columnCount;
+      const totalGapWidth = (totalColumns - 1) * columnGap;
+      const widthPerColumn = (availableWidth - totalGapWidth) / totalColumns;
 
-      console.log('📐 RESPONSIVE COLUMNS: Container width:', containerWidth, 'Available:', availableWidth, 'Per column:', widthPerColumn);
+      console.log('📐 RESPONSIVE COLUMNS: Container width:', containerWidth, 'Available:', availableWidth, 'Per column:', widthPerColumn, 'Total columns:', totalColumns);
 
       if (widthPerColumn >= minColumnWidth) {
         // We can fit all columns without horizontal scroll
@@ -56,7 +61,7 @@ export const useResponsiveColumns = ({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [containerRef, columnCount, minColumnWidth, maxColumnWidth, columnGap, padding]);
+  }, [containerRef, columnCount, minColumnWidth, maxColumnWidth, columnGap, padding, includeAggregateColumns]);
 
   return {
     columnWidth,
