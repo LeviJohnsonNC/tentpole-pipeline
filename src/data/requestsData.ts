@@ -340,5 +340,29 @@ export const requestsData: Request[] = [
     urgency: 'Low',
     preferredTime: 'Late fall',
     notes: 'Scheduled for October-November timeframe'
+  },
+  {
+    id: 'request-29',
+    clientId: 'client-7',
+    title: 'quote-11',
+    serviceDetails: 'Monthly window cleaning service for 3-story office building',
+    requestDate: '2025-06-19',
+    status: 'New',
+    assignedTeamMember: 'Mike Johnson',
+    urgency: 'Medium',
+    preferredTime: 'Monthly service',
+    notes: 'Generated request for standalone quote'
+  },
+  {
+    id: 'request-30',
+    clientId: 'client-12',
+    title: 'quote-12',
+    serviceDetails: 'Emergency debris removal and property cleanup after storm damage',
+    requestDate: '2025-06-21',
+    status: 'New',
+    assignedTeamMember: 'Lisa Chen',
+    urgency: 'High',
+    preferredTime: 'ASAP',
+    notes: 'Generated request for standalone quote'
   }
 ];

@@ -1,4 +1,3 @@
-
 import { Quote } from '@/types/Quote';
 
 export const quotesData: Quote[] = [
@@ -156,11 +155,12 @@ export const quotesData: Quote[] = [
     validUntil: '2025-07-21',
     notes: 'Seasonal flower installation for condo complex'
   },
-  // Standalone quotes (not linked to requests) - NO TITLE field
   {
     id: 'quote-11',
     clientId: 'client-7',
+    requestId: 'request-29',
     quoteNumber: 'Q-2025-011',
+    title: 'Monthly Window Cleaning Service',
     property: '789 Business District Ave',
     status: 'Awaiting Response',
     amount: 850.00,
@@ -173,7 +173,9 @@ export const quotesData: Quote[] = [
   {
     id: 'quote-12',
     clientId: 'client-12',
+    requestId: 'request-30',
     quoteNumber: 'Q-2025-012',
+    title: 'Emergency Debris Removal',
     property: '456 Maple Street SW',
     status: 'Draft',
     amount: 2200.00,
@@ -182,7 +184,6 @@ export const quotesData: Quote[] = [
     validUntil: '2025-07-21',
     notes: 'Emergency debris removal and property cleanup after storm damage'
   },
-  // Adding a few more example quotes to test the "newest quote" logic
   {
     id: 'quote-13',
     clientId: 'client-4',
