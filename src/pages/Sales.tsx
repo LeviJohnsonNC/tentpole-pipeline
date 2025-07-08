@@ -1,4 +1,3 @@
-
 import { MoreHorizontal, ChartColumn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -129,9 +128,9 @@ const Sales = () => {
           
           {/* Main Content */}
           <main className="flex-1 p-6">
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex flex-col gap-3">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col gap-2">
                   <h1 className="text-2xl font-semibold text-gray-900">
                     {pipelineView === 'kanban' ? 'Sales Pipeline' : 'Sales List'}
                   </h1>
@@ -165,28 +164,27 @@ const Sales = () => {
                 </div>
               </div>
               
-              {/* Summary Cards and Search Bar aligned horizontally */}
-              <div className="flex items-start justify-between mb-4">
-                <PipelineSummaryCards
-                  wonCount={wonData.count}
-                  wonTotal={wonData.totalValue}
-                  lostCount={lostData.count}
-                  lostTotal={lostData.totalValue}
-                  onWonClick={() => handleAggregateColumnClick('won')}
-                  onLostClick={() => handleAggregateColumnClick('lost')}
-                />
-                
-                {/* Search bar for kanban view - aligned with summary cards */}
-                {pipelineView === 'kanban' && (
+              {/* Conditional content based on view */}
+              {pipelineView === 'kanban' ? (
+                /* Summary Cards and Search Bar for kanban view */
+                <div className="flex items-start justify-between mb-3">
+                  <PipelineSummaryCards
+                    wonCount={wonData.count}
+                    wonTotal={wonData.totalValue}
+                    lostCount={lostData.count}
+                    lostTotal={lostData.totalValue}
+                    onWonClick={() => handleAggregateColumnClick('won')}
+                    onLostClick={() => handleAggregateColumnClick('lost')}
+                  />
+                  
                   <SearchBar 
                     searchTerm={searchTerm}
                     onSearchChange={handleSearchChange}
                   />
-                )}
-              </div>
-              
-              {pipelineView === 'list' && (
-                <div className="flex items-center justify-between">
+                </div>
+              ) : (
+                /* Stage Filter and Search Bar for list view */
+                <div className="flex items-center justify-between mb-3">
                   <StageFilter 
                     selectedStage={selectedStage}
                     onStageChange={handleStageChange}
