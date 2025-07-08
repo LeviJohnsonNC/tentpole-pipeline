@@ -162,12 +162,19 @@ const ClientsTable = ({ searchTerm, onSearchChange }: ClientsTableProps) => {
                 </div>
               </TableCell>
               <TableCell className="py-4">
-                <Badge 
-                  variant="outline" 
-                  className={`text-xs ${getStatusColor(client.status)}`}
-                >
-                  {client.status}
-                </Badge>
+                <div className="flex flex-col space-y-1">
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs ${getStatusColor(client.status)}`}
+                  >
+                    {client.status}
+                  </Badge>
+                  {client.status === 'Lead' && client.leadStage && (
+                    <div className="text-xs text-gray-500">
+                      {client.leadStage}
+                    </div>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="py-4 text-sm text-gray-600">
                 {new Date(client.lastActivity).toLocaleDateString()}
