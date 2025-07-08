@@ -6,6 +6,7 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { formatDateShort, formatDateTimeFull, calculateDaysInStage, calculateDaysAndHours, isOverTimeLimit } from '@/utils/dateHelpers';
 import { Stage } from '@/store/stagesStore';
+import { useClientStore } from '@/store/clientStore';
 
 interface Deal {
   id: string;
@@ -33,6 +34,8 @@ const DealCard = ({
   isDragging,
   onDealClick
 }: DealCardProps) => {
+  const { sessionClients } = useClientStore();
+  
   const {
     attributes,
     listeners,
@@ -55,6 +58,14 @@ const DealCard = ({
   const formatAmount = (amount: number) => {
     return `$${amount.toLocaleString()}`;
   };
+
+  // Get client status based on deal's client name
+  const getClientStatus = (clientName: string) => {
+    const client = sessionClients.find(c => c.name === clientName);
+    return client?.status || 'Active'; // Default to Active if not found
+  };
+
+  const clientStatus = getClientStatus(deal.client);
 
   // Calculate days in stage
   const daysInStage = calculateDaysInStage(deal.stageEnteredDate);
@@ -119,7 +130,7 @@ const DealCard = ({
           )}
         </div>
 
-        {/* Bottom section with date and days counter */}
+        {/* Bottom section with date and status indicators */}
         <div className="flex justify-between items-center mt-2 pt-1 border-t border-gray-100">
           {/* Date field (left) - only show tooltip when not dragging */}
           <TooltipPrimitive.Root delayDuration={300}>
@@ -139,37 +150,67 @@ const DealCard = ({
             </TooltipPrimitive.Portal>
           </TooltipPrimitive.Root>
 
-          {/* Days in stage counter (right) - only show tooltip when not dragging */}
-          <TooltipPrimitive.Root delayDuration={300}>
-            <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
-              <div className="cursor-help">
-                <Badge 
-                  variant="secondary" 
-                  className={`h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs pointer-events-none ${
-                    isOverLimit 
-                      ? 'text-red-800 bg-red-200' 
-                      : 'text-blue-800 bg-slate-200'
-                  }`}
+          {/* Status indicators (right) */}
+          <div className="flex items-center space-x-1">
+            {/* Client status indicator */}
+            <TooltipPrimitive.Root delayDuration={300}>
+              <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
+                <div className="cursor-help">
+                  <Badge 
+                    variant="secondary" 
+                    className={`h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs pointer-events-none ${
+                      clientStatus === 'Lead' 
+                        ? 'text-orange-800 bg-orange-200' 
+                        : 'text-green-800 bg-green-200'
+                    }`}
+                  >
+                    {clientStatus === 'Lead' ? 'L' : 'C'}
+                  </Badge>
+                </div>
+              </TooltipPrimitive.Trigger>
+              <TooltipPrimitive.Portal>
+                <TooltipPrimitive.Content
+                  side="top"
+                  sideOffset={8}
+                  className="z-[9999] overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
                 >
-                  {daysInStage}
-                </Badge>
-              </div>
-            </TooltipPrimitive.Trigger>
-            <TooltipPrimitive.Portal>
-              <TooltipPrimitive.Content
-                side="top"
-                sideOffset={8}
-                className="z-[9999] overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
-              >
-                {daysHoursText}
-                {isOverLimit && stage && (
-                  <div className="mt-1 text-red-300 text-xs">
-                    Over limit: {stage.timeLimitDays}d {stage.timeLimitHours}h
-                  </div>
-                )}
-              </TooltipPrimitive.Content>
-            </TooltipPrimitive.Portal>
-          </TooltipPrimitive.Root>
+                  Client Status: {clientStatus}
+                </TooltipPrimitive.Content>
+              </TooltipPrimitive.Portal>
+            </TooltipPrimitive.Root>
+
+            {/* Days in stage counter */}
+            <TooltipPrimitive.Root delayDuration={300}>
+              <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
+                <div className="cursor-help">
+                  <Badge 
+                    variant="secondary" 
+                    className={`h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs pointer-events-none ${
+                      isOverLimit 
+                        ? 'text-red-800 bg-red-200' 
+                        : 'text-blue-800 bg-slate-200'
+                    }`}
+                  >
+                    {daysInStage}
+                  </Badge>
+                </div>
+              </TooltipPrimitive.Trigger>
+              <TooltipPrimitive.Portal>
+                <TooltipPrimitive.Content
+                  side="top"
+                  sideOffset={8}
+                  className="z-[9999] overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+                >
+                  {daysHoursText}
+                  {isOverLimit && stage && (
+                    <div className="mt-1 text-red-300 text-xs">
+                      Over limit: {stage.timeLimitDays}d {stage.timeLimitHours}h
+                    </div>
+                  )}
+                </TooltipPrimitive.Content>
+              </TooltipPrimitive.Portal>
+            </TooltipPrimitive.Root>
+          </div>
         </div>
       </div>
     </TooltipPrimitive.Provider>
