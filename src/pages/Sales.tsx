@@ -87,12 +87,20 @@ const Sales = () => {
     return `$${amount.toLocaleString()}`;
   };
 
-  // Calculate summary data
+  // Calculate summary data - Fixed to use proper status matching
   const getSummaryData = (type: 'won' | 'lost') => {
-    const statusFilter = type === 'won' ? 'Closed Won' : 'Closed Lost';
-    const summaryDeals = allDeals.filter(deal => deal.status === statusFilter);
+    console.log(`🔍 Calculating summary for ${type}. Total deals: ${allDeals.length}`);
+    
+    const targetStatus = type === 'won' ? 'Closed Won' : 'Closed Lost';
+    const summaryDeals = allDeals.filter(deal => deal.status === targetStatus);
+    
+    console.log(`📊 Found ${summaryDeals.length} deals with status "${targetStatus}"`);
+    
     const count = summaryDeals.length;
     const totalValue = summaryDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
+    
+    console.log(`💰 ${type} summary: ${count} deals, $${totalValue.toLocaleString()} total value`);
+    
     return {
       count,
       totalValue: formatAmount(totalValue)
