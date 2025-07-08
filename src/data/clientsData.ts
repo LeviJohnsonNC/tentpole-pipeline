@@ -225,5 +225,51 @@ export const clientsData: Client[] = [
     createdAt: '2024-02-18',
     salesperson: 'Mike Johnson',
     sourceInfo: 'Walk-in inquiry'
+  },
+  // New clients for additional "New Opportunities" cards
+  {
+    id: 'client-16',
+    name: 'Eastside Medical Clinic',
+    email: 'admin@eastsidemedical.ca',
+    phone: '(403) 555-0423',
+    primaryAddress: '4521 17th Avenue SE, Calgary, AB T2A 0T8',
+    tags: ['Commercial', 'Healthcare'],
+    status: 'Lead',
+    lastActivity: 'Today',
+    jobHistory: [],
+    communicationLog: ['Inquiry about exterior cleaning and landscaping'],
+    createdAt: new Date().toISOString().split('T')[0],
+    salesperson: 'Mike Johnson',
+    sourceInfo: 'Online form submission'
+  },
+  {
+    id: 'client-17',
+    name: 'Patricia Williams',
+    email: 'p.williams@gmail.com',
+    phone: '(403) 555-0445',
+    primaryAddress: '789 Millrise Point SW, Calgary, AB T2Y 3Z1',
+    tags: ['Residential', 'Spring Cleanup'],
+    status: 'Lead',
+    lastActivity: 'Today',
+    jobHistory: [],
+    communicationLog: ['Wants quote for spring yard cleanup and deck staining'],
+    createdAt: new Date().toISOString().split('T')[0],
+    salesperson: 'Lisa Chen',
+    sourceInfo: 'Referral from neighbor'
+  },
+  {
+    id: 'client-18',
+    name: 'Riverbend Retail Plaza',
+    email: 'management@riverbendplaza.ca',
+    phone: '(403) 555-0467',
+    primaryAddress: '1250 Riverbend Drive SE, Calgary, AB T2C 3Z4',
+    tags: ['Commercial', 'Retail'],
+    status: 'Lead',
+    lastActivity: 'Today',
+    jobHistory: [],
+    communicationLog: ['Inquiry about parking lot cleaning and landscaping maintenance'],
+    createdAt: new Date().toISOString().split('T')[0],
+    salesperson: 'Mike Johnson',
+    sourceInfo: 'Phone inquiry'
   }
 ];
