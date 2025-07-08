@@ -82,7 +82,7 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
   
   // Set conservative limits to ensure deals stay within bounds
   switch (stageId) {
-    case 'new-deals':
+    case 'new-opportunities':
       maxDaysInStage = 0.1; // Stay well within 3 hours (convert to days)
       break;
     case 'contacted':
@@ -110,6 +110,93 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
   const finalStageDate = stageEnteredDate < createdDate ? createdDate : stageEnteredDate;
   
   return finalStageDate.toISOString();
+};
+
+// NEW: Function to create deals from requests
+const createAllDealsFromRequests = (
+  sessionClients: any[] = [], 
+  sessionRequests: any[] = [], 
+  sessionQuotes: any[] = [], 
+  stages: any[] = []
+): Deal[] => {
+  const requestsWithClients = getRequestsWithClientInfo(sessionRequests, sessionClients);
+  const quotesWithClients = getQuotesWithClientInfo(sessionQuotes, sessionClients);
+  
+  return requestsWithClients.map(request => {
+    const client = sessionClients.find(c => c.id === request.clientId);
+    const relatedQuote = quotesWithClients.find(q => q.requestId === request.id);
+    
+    // Determine stage based on request status
+    let stageId = request.status;
+    if (request.status === 'New') {
+      stageId = 'new-opportunities';
+    } else if (request.status === 'Assessment complete') {
+      stageId = 'jobber-assessment-completed';
+    } else if (request.status === 'Unscheduled') {
+      stageId = 'jobber-unscheduled-assessment';
+    } else if (request.status === 'Overdue') {
+      stageId = 'jobber-overdue-assessment';
+    }
+    
+    const createdAt = stageId === 'new-opportunities' ? generateNewDealDate() : generateOtherDealDate();
+    const stageEnteredDate = generateStageEnteredDate(createdAt, stageId, request.id);
+    
+    return {
+      id: request.id,
+      client: client?.name || 'Unknown Client',
+      title: request.title,
+      property: request.property,
+      contact: client?.phone || 'No phone',
+      requested: request.requestDate,
+      amount: relatedQuote?.amount || request.estimatedValue,
+      status: stageId,
+      type: 'request' as const,
+      quoteId: relatedQuote?.id,
+      createdAt,
+      stageEnteredDate
+    };
+  });
+};
+
+// NEW: Function to create deals from standalone quotes
+const createAllDealsFromStandaloneQuotes = (
+  sessionClients: any[] = [], 
+  sessionQuotes: any[] = [], 
+  stages: any[] = []
+): Deal[] => {
+  const quotesWithClients = getQuotesWithClientInfo(sessionQuotes, sessionClients);
+  
+  return quotesWithClients
+    .filter(quote => !quote.requestId) // Only standalone quotes
+    .map(quote => {
+      const client = sessionClients.find(c => c.id === quote.clientId);
+      
+      // Determine stage based on quote status
+      let stageId = quote.status;
+      if (quote.status === 'Draft') {
+        stageId = 'draft-quote';
+      } else if (quote.status === 'Sent') {
+        stageId = 'quote-awaiting-response';
+      }
+      
+      const createdAt = generateOtherDealDate();
+      const stageEnteredDate = generateStageEnteredDate(createdAt, stageId, quote.id);
+      
+      return {
+        id: quote.id,
+        client: client?.name || 'Unknown Client',
+        title: quote.title,
+        property: quote.property,
+        contact: client?.phone || 'No phone',
+        requested: quote.createdAt,
+        amount: quote.amount,
+        status: stageId,
+        type: 'quote' as const,
+        quoteId: quote.id,
+        createdAt,
+        stageEnteredDate
+      };
+    });
 };
 
 // NEW: Function to generate sample closed deals for realistic data
@@ -226,6 +313,43 @@ const generateClosedDeals = (wonCount: number, lostCount: number): Deal[] => {
   
   console.log(`✅ GENERATED: ${wonCount} won deals, ${lostCount} lost deals`);
   return deals;
+};
+
+// NEW: Function to create initial pipeline deals (excluding closed deals)
+export const createInitialDeals = (
+  sessionClients: any[] = [], 
+  sessionRequests: any[] = [], 
+  sessionQuotes: any[] = [], 
+  stages: any[] = []
+): Deal[] => {
+  console.log('\n=== 🚀 INITIAL PIPELINE DEALS CREATION ===');
+  console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
+  
+  if (!sessionClients || sessionClients.length === 0) {
+    console.warn('⚠️ No clients available - pipeline will be empty');
+    return [];
+  }
+  
+  if (!stages || stages.length === 0) {
+    console.warn('⚠️ No stages available - pipeline will be empty');
+    return [];
+  }
+  
+  // Create deals from requests
+  const requestDeals = createAllDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
+  
+  // Create deals from standalone quotes
+  const standaloneQuoteDeals = createAllDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
+  
+  // Filter out closed deals for pipeline view
+  const pipelineDeals = [...requestDeals, ...standaloneQuoteDeals].filter(deal => 
+    !deal.status.includes('Closed') && !deal.status.includes('Archived')
+  );
+  
+  console.log('✅ Pipeline deals created:', pipelineDeals.length);
+  console.log('=== 🏁 END INITIAL PIPELINE DEALS CREATION ===\n');
+  
+  return pipelineDeals;
 };
 
 // NEW: Main function for creating ALL deals (including closed won/lost) - UPDATED to include generated data
@@ -410,7 +534,7 @@ export const handleDeleteAction = (
 export type { Deal };
 
 export const pipelineColumns = [
-  { id: "new-deals", title: "New Deals" },
+  { id: "new-opportunities", title: "New Opportunities" },
   { id: "contacted", title: "Contacted" },
   { id: "draft-quote", title: "Draft Quote" },
   { id: "quote-awaiting-response", title: "Quote Awaiting Response" },
