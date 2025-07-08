@@ -47,6 +47,7 @@ export interface Client {
   fullAdditionalAddresses?: Address[];
   tags: string[];
   status: 'Lead' | 'Active' | 'Archived';
+  leadStage?: string;
   notes?: string;
   jobHistory: string[];
   communicationLog: string[];
