@@ -21,14 +21,14 @@ const PipelineSummaryCards = ({
 }: PipelineSummaryCardsProps) => {
   return (
     <div className="flex gap-4">
-      {/* Closed Won Card */}
+      {/* Total Won Card */}
       <div 
         className="bg-green-500 text-white px-4 py-3 rounded-lg cursor-pointer hover:bg-green-600 transition-colors flex-shrink-0"
         onClick={onWonClick}
       >
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="text-sm font-medium">Closed Won</div>
+            <div className="text-sm font-medium">Total Won</div>
             <div className="text-lg font-semibold">{wonTotal}</div>
           </div>
           <div className="bg-white/20 px-2 py-1 rounded-full text-sm font-semibold">
@@ -37,14 +37,14 @@ const PipelineSummaryCards = ({
         </div>
       </div>
 
-      {/* Closed Lost Card */}
+      {/* Total Lost Card */}
       <div 
         className="bg-red-500 text-white px-4 py-3 rounded-lg cursor-pointer hover:bg-red-600 transition-colors flex-shrink-0"
         onClick={onLostClick}
       >
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="text-sm font-medium">Closed Lost</div>
+            <div className="text-sm font-medium">Total Lost</div>
             <div className="text-lg font-semibold">{lostTotal}</div>
           </div>
           <div className="bg-white/20 px-2 py-1 rounded-full text-sm font-semibold">

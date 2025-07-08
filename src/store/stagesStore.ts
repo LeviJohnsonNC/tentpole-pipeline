@@ -27,7 +27,7 @@ interface StagesState {
 const defaultStages: Stage[] = [
   { 
     id: "new-deals", 
-    title: "New Deals", 
+    title: "New Opportunities", 
     order: 1, 
     isImmutable: true,
     timeLimitEnabled: true,
