@@ -179,13 +179,13 @@ const DealCard = ({
               </TooltipPrimitive.Portal>
             </TooltipPrimitive.Root>
 
-            {/* Days in stage counter */}
+            {/* Days in stage counter - made larger to match client status badge */}
             <TooltipPrimitive.Root delayDuration={300}>
               <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
                 <div className="cursor-help">
                   <Badge 
                     variant="secondary" 
-                    className={`h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs pointer-events-none ${
+                    className={`px-2 py-1 text-xs font-medium rounded-full flex items-center justify-center pointer-events-none ${
                       isOverLimit 
                         ? 'text-red-800 bg-red-200' 
                         : 'text-blue-800 bg-slate-200'
