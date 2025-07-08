@@ -202,20 +202,24 @@ const SalesPipeline = ({
     }
   }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange, onAllDealsChange]);
 
-  // New: Calculate aggregate column data
-  const getAggregateData = (type: 'won' | 'lost') => {
-    const statusFilter = type === 'won' ? 'Closed Won' : 'Closed Lost';
-    const aggregateDeals = allDeals.filter(deal => deal.status === statusFilter);
-    const count = aggregateDeals.length;
-    const totalValue = aggregateDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
-    return {
-      count,
-      totalValue: formatAmount(totalValue)
-    };
+  // Helper function to format amounts
+  const formatAmount = (amount: number) => {
+    return `$${amount.toLocaleString()}`;
   };
 
-  const closedWonData = getAggregateData('won');
-  const closedLostData = getAggregateData('lost');
+  // Calculate aggregate column data - moved after allDeals state is available
+  const getAggregateData = useMemo(() => {
+    return (type: 'won' | 'lost') => {
+      const statusFilter = type === 'won' ? 'Closed Won' : 'Closed Lost';
+      const aggregateDeals = allDeals.filter(deal => deal.status === statusFilter);
+      const count = aggregateDeals.length;
+      const totalValue = aggregateDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
+      return {
+        count,
+        totalValue: formatAmount(totalValue)
+      };
+    };
+  }, [allDeals]);
 
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
@@ -235,10 +239,6 @@ const SalesPipeline = ({
   }), useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates
   }));
-  
-  const formatAmount = (amount: number) => {
-    return `$${amount.toLocaleString()}`;
-  };
 
   // Use filteredDeals for display but original deals for column height calculation
   const getColumnDeals = (columnId: string) => {
@@ -639,8 +639,8 @@ const SalesPipeline = ({
                 <div style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
                   <AggregateColumn
                     title="Closed Won"
-                    count={closedWonData.count}
-                    totalValue={closedWonData.totalValue}
+                    count={getAggregateData('won').count}
+                    totalValue={getAggregateData('won').totalValue}
                     type="won"
                     onClick={() => handleAggregateClick('won')}
                     fixedHeight={fixedColumnHeight}
@@ -649,8 +649,8 @@ const SalesPipeline = ({
                 <div style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
                   <AggregateColumn
                     title="Closed Lost"
-                    count={closedLostData.count}
-                    totalValue={closedLostData.totalValue}
+                    count={getAggregateData('lost').count}
+                    totalValue={getAggregateData('lost').totalValue}
                     type="lost"
                     onClick={() => handleAggregateClick('lost')}
                     fixedHeight={fixedColumnHeight}
@@ -685,16 +685,16 @@ const SalesPipeline = ({
               {/* Aggregate columns */}
               <AggregateColumn
                 title="Closed Won"
-                count={closedWonData.count}
-                totalValue={closedWonData.totalValue}
+                count={getAggregateData('won').count}
+                totalValue={getAggregateData('won').totalValue}
                 type="won"
                 onClick={() => handleAggregateClick('won')}
                 fixedHeight={fixedColumnHeight}
               />
               <AggregateColumn
                 title="Closed Lost"
-                count={closedLostData.count}
-                totalValue={closedLostData.totalValue}
+                count={getAggregateData('lost').count}
+                totalValue={getAggregateData('lost').totalValue}
                 type="lost"
                 onClick={() => handleAggregateClick('lost')}
                 fixedHeight={fixedColumnHeight}
