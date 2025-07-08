@@ -1,4 +1,3 @@
-
 import { Quote } from '@/types/Quote';
 
 export const quotesData: Quote[] = [
@@ -458,5 +457,71 @@ export const quotesData: Quote[] = [
     salesperson: 'Lisa Chen',
     validUntil: '2025-05-09',
     notes: 'Community association decided to postpone project to next year'
+  },
+  // New opportunities (5 additional Draft quotes)
+  {
+    id: 'quote-31',
+    clientId: 'client-1',
+    quoteNumber: 'Q-2025-031',
+    title: 'Rooftop Garden Installation',
+    property: '150 Green Valley Dr',
+    status: 'Draft',
+    amount: 7800.00,
+    createdDate: '2025-07-01',
+    salesperson: 'Mike Johnson',
+    validUntil: '2025-08-01',
+    notes: 'Rooftop garden design and installation for condo complex'
+  },
+  {
+    id: 'quote-32',
+    clientId: 'client-3',
+    quoteNumber: 'Q-2025-032',
+    title: 'Outdoor Seating Area Renovation',
+    property: '2847 Mountain View Rd',
+    status: 'Draft',
+    amount: 3400.00,
+    createdDate: '2025-07-02',
+    salesperson: 'Lisa Chen',
+    validUntil: '2025-08-02',
+    notes: 'Complete renovation of restaurant outdoor seating area'
+  },
+  {
+    id: 'quote-33',
+    clientId: 'client-5',
+    quoteNumber: 'Q-2025-033',
+    title: 'Lighting Installation for Parking Lot',
+    property: '5500 Sunset Blvd',
+    status: 'Draft',
+    amount: 5600.00,
+    createdDate: '2025-07-03',
+    salesperson: 'Mike Johnson',
+    validUntil: '2025-08-03',
+    notes: 'LED lighting installation for improved security and visibility'
+  },
+  {
+    id: 'quote-34',
+    clientId: 'client-7',
+    quoteNumber: 'Q-2025-034',
+    title: 'Interior Plant Installation',
+    property: '1800 Innovation Drive SE',
+    status: 'Draft',
+    amount: 2900.00,
+    createdDate: '2025-07-04',
+    salesperson: 'Lisa Chen',
+    validUntil: '2025-08-04',
+    notes: 'Indoor plant installation and maintenance program for office building'
+  },
+  {
+    id: 'quote-35',
+    clientId: 'client-12',
+    quoteNumber: 'Q-2025-035',
+    title: 'Pergola Construction',
+    property: '1789 Brentwood Circle NW',
+    status: 'Draft',
+    amount: 4500.00,
+    createdDate: '2025-07-05',
+    salesperson: 'Mike Johnson',
+    validUntil: '2025-08-05',
+    notes: 'Custom pergola design and construction for backyard entertainment area'
   }
 ];
