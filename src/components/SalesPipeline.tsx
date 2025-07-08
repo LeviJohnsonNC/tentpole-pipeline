@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import PipelineColumn from './pipeline/PipelineColumn';
-import AggregateColumn from './pipeline/AggregateColumn';
 import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
 import FeedbackModal from './FeedbackModal';
@@ -23,7 +22,6 @@ interface SalesPipelineProps {
   onAllDealsChange?: (allDeals: Deal[]) => void;
   searchTerm?: string;
   onDealClick?: (dealId: string) => void;
-  onAggregateColumnClick?: (type: 'won' | 'lost') => void;
 }
 
 // Helper function to check if a stage ID is a Jobber stage
@@ -43,8 +41,7 @@ const SalesPipeline = ({
   onDealsChange,
   onAllDealsChange,
   searchTerm = '',
-  onDealClick,
-  onAggregateColumnClick
+  onDealClick
 }: SalesPipelineProps) => {
   const {
     sessionClients,
@@ -70,7 +67,7 @@ const SalesPipeline = ({
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
 
-  // Responsive columns setup - now include aggregate columns
+  // Responsive columns setup - back to original column count
   const containerRef = useRef<HTMLDivElement>(null);
   const {
     columnWidth,
@@ -82,7 +79,7 @@ const SalesPipeline = ({
     maxColumnWidth: 320,
     columnGap: 16,
     padding: 32,
-    includeAggregateColumns: true // Include aggregate columns in calculation
+    includeAggregateColumns: false // Remove aggregate columns
   });
 
   // Initialize deals only once when component mounts
@@ -207,20 +204,6 @@ const SalesPipeline = ({
     return `$${amount.toLocaleString()}`;
   };
 
-  // Calculate aggregate column data - moved after allDeals state is available
-  const getAggregateData = useMemo(() => {
-    return (type: 'won' | 'lost') => {
-      const statusFilter = type === 'won' ? 'Closed Won' : 'Closed Lost';
-      const aggregateDeals = allDeals.filter(deal => deal.status === statusFilter);
-      const count = aggregateDeals.length;
-      const totalValue = aggregateDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
-      return {
-        count,
-        totalValue: formatAmount(totalValue)
-      };
-    };
-  }, [allDeals]);
-
   // Filter deals based on search term
   const filteredDeals = useMemo(() => {
     if (!searchTerm) return deals;
@@ -275,7 +258,7 @@ const SalesPipeline = ({
     return container;
   };
 
-  // Calculate fixed height based on original deals array - INCREASED HEIGHT
+  // Calculate fixed height based on original deals array
   const fixedColumnHeight = useMemo(() => {
     const getOriginalColumnDeals = (columnId: string) => {
       return deals.filter(deal => deal.status === columnId);
@@ -284,7 +267,7 @@ const SalesPipeline = ({
     const headerHeight = 80;
     const cardHeight = 65;
     const cardSpacing = 8;
-    const bufferSpace = 85; // Increased from 20 to 85 to fit one more card
+    const bufferSpace = 85;
     const totalSpacing = maxDeals > 1 ? (maxDeals - 1) * cardSpacing : 0;
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
@@ -595,11 +578,6 @@ const SalesPipeline = ({
     }
   };
   
-  const handleAggregateClick = (type: 'won' | 'lost') => {
-    if (onAggregateColumnClick) {
-      onAggregateColumnClick(type);
-    }
-  };
   
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
@@ -616,7 +594,7 @@ const SalesPipeline = ({
           {shouldUseHorizontalScroll ? (
             <ScrollArea className="w-full">
               <div className="flex space-x-4 pb-4 min-w-max">
-                {/* Regular pipeline columns */}
+                {/* Regular pipeline columns only */}
                 {stages.sort((a, b) => a.order - b.order).map(stage => {
                   const columnDeals = getColumnDeals(stage.id);
                   return (
@@ -634,37 +612,15 @@ const SalesPipeline = ({
                     </div>
                   );
                 })}
-                
-                {/* Aggregate columns */}
-                <div style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
-                  <AggregateColumn
-                    title="Closed Won"
-                    count={getAggregateData('won').count}
-                    totalValue={getAggregateData('won').totalValue}
-                    type="won"
-                    onClick={() => handleAggregateClick('won')}
-                    fixedHeight={fixedColumnHeight}
-                  />
-                </div>
-                <div style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
-                  <AggregateColumn
-                    title="Closed Lost"
-                    count={getAggregateData('lost').count}
-                    totalValue={getAggregateData('lost').totalValue}
-                    type="lost"
-                    onClick={() => handleAggregateClick('lost')}
-                    fixedHeight={fixedColumnHeight}
-                  />
-                </div>
               </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           ) : (
             <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
-              gridTemplateColumns: `repeat(${stages.length + 2}, ${columnWidth}px)`, // +2 for aggregate columns
+              gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`, // Remove +2 for aggregate columns
               justifyContent: 'center'
             }}>
-              {/* Regular pipeline columns */}
+              {/* Regular pipeline columns only */}
               {stages.sort((a, b) => a.order - b.order).map(stage => {
                 const columnDeals = getColumnDeals(stage.id);
                 return (
@@ -681,24 +637,6 @@ const SalesPipeline = ({
                   />
                 );
               })}
-              
-              {/* Aggregate columns */}
-              <AggregateColumn
-                title="Closed Won"
-                count={getAggregateData('won').count}
-                totalValue={getAggregateData('won').totalValue}
-                type="won"
-                onClick={() => handleAggregateClick('won')}
-                fixedHeight={fixedColumnHeight}
-              />
-              <AggregateColumn
-                title="Closed Lost"
-                count={getAggregateData('lost').count}
-                totalValue={getAggregateData('lost').totalValue}
-                type="lost"
-                onClick={() => handleAggregateClick('lost')}
-                fixedHeight={fixedColumnHeight}
-              />
             </div>
           )}
         </div>

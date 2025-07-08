@@ -14,6 +14,7 @@ import PipelineViewToggle from "@/components/pipeline/PipelineViewToggle";
 import PipelineListView from "@/components/pipeline/PipelineListView";
 import StageFilter from "@/components/pipeline/StageFilter";
 import SearchBar from "@/components/pipeline/SearchBar";
+import PipelineSummaryCards from "@/components/pipeline/PipelineSummaryCards";
 
 const Sales = () => {
   const navigate = useNavigate();
@@ -81,6 +82,26 @@ const Sales = () => {
     setSearchTerm('');
   };
 
+  // Helper function to format amounts
+  const formatAmount = (amount: number) => {
+    return `$${amount.toLocaleString()}`;
+  };
+
+  // Calculate summary data
+  const getSummaryData = (type: 'won' | 'lost') => {
+    const statusFilter = type === 'won' ? 'Closed Won' : 'Closed Lost';
+    const summaryDeals = allDeals.filter(deal => deal.status === statusFilter);
+    const count = summaryDeals.length;
+    const totalValue = summaryDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
+    return {
+      count,
+      totalValue: formatAmount(totalValue)
+    };
+  };
+
+  const wonData = getSummaryData('won');
+  const lostData = getSummaryData('lost');
+
   // Filter deals based on selected stage and search term - use allDeals for list view
   const filteredDeals = (pipelineView === 'list' ? allDeals : deals).filter(deal => {
     const matchesStage = selectedStage === 'all' || 
@@ -143,6 +164,16 @@ const Sales = () => {
                 </div>
               </div>
               
+              {/* Summary Cards */}
+              <PipelineSummaryCards
+                wonCount={wonData.count}
+                wonTotal={wonData.totalValue}
+                lostCount={lostData.count}
+                lostTotal={lostData.totalValue}
+                onWonClick={() => handleAggregateColumnClick('won')}
+                onLostClick={() => handleAggregateColumnClick('lost')}
+              />
+              
               {/* Search bar for kanban view */}
               {pipelineView === 'kanban' && (
                 <div className="flex justify-end mb-4">
@@ -177,7 +208,6 @@ const Sales = () => {
                     onAllDealsChange={handleAllDealsChange}
                     searchTerm={searchTerm}
                     onDealClick={handleDealClick}
-                    onAggregateColumnClick={handleAggregateColumnClick}
                   />
                 </div>
               </div>

@@ -15,10 +15,10 @@ export const useResponsiveColumns = ({
   containerRef,
   columnCount,
   minColumnWidth = 200,
-  maxColumnWidth = 320,
+  maxColumnWidth = 300,
   columnGap = 16,
   padding = 32,
-  includeAggregateColumns = false
+  includeAggregateColumns = false // Remove default value true
 }: UseResponsiveColumnsProps) => {
   const [columnWidth, setColumnWidth] = useState(minColumnWidth);
   const [shouldUseHorizontalScroll, setShouldUseHorizontalScroll] = useState(false);
