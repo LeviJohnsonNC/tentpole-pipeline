@@ -16,7 +16,7 @@ interface Deal {
   stageEnteredDate: string; // New field to track when deal entered current stage
 }
 
-// JOBBER_STAGE_IDS - Centralized mapping of Jobber stage titles to their IDs
+// JOBBER STAGE ID MAPPING - Centralized mapping of Jobber stage titles to their IDs
 const JOBBER_STAGE_IDS = {
   'Draft Quote': 'draft-quote',
   'Quote Awaiting Response': 'quote-awaiting-response', 
@@ -82,7 +82,7 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
   
   // Set conservative limits to ensure deals stay within bounds
   switch (stageId) {
-    case 'new-opportunities':
+    case 'new-deals':
       maxDaysInStage = 0.1; // Stay well within 3 hours (convert to days)
       break;
     case 'contacted':
@@ -112,219 +112,675 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
   return finalStageDate.toISOString();
 };
 
-// NEW: Function to create deals from requests
+// NEW: Helper to determine if a quote was just created (within last 5 minutes)
+const isRecentlyCreatedQuote = (quoteCreatedDate: string): boolean => {
+  const createdTime = new Date(quoteCreatedDate).getTime();
+  const fiveMinutesAgo = new Date().getTime() - (5 * 60 * 1000);
+  const isRecent = createdTime > fiveMinutesAgo;
+  console.log(`🕐 RECENT QUOTE CHECK: Quote created at ${quoteCreatedDate}, is recent: ${isRecent}`);
+  return isRecent;
+};
+
+// Helper function to find the newest quote for a request
+const getNewestQuoteForRequest = (requestId: string, sessionQuotes: any[]): any | null => {
+  const requestQuotes = sessionQuotes.filter(quote => quote.requestId === requestId);
+  if (requestQuotes.length === 0) return null;
+  
+  // Sort by created date (newest first) and return the first one
+  return requestQuotes.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())[0];
+};
+
+// Priority-based Jobber stage assignment with ID-based detection
+const findJobberStageByPriority = (request: any, newestQuote: any | null, stages: any[]): string | null => {
+  console.log(`🎯 PRIORITY ASSIGNMENT: Checking Jobber stages for request ${request?.id || 'standalone'}, quote status: ${newestQuote?.status || 'N/A'}`);
+  
+  // Priority 1: Quote "Changes Requested" → jobber-quote-changes-requested
+  if (newestQuote && newestQuote.status === 'Changes Requested') {
+    const stageId = JOBBER_STAGE_IDS['Quote Changes Requested'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 1: Found Changes Requested stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  // Priority 2: Quote "Awaiting Response" → quote-awaiting-response
+  if (newestQuote && newestQuote.status === 'Awaiting Response') {
+    const stageId = JOBBER_STAGE_IDS['Quote Awaiting Response'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 2: Found Awaiting Response stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  // Priority 3: Quote "Draft" → draft-quote
+  if (newestQuote && newestQuote.status === 'Draft') {
+    const stageId = JOBBER_STAGE_IDS['Draft Quote'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 3: Found Draft Quote stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  // Priority 4: Request "Assessment complete" → jobber-assessment-completed
+  if (request && request.status === 'Assessment complete') {
+    const stageId = JOBBER_STAGE_IDS['Assessment Completed'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 4: Found Assessment Completed stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  // Priority 5: Request "Overdue" → jobber-overdue-assessment
+  if (request && request.status === 'Overdue') {
+    const stageId = JOBBER_STAGE_IDS['Overdue Assessment'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 5: Found Overdue Assessment stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  // Priority 6: Request "Unscheduled" → jobber-unscheduled-assessment
+  if (request && request.status === 'Unscheduled') {
+    const stageId = JOBBER_STAGE_IDS['Unscheduled Assessment'];
+    if (stages.some(s => s.id === stageId)) {
+      console.log(`✅ PRIORITY 6: Found Unscheduled Assessment stage: ${stageId}`);
+      return stageId;
+    }
+  }
+  
+  console.log('❌ No matching Jobber stages found');
+  return null;
+};
+
+// SIMPLIFIED: Basic pipeline stage assignment
+const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
+  console.log(`\n--- Assigning pipeline stage for request ${request.id} ---`);
+  console.log(`Request status: ${request.status}, Newest quote: ${newestQuote?.id || 'none'}, Quote status: ${newestQuote?.status || 'N/A'}`);
+  
+  // STEP 1: Check for priority-based Jobber stage matches first
+  const jobberStageMatch = findJobberStageByPriority(request, newestQuote, stages);
+  if (jobberStageMatch) {
+    console.log(`✅ Request ${request.id} matched to Jobber stage: ${jobberStageMatch}`);
+    return jobberStageMatch;
+  }
+  
+  // STEP 2: If there's a newest quote, check for exclusions
+  if (newestQuote) {
+    console.log(`Request ${request.id} has newest quote ${newestQuote.id} with status: ${newestQuote.status}`);
+    
+    // AUTO CLOSED-WON: Approved and Converted quotes should NOT be in pipeline
+    if (newestQuote.status === 'Approved' || newestQuote.status === 'Converted') {
+      console.log(`Request ${request.id} EXCLUDED from pipeline - quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
+      return null;
+    }
+    
+    // Archived quotes should also be excluded
+    if (newestQuote.status === 'Archived') {
+      console.log(`Request ${request.id} EXCLUDED from pipeline - quote ${newestQuote.id} is archived`);
+      return null;
+    }
+  }
+  
+  // STEP 3: Handle requests without quotes or non-Jobber stage quotes
+  let assignedStage: string;
+  
+  if (request.status === 'Assessment complete') {
+    assignedStage = 'contacted';
+  } else if (request.status === 'Overdue') {
+    assignedStage = 'followup';
+  } else if (request.status === 'Unscheduled') {
+    assignedStage = 'contacted';
+  } else if (request.status === 'New') {
+    // STEP 4: Handle new requests and others
+    const distributionMapping: Record<string, string> = {
+      'request-1': 'new-deals',
+      'request-2': 'new-deals', 
+      'request-4': 'quote-awaiting-response', // This one will be overdue
+      'request-6': 'new-deals',
+      'request-7': 'contacted',
+      'request-8': 'contacted',
+      'request-9': 'contacted',
+      'request-10': 'followup', // This one will be overdue
+      'request-11': 'followup',
+      'request-12': 'followup'
+    };
+    
+    assignedStage = distributionMapping[request.id] || 'new-deals';
+  } else {
+    console.log(`Request ${request.id} using default fallback: new-deals`);
+    assignedStage = 'new-deals';
+  }
+  
+  console.log(`Non-Jobber stage assigned: ${assignedStage}`);
+  return assignedStage;
+};
+
+// RESTORED: Original function to determine pipeline stage for standalone quotes
+const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
+  console.log(`\n🔍 STANDALONE QUOTE STAGE ASSIGNMENT: Starting for quote ${quote.id}`);
+  console.log(`📋 Quote details: status="${quote.status}", amount=${quote.amount}, clientId="${quote.clientId}", requestId="${quote.requestId || 'NONE'}"`);
+  
+  // Check for priority-based Jobber stage matches
+  console.log(`🎯 PRIORITY CHECK: Looking for Jobber stage matches for status "${quote.status}"`);
+  const jobberStageMatch = findJobberStageByPriority(null, quote, stages);
+  if (jobberStageMatch) {
+    console.log(`✅ JOBBER STAGE MATCH: Standalone quote ${quote.id} matched to Jobber stage: ${jobberStageMatch}`);
+    return jobberStageMatch;
+  }
+  
+  console.log(`❌ NO JOBBER STAGE MATCH: No priority-based match found for status "${quote.status}"`);
+  
+  // AUTO CLOSED-WON: Approved and Converted quotes shouldn't be in pipeline
+  if (quote.status === 'Approved' || quote.status === 'Converted') {
+    console.log(`❌ AUTO CLOSED-WON: Standalone quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status}`);
+    return null;
+  }
+  
+  // Archived quotes should also be excluded
+  if (quote.status === 'Archived') {
+    console.log(`❌ ARCHIVED: Standalone quote ${quote.id} EXCLUDED from pipeline - status is archived`);
+    return null;
+  }
+  
+  // RESTORED: Original fallback logic - use new-deals for standalone quotes that don't match Jobber stages
+  console.log(`✅ FALLBACK ASSIGNMENT: Standalone quote ${quote.id} using fallback new-deals stage for status: ${quote.status}`);
+  return 'new-deals';
+};
+
+// SIMPLIFIED: Convert requests to deals for the pipeline
+const createDealsFromRequests = (
+  sessionClients: any[] = [], 
+  sessionRequests: any[] = [], 
+  sessionQuotes: any[] = [], 
+  stages: any[] = []
+): Deal[] => {
+  console.log('Creating deals from requests. Session requests:', sessionRequests.length);
+  const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
+  console.log('Requests with client info:', requestsWithClients.length);
+  
+  // Include requests with statuses that should appear in pipeline
+  const openRequests = requestsWithClients.filter(request => {
+    console.log(`Request ${request.id} has status: ${request.status}`);
+    // Exclude archived, closed lost, and closed won requests from pipeline
+    return ['New', 'Assessment complete', 'Overdue', 'Unscheduled'].includes(request.status) &&
+           !['Archived', 'Closed Lost', 'Closed Won'].includes(request.status);
+  });
+  console.log('Open requests for pipeline:', openRequests.length);
+  
+  const deals = openRequests.map((request) => {
+    // Find the newest quote for this request
+    const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
+    console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none', 'amount:', newestQuote?.amount);
+    
+    // ENHANCED AUTO CLOSED-WON LOGIC: Exclude deals with approved/converted quotes
+    if (newestQuote && (newestQuote.status === 'Approved' || newestQuote.status === 'Converted')) {
+      console.log(`Request ${request.id} EXCLUDED from pipeline - newest quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
+      return null; // This ensures the deal won't appear in the pipeline
+    }
+    
+    // Determine pipeline stage
+    const pipelineStage = assignPipelineStage(request, newestQuote, stages);
+    
+    // If pipeline stage is null (closed won or excluded), don't include in pipeline
+    if (!pipelineStage) {
+      console.log(`Request ${request.id} EXCLUDED from pipeline - no valid stage`);
+      return null;
+    }
+    
+    // FIXED: Only include amount if there's a quote with valid numeric amount
+    const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
+    console.log(`Request ${request.id} final amount:`, amount);
+    
+    // UPDATED: Generate realistic dates using the improved function
+    const isNewDeal = pipelineStage === 'new-deals';
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    // If there's a recent quote that moved this to a Jobber stage, use current time
+    if (newestQuote && isJobberStageId(pipelineStage) && isRecentlyCreatedQuote(newestQuote.createdDate)) {
+      console.log(`🕐 Request ${request.id} using current timestamp due to recent quote ${newestQuote.id}`);
+      createdAt = newestQuote.createdDate;
+      stageEnteredDate = new Date().toISOString(); // Current time for stage entry
+    } else {
+      // Use existing logic for older deals
+      createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt, pipelineStage, request.id);
+    }
+    
+    return {
+      id: request.id,
+      client: request.client.name,
+      title: request.title || 'Service Request', // Use request title for request-based deals
+      property: request.client.primaryAddress,
+      contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
+      requested: request.requestDate,
+      amount: amount, // Only present if there's a valid quote amount
+      status: pipelineStage,
+      type: 'request' as const,
+      quoteId: newestQuote?.id,
+      createdAt,
+      stageEnteredDate
+    };
+  }).filter(Boolean); // Remove null entries
+  
+  console.log('Final deals from requests:', deals.length);
+  return deals;
+};
+
+// NEW: Create deals from requests including closed won/lost for list view
 const createAllDealsFromRequests = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
   sessionQuotes: any[] = [], 
   stages: any[] = []
 ): Deal[] => {
-  const requestsWithClients = getRequestsWithClientInfo(sessionRequests, sessionClients);
-  const quotesWithClients = getQuotesWithClientInfo(sessionQuotes, sessionClients);
+  console.log('Creating ALL deals from requests (including closed). Session requests:', sessionRequests.length);
+  const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
+  console.log('Requests with client info:', requestsWithClients.length);
   
-  return requestsWithClients.map(request => {
-    const client = sessionClients.find(c => c.id === request.clientId);
-    const relatedQuote = quotesWithClients.find(q => q.requestId === request.id);
+  // ALIGNED: Use same filtering logic as createDealsFromRequests for active deals
+  const activeRequests = requestsWithClients.filter(request => {
+    console.log(`Request ${request.id} has status: ${request.status}`);
+    // Include requests with statuses that should appear in pipeline
+    return ['New', 'Assessment complete', 'Overdue', 'Unscheduled'].includes(request.status) &&
+           !['Archived', 'Closed Lost', 'Closed Won'].includes(request.status);
+  });
+  
+  // SEPARATE: Also get explicitly closed deals for list view reporting
+  const closedRequests = requestsWithClients.filter(request => {
+    return ['Closed Won', 'Closed Lost'].includes(request.status);
+  });
+  
+  const allRequests = [...activeRequests, ...closedRequests];
+  console.log('Active requests for list view:', activeRequests.length, 'Closed requests:', closedRequests.length, 'Total:', allRequests.length);
+  
+  const deals = allRequests.map((request) => {
+    // Find the newest quote for this request
+    const newestQuote = getNewestQuoteForRequest(request.id, sessionQuotes);
+    console.log(`Request ${request.id} newest quote:`, newestQuote?.id || 'none', 'amount:', newestQuote?.amount);
     
-    // Determine stage based on request status
-    let stageId = request.status;
-    if (request.status === 'New') {
-      stageId = 'new-opportunities';
-    } else if (request.status === 'Assessment complete') {
-      stageId = 'jobber-assessment-completed';
-    } else if (request.status === 'Unscheduled') {
-      stageId = 'jobber-unscheduled-assessment';
-    } else if (request.status === 'Overdue') {
-      stageId = 'jobber-overdue-assessment';
+    // ALIGNED: Apply same exclusion logic for approved/converted quotes
+    if (newestQuote && (newestQuote.status === 'Approved' || newestQuote.status === 'Converted')) {
+      console.log(`Request ${request.id} EXCLUDED from list - newest quote ${newestQuote.id} is ${newestQuote.status} (AUTO CLOSED-WON)`);
+      return null; // This ensures the deal won't appear in the list
     }
     
-    const createdAt = stageId === 'new-opportunities' ? generateNewDealDate() : generateOtherDealDate();
-    const stageEnteredDate = generateStageEnteredDate(createdAt, stageId, request.id);
+    // For closed won/lost deals, use the request status directly
+    let finalStatus: string = request.status;
+    
+    // For open deals, determine pipeline stage
+    if (!['Closed Won', 'Closed Lost'].includes(request.status)) {
+      const pipelineStage = assignPipelineStage(request, newestQuote, stages);
+      if (pipelineStage) {
+        finalStatus = pipelineStage;
+      }
+      // If no pipeline stage assigned, keep the original request status
+    }
+    
+    // FIXED: Only include amount if there's a quote with valid numeric amount
+    const amount = newestQuote && typeof newestQuote.amount === 'number' && newestQuote.amount > 0 ? newestQuote.amount : undefined;
+    console.log(`Request ${request.id} final amount:`, amount);
+    
+    // UPDATED: Generate realistic dates using the improved function
+    const isNewDeal = finalStatus === 'new-deals';
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    // If there's a recent quote that moved this to a Jobber stage, use current time
+    if (newestQuote && isJobberStageId(finalStatus) && isRecentlyCreatedQuote(newestQuote.createdDate)) {
+      console.log(`🕐 Request ${request.id} using current timestamp due to recent quote ${newestQuote.id}`);
+      createdAt = newestQuote.createdDate;
+      stageEnteredDate = new Date().toISOString(); // Current time for stage entry
+    } else {
+      // Use existing logic for older deals
+      createdAt = isNewDeal ? generateNewDealDate() : generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt, finalStatus, request.id);
+    }
     
     return {
       id: request.id,
-      client: client?.name || 'Unknown Client',
-      title: request.title,
-      property: request.property,
-      contact: client?.phone || 'No phone',
+      client: request.client.name,
+      title: request.title || 'Service Request',
+      property: request.client.primaryAddress,
+      contact: [request.client.phone, request.client.email].filter(Boolean).join('\n'),
       requested: request.requestDate,
-      amount: relatedQuote?.amount || request.estimatedValue,
-      status: stageId,
+      amount: amount,
+      status: finalStatus, // This can be either a Request status or a pipeline stage ID
       type: 'request' as const,
-      quoteId: relatedQuote?.id,
+      quoteId: newestQuote?.id,
       createdAt,
       stageEnteredDate
     };
-  });
+  }).filter(Boolean); // Remove null entries
+  
+  console.log('Final ALL deals from requests:', deals.length);
+  return deals;
 };
 
-// NEW: Function to create deals from standalone quotes
+// RESTORED: Original comprehensive standalone quote processing
+const createDealsFromStandaloneQuotes = (
+  sessionClients: any[] = [], 
+  sessionQuotes: any[] = [], 
+  stages: any[] = []
+): Deal[] => {
+  console.log('\n🚀 STANDALONE QUOTE PROCESSING: Starting conversion to deals');
+  console.log(`📊 Input: ${sessionQuotes.length} quotes, ${sessionClients.length} clients, ${stages.length} stages`);
+  
+  // Enhanced validation and error handling
+  if (!sessionQuotes || sessionQuotes.length === 0) {
+    console.log('⚠️ NO QUOTES: No session quotes available');
+    return [];
+  }
+  
+  if (!sessionClients || sessionClients.length === 0) {
+    console.log('⚠️ NO CLIENTS: No session clients available');
+    return [];
+  }
+  
+  if (!stages || stages.length === 0) {
+    console.log('⚠️ NO STAGES: No stages available');
+    return [];
+  }
+  
+  // Log all quotes for debugging
+  console.log('\n📋 ALL QUOTES ANALYSIS:');
+  sessionQuotes.forEach((quote, index) => {
+    console.log(`  Quote ${index + 1}: id="${quote.id}", status="${quote.status}", amount=${quote.amount} (type: ${typeof quote.amount}), clientId="${quote.clientId}", requestId="${quote.requestId || 'NONE'}", createdDate="${quote.createdDate}"`);
+  });
+  
+  // SIMPLIFIED: Filter to just standalone quotes with basic validation
+  console.log('\n🔍 STANDALONE QUOTE FILTERING:');
+  const standaloneQuotes = sessionQuotes.filter(quote => {
+    console.log(`\n--- Filtering quote ${quote.id} ---`);
+    console.log(`  requestId: ${quote.requestId || 'NONE (standalone)'}`);
+    console.log(`  status: ${quote.status}`);
+    console.log(`  amount: ${quote.amount} (type: ${typeof quote.amount})`);
+    console.log(`  clientId: ${quote.clientId}`);
+    
+    // Must be standalone (no requestId)
+    if (quote.requestId) {
+      console.log(`❌ HAS REQUEST ID: Quote ${quote.id} EXCLUDED - linked to request: ${quote.requestId}`);
+      return false;
+    }
+    
+    // AUTO CLOSED-WON LOGIC: Exclude approved/converted quotes from pipeline
+    if (quote.status === 'Approved' || quote.status === 'Converted') {
+      console.log(`❌ AUTO CLOSED-WON: Quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status}`);
+      return false;
+    }
+    
+    // Must not be archived, closed lost, or closed won for pipeline
+    if (['Archived', 'Closed Lost', 'Closed Won'].includes(quote.status)) {
+      console.log(`❌ EXCLUDED STATUS: Quote ${quote.id} EXCLUDED from pipeline - status is ${quote.status}`);
+      return false;
+    }
+    
+    console.log(`💰 AMOUNT VALIDATION: Original amount: ${quote.amount} (type: ${typeof quote.amount})`);
+    const numericAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
+    console.log(`💰 AMOUNT VALIDATION: Converted amount: ${numericAmount} (type: ${typeof numericAmount})`);
+    
+    const hasValidAmount = typeof numericAmount === 'number' && !isNaN(numericAmount) && numericAmount > 0;
+    const hasValidClient = !!quote.clientId;
+    
+    if (!hasValidAmount) {
+      console.log(`❌ INVALID AMOUNT: Quote ${quote.id} EXCLUDED - amount: ${quote.amount} -> ${numericAmount} (valid: ${hasValidAmount})`);
+      return false;
+    }
+    
+    if (!hasValidClient) {
+      console.log(`❌ INVALID CLIENT: Quote ${quote.id} EXCLUDED - missing clientId`);
+      return false;
+    }
+    
+    console.log(`✅ QUOTE PASSED FILTERING: ${quote.id} is a valid standalone quote`);
+    return true;
+  });
+  
+  console.log(`\n📊 FILTERING RESULTS: ${standaloneQuotes.length} standalone quotes passed filtering`);
+  standaloneQuotes.forEach(q => console.log(`  ✅ Standalone: ${q.id} (${q.status}, $${q.amount}) for client ${q.clientId}`));
+  
+  // Create deals with enhanced client lookup
+  console.log('\n🔧 DEAL CREATION: Converting standalone quotes to deals');
+  const deals = standaloneQuotes.map((quote) => {
+    console.log(`\n--- Creating deal for quote ${quote.id} ---`);
+    
+    // Find client for this quote
+    const client = sessionClients.find(c => c.id === quote.clientId);
+    if (!client) {
+      console.log(`❌ CLIENT NOT FOUND: Quote ${quote.id} references missing client ${quote.clientId}, SKIPPING`);
+      return null;
+    }
+    
+    console.log(`✅ CLIENT FOUND: ${client.name} for quote ${quote.id}`);
+    
+    const pipelineStage = assignQuotePipelineStage(quote, stages);
+    
+    // If pipelineStage is null, don't include this quote
+    if (!pipelineStage) {
+      console.log(`❌ NO STAGE ASSIGNED: Quote ${quote.id} EXCLUDED - no valid pipeline stage`);
+      return null;
+    }
+    
+    console.log(`✅ STAGE ASSIGNED: Quote ${quote.id} will be placed in stage: ${pipelineStage}`);
+    
+    const finalAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
+    console.log(`💰 DEAL CREATION: Final amount for deal: ${finalAmount} (type: ${typeof finalAmount})`);
+    
+    // UPDATED: Generate realistic dates using the improved function
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    if (isRecentlyCreatedQuote(quote.createdDate)) {
+      console.log(`🕐 RECENT QUOTE: Using current timestamps for quote ${quote.id}`);
+      createdAt = quote.createdDate;
+      stageEnteredDate = new Date().toISOString(); // Current time for stage entry
+    } else {
+      console.log(`🕐 OLDER QUOTE: Using generated timestamps for quote ${quote.id}`);
+      createdAt = generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt, pipelineStage, `quote-${quote.id}`);
+    }
+    
+    // Enhanced validation for deal creation
+    const dealData = {
+      id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
+      client: client.name,
+      title: quote.quoteNumber, // Use quote number as title for standalone quotes
+      property: quote.property || client.primaryAddress || 'Property not specified',
+      contact: [client.phone, client.email].filter(Boolean).join('\n') || 'No contact info',
+      requested: quote.createdDate || new Date().toISOString(),
+      amount: finalAmount, // Always present for quotes and validated above
+      status: pipelineStage,
+      type: 'quote' as const,
+      quoteId: quote.id,
+      createdAt,
+      stageEnteredDate
+    };
+    
+    console.log(`✅ DEAL CREATED: ${dealData.id}`);
+    console.log(`  - Client: ${dealData.client}`);
+    console.log(`  - Status: ${dealData.status}`);
+    console.log(`  - Amount: $${dealData.amount} (type: ${typeof dealData.amount})`);
+    console.log(`  - Title: ${dealData.title}`);
+    console.log(`  - Stage entered: ${dealData.stageEnteredDate}`);
+    
+    return dealData;
+  }).filter(Boolean); // Remove null entries
+  
+  console.log(`\n📊 FINAL RESULTS: ${deals.length} deals created from standalone quotes`);
+  deals.forEach(d => console.log(`  📋 Deal: ${d.id} (${d.status}, $${d.amount}) for ${d.client}`));
+  console.log('🏁 STANDALONE QUOTE PROCESSING: Complete\n');
+  
+  return deals;
+};
+
+// NEW: Create deals from standalone quotes including closed won/lost for list view
 const createAllDealsFromStandaloneQuotes = (
   sessionClients: any[] = [], 
   sessionQuotes: any[] = [], 
   stages: any[] = []
 ): Deal[] => {
-  const quotesWithClients = getQuotesWithClientInfo(sessionQuotes, sessionClients);
+  console.log('\n🚀 ALL STANDALONE QUOTE PROCESSING: Starting conversion to deals (including closed)');
+  console.log(`📊 Input: ${sessionQuotes.length} quotes, ${sessionClients.length} clients, ${stages.length} stages`);
   
-  return quotesWithClients
-    .filter(quote => !quote.requestId) // Only standalone quotes
-    .map(quote => {
-      const client = sessionClients.find(c => c.id === quote.clientId);
-      
-      // Determine stage based on quote status
-      let stageId = quote.status;
-      if (quote.status === 'Draft') {
-        stageId = 'draft-quote';
-      } else if (quote.status === 'Sent') {
-        stageId = 'quote-awaiting-response';
+  // Enhanced validation and error handling
+  if (!sessionQuotes || sessionQuotes.length === 0) {
+    console.log('⚠️ NO QUOTES: No session quotes available');
+    return [];
+  }
+  
+  if (!sessionClients || sessionClients.length === 0) {
+    console.log('⚠️ NO CLIENTS: No session clients available');
+    return [];
+  }
+  
+  if (!stages || stages.length === 0) {
+    console.log('⚠️ NO STAGES: No stages available');
+    return [];
+  }
+  
+  // Log all quotes for debugging
+  console.log('\n📋 ALL QUOTES ANALYSIS:');
+  sessionQuotes.forEach((quote, index) => {
+    console.log(`  Quote ${index + 1}: id="${quote.id}", status="${quote.status}", amount=${quote.amount} (type: ${typeof quote.amount}), clientId="${quote.clientId}", requestId="${quote.requestId || 'NONE'}", createdDate="${quote.createdDate}"`);
+  });
+  
+  // SIMPLIFIED: Filter to just standalone quotes with basic validation (including closed statuses)
+  console.log('\n🔍 ALL STANDALONE QUOTE FILTERING:');
+  const standaloneQuotes = sessionQuotes.filter(quote => {
+    console.log(`\n--- Filtering quote ${quote.id} ---`);
+    console.log(`  requestId: ${quote.requestId || 'NONE (standalone)'}`);
+    console.log(`  status: ${quote.status}`);
+    console.log(`  amount: ${quote.amount} (type: ${typeof quote.amount})`);
+    console.log(`  clientId: ${quote.clientId}`);
+    
+    // Must be standalone (no requestId)
+    if (quote.requestId) {
+      console.log(`❌ HAS REQUEST ID: Quote ${quote.id} EXCLUDED - linked to request: ${quote.requestId}`);
+      return false;
+    }
+    
+    // Only exclude archived quotes from list view
+    if (quote.status === 'Archived') {
+      console.log(`❌ ARCHIVED: Quote ${quote.id} EXCLUDED from list - status is archived`);
+      return false;
+    }
+    
+    // PHASE 2: Add Defensive Type Handling in Pipeline Logic
+    console.log(`💰 AMOUNT VALIDATION: Original amount: ${quote.amount} (type: ${typeof quote.amount})`);
+    const numericAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
+    console.log(`💰 AMOUNT VALIDATION: Converted amount: ${numericAmount} (type: ${typeof numericAmount})`);
+    
+    const hasValidAmount = typeof numericAmount === 'number' && !isNaN(numericAmount) && numericAmount > 0;
+    const hasValidClient = !!quote.clientId;
+    
+    if (!hasValidAmount) {
+      console.log(`❌ INVALID AMOUNT: Quote ${quote.id} EXCLUDED - amount: ${quote.amount} -> ${numericAmount} (valid: ${hasValidAmount})`);
+      return false;
+    }
+    
+    if (!hasValidClient) {
+      console.log(`❌ INVALID CLIENT: Quote ${quote.id} EXCLUDED - missing clientId`);
+      return false;
+    }
+    
+    console.log(`✅ QUOTE PASSED FILTERING: ${quote.id} is a valid standalone quote`);
+    return true;
+  });
+  
+  console.log(`\n📊 FILTERING RESULTS: ${standaloneQuotes.length} standalone quotes passed filtering`);
+  standaloneQuotes.forEach(q => console.log(`  ✅ Standalone: ${q.id} (${q.status}, $${q.amount}) for client ${q.clientId}`));
+  
+  // Create deals with enhanced client lookup
+  console.log('\n🔧 DEAL CREATION: Converting standalone quotes to deals');
+  const deals = standaloneQuotes.map((quote) => {
+    console.log(`\n--- Creating deal for quote ${quote.id} ---`);
+    
+    // Find client for this quote
+    const client = sessionClients.find(c => c.id === quote.clientId);
+    if (!client) {
+      console.log(`❌ CLIENT NOT FOUND: Quote ${quote.id} references missing client ${quote.clientId}, SKIPPING`);
+      return null;
+    }
+    
+    console.log(`✅ CLIENT FOUND: ${client.name} for quote ${quote.id}`);
+    
+    // For closed won/lost/approved/converted quotes, use those statuses directly
+    let finalStatus = quote.status;
+    if (quote.status === 'Approved' || quote.status === 'Converted') {
+      finalStatus = 'Closed Won';
+    } else if (!['Closed Won', 'Closed Lost'].includes(quote.status)) {
+      // For open quotes, determine pipeline stage
+      const pipelineStage = assignQuotePipelineStage(quote, stages);
+      if (pipelineStage) {
+        finalStatus = pipelineStage;
       }
-      
-      const createdAt = generateOtherDealDate();
-      const stageEnteredDate = generateStageEnteredDate(createdAt, stageId, quote.id);
-      
-      return {
-        id: quote.id,
-        client: client?.name || 'Unknown Client',
-        title: quote.title,
-        property: quote.property,
-        contact: client?.phone || 'No phone',
-        requested: quote.createdAt,
-        amount: quote.amount,
-        status: stageId,
-        type: 'quote' as const,
-        quoteId: quote.id,
-        createdAt,
-        stageEnteredDate
-      };
-    });
-};
-
-// NEW: Function to generate sample closed deals for realistic data
-const generateClosedDeals = (wonCount: number, lostCount: number): Deal[] => {
-  console.log(`🎲 GENERATING CLOSED DEALS: ${wonCount} won, ${lostCount} lost`);
+    }
+    
+    console.log(`✅ STAGE ASSIGNED: Quote ${quote.id} will have status: ${finalStatus}`);
+    
+    // PHASE 2: Ensure proper amount handling in deal creation
+    const finalAmount = typeof quote.amount === 'string' ? parseFloat(quote.amount) : quote.amount;
+    console.log(`💰 DEAL CREATION: Final amount for deal: ${finalAmount} (type: ${typeof finalAmount})`);
+    
+    // UPDATED: Generate realistic dates using the improved function
+    let createdAt: string;
+    let stageEnteredDate: string;
+    
+    if (isRecentlyCreatedQuote(quote.createdDate)) {
+      console.log(`🕐 RECENT QUOTE: Using current timestamps for quote ${quote.id}`);
+      createdAt = quote.createdDate;
+      stageEnteredDate = new Date().toISOString(); // Current time for stage entry
+    } else {
+      console.log(`🕐 OLDER QUOTE: Using generated timestamps for quote ${quote.id}`);
+      createdAt = generateOtherDealDate();
+      stageEnteredDate = generateStageEnteredDate(createdAt, finalStatus, `quote-${quote.id}`);
+    }
+    
+    // Enhanced validation for deal creation
+    const dealData = {
+      id: `quote-${quote.id}`, // Prefix to avoid ID conflicts with requests
+      client: client.name,
+      title: quote.quoteNumber, // Use quote number as title for standalone quotes
+      property: quote.property || client.primaryAddress || 'Property not specified',
+      contact: [client.phone, client.email].filter(Boolean).join('\n') || 'No contact info',
+      requested: quote.createdDate || new Date().toISOString(),
+      amount: finalAmount, // Always present for quotes and validated above
+      status: finalStatus,
+      type: 'quote' as const,
+      quoteId: quote.id,
+      createdAt,
+      stageEnteredDate
+    };
+    
+    console.log(`✅ DEAL CREATED: ${dealData.id}`);
+    console.log(`  - Client: ${dealData.client}`);
+    console.log(`  - Status: ${dealData.status}`);
+    console.log(`  - Amount: $${dealData.amount} (type: ${typeof dealData.amount})`);
+    console.log(`  - Title: ${dealData.title}`);
+    console.log(`  - Stage entered: ${dealData.stageEnteredDate}`);
+    
+    return dealData;
+  }).filter(Boolean); // Remove null entries
   
-  const sampleClients = [
-    'Alpine Property Management', 'Bridgeland Dental Clinic', 'Cornerstone Retail Group',
-    'Downtown Office Tower', 'Evergreen Landscaping Co', 'Foothills Medical Center',
-    'Golden Triangle Restaurant', 'Heritage Park Condos', 'Inglewood Bakery & Cafe',
-    'Kensington Hair Salon', 'Lynwood Community Center', 'Mission District Apartments',
-    'Northland Village Mall', 'Olympic Plaza Hotel', 'Panorama Hills Daycare',
-    'Quarry Park Dental', 'Ramsay Auto Repair', 'Sunalta Fitness Center',
-    'Tuscany Golf Club', 'University Heights Clinic', 'Varsity Estates HOA',
-    'Westbrook Shopping Plaza', 'Yorkville Luxury Condos', 'Zen Garden Spa'
-  ];
-
-  const sampleServices = [
-    'Spring Lawn Care Package', 'Exterior Building Wash', 'Parking Lot Maintenance',
-    'Garden Landscape Design', 'Pressure Washing Service', 'Tree Removal & Cleanup',
-    'Deck Restoration Project', 'Commercial Window Cleaning', 'Driveway Sealing',
-    'Flower Bed Installation', 'Hedge Trimming Service', 'Irrigation System Setup',
-    'Patio Stone Cleaning', 'Roof Moss Removal', 'Sidewalk Power Washing',
-    'Snow Removal Contract', 'Weed Control Treatment', 'Yard Debris Cleanup'
-  ];
-
-  const sampleAddresses = [
-    '1234 Main Street SW, Calgary, AB', '5678 Centre Street NE, Calgary, AB',
-    '9012 Bow Trail SE, Calgary, AB', '3456 Memorial Drive NW, Calgary, AB',
-    '7890 Crowchild Trail SW, Calgary, AB', '2468 Macleod Trail SE, Calgary, AB',
-    '1357 Kensington Road NW, Calgary, AB', '9753 17th Avenue SW, Calgary, AB',
-    '8642 Edmonton Trail NE, Calgary, AB', '4321 Elbow Drive SW, Calgary, AB'
-  ];
-
-  const salespeople = ['Mike Johnson', 'Lisa Chen', 'David Park', 'Sarah Mitchell'];
+  console.log(`\n📊 FINAL RESULTS: ${deals.length} deals created from standalone quotes`);
+  deals.forEach(d => console.log(`  📋 Deal: ${d.id} (${d.status}, $${d.amount}) for ${d.client}`));
+  console.log('🏁 ALL STANDALONE QUOTE PROCESSING: Complete\n');
   
-  const deals: Deal[] = [];
-  
-  // Generate won deals
-  for (let i = 0; i < wonCount; i++) {
-    const clientName = sampleClients[Math.floor(Math.random() * sampleClients.length)];
-    const serviceTitle = sampleServices[Math.floor(Math.random() * sampleServices.length)];
-    const address = sampleAddresses[Math.floor(Math.random() * sampleAddresses.length)];
-    const salesperson = salespeople[Math.floor(Math.random() * salespeople.length)];
-    
-    // Generate amounts between $200 and $5000
-    const amount = Math.floor(Math.random() * 4800) + 200;
-    
-    // Generate dates from past 12 months
-    const daysAgo = Math.floor(Math.random() * 365);
-    const closedDate = new Date();
-    closedDate.setDate(closedDate.getDate() - daysAgo);
-    
-    // Stage entered date (when deal was closed) - same as closed date
-    const stageEnteredDate = closedDate.toISOString();
-    
-    // Created date (5-60 days before closed date)
-    const createdDaysAgo = Math.floor(Math.random() * 55) + 5;
-    const createdDate = new Date(closedDate);
-    createdDate.setDate(createdDate.getDate() - createdDaysAgo);
-    
-    deals.push({
-      id: `generated-won-${i + 1}`,
-      client: clientName,
-      title: serviceTitle,
-      property: address,
-      contact: `(403) 555-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-      requested: createdDate.toISOString().split('T')[0],
-      amount: amount,
-      status: 'Closed Won',
-      type: Math.random() > 0.5 ? 'request' : 'quote',
-      createdAt: createdDate.toISOString(),
-      stageEnteredDate: stageEnteredDate
-    });
-  }
-  
-  // Generate lost deals
-  for (let i = 0; i < lostCount; i++) {
-    const clientName = sampleClients[Math.floor(Math.random() * sampleClients.length)];
-    const serviceTitle = sampleServices[Math.floor(Math.random() * sampleServices.length)];
-    const address = sampleAddresses[Math.floor(Math.random() * sampleAddresses.length)];
-    const salesperson = salespeople[Math.floor(Math.random() * salespeople.length)];
-    
-    // Generate amounts between $150 and $3500 (slightly lower for lost deals)
-    const amount = Math.floor(Math.random() * 3350) + 150;
-    
-    // Generate dates from past 12 months
-    const daysAgo = Math.floor(Math.random() * 365);
-    const closedDate = new Date();
-    closedDate.setDate(closedDate.getDate() - daysAgo);
-    
-    // Stage entered date (when deal was lost) - same as closed date
-    const stageEnteredDate = closedDate.toISOString();
-    
-    // Created date (5-60 days before closed date)
-    const createdDaysAgo = Math.floor(Math.random() * 55) + 5;
-    const createdDate = new Date(closedDate);
-    createdDate.setDate(createdDate.getDate() - createdDaysAgo);
-    
-    deals.push({
-      id: `generated-lost-${i + 1}`,
-      client: clientName,
-      title: serviceTitle,
-      property: address,
-      contact: `(403) 555-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-      requested: createdDate.toISOString().split('T')[0],
-      amount: amount,
-      status: 'Closed Lost',
-      type: Math.random() > 0.5 ? 'request' : 'quote',
-      createdAt: createdDate.toISOString(),
-      stageEnteredDate: stageEnteredDate
-    });
-  }
-  
-  console.log(`✅ GENERATED: ${wonCount} won deals, ${lostCount} lost deals`);
   return deals;
 };
 
-// NEW: Function to create initial pipeline deals (excluding closed deals)
+// SIMPLIFIED: Main function
 export const createInitialDeals = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
   sessionQuotes: any[] = [], 
   stages: any[] = []
 ): Deal[] => {
-  console.log('\n=== 🚀 INITIAL PIPELINE DEALS CREATION ===');
+  console.log('\n=== 🚀 SIMPLIFIED PIPELINE DATA CREATION WITH COMPREHENSIVE DEBUGGING ===');
   console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
+  console.log('Available stages:', stages.map(s => ({ id: s.id, title: s.title, isJobberStage: s.isJobberStage, order: s.order })));
   
+  // Enhanced error handling for missing data
   if (!sessionClients || sessionClients.length === 0) {
     console.warn('⚠️ No clients available - pipeline will be empty');
     return [];
@@ -335,24 +791,26 @@ export const createInitialDeals = (
     return [];
   }
   
-  // Create deals from requests
-  const requestDeals = createAllDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
+  // Create deals from open requests
+  const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
   
   // Create deals from standalone quotes
-  const standaloneQuoteDeals = createAllDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
+  const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
   
-  // Filter out closed deals for pipeline view
-  const pipelineDeals = [...requestDeals, ...standaloneQuoteDeals].filter(deal => 
-    !deal.status.includes('Closed') && !deal.status.includes('Archived')
-  );
+  const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
+  console.log('✅ Total pipeline deals created:', totalDeals.length);
+  console.log('  - Request deals:', requestDeals.length);
+  console.log('  - Standalone quote deals:', standaloneQuoteDeals.length);
+  console.log('📊 Pipeline deals by status:', totalDeals.reduce((acc, deal) => {
+    acc[deal.status] = (acc[deal.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>));
+  console.log('=== 🏁 END SIMPLIFIED PIPELINE DATA CREATION ===\n');
   
-  console.log('✅ Pipeline deals created:', pipelineDeals.length);
-  console.log('=== 🏁 END INITIAL PIPELINE DEALS CREATION ===\n');
-  
-  return pipelineDeals;
+  return totalDeals;
 };
 
-// NEW: Main function for creating ALL deals (including closed won/lost) - UPDATED to include generated data
+// NEW: Main function for creating ALL deals (including closed won/lost)
 export const createAllDeals = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
@@ -380,14 +838,10 @@ export const createAllDeals = (
   // Create deals from standalone quotes (including closed)
   const standaloneQuoteDeals = createAllDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
   
-  // Generate additional closed deals to reach target numbers
-  const generatedClosedDeals = generateClosedDeals(119, 87);
-  
-  const totalDeals = [...requestDeals, ...standaloneQuoteDeals, ...generatedClosedDeals];
+  const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
   console.log('✅ Total ALL deals created:', totalDeals.length);
   console.log('  - Request deals:', requestDeals.length);
   console.log('  - Standalone quote deals:', standaloneQuoteDeals.length);
-  console.log('  - Generated closed deals:', generatedClosedDeals.length);
   console.log('📊 All deals by status:', totalDeals.reduce((acc, deal) => {
     acc[deal.status] = (acc[deal.status] || 0) + 1;
     return acc;
@@ -534,7 +988,7 @@ export const handleDeleteAction = (
 export type { Deal };
 
 export const pipelineColumns = [
-  { id: "new-opportunities", title: "New Opportunities" },
+  { id: "new-deals", title: "New Deals" },
   { id: "contacted", title: "Contacted" },
   { id: "draft-quote", title: "Draft Quote" },
   { id: "quote-awaiting-response", title: "Quote Awaiting Response" },
