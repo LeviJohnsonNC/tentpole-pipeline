@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -14,7 +15,7 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
-import { createInitialDeals, createAllDeals, Deal, handleArchiveAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
+import { createInitialDeals, createAllDeals, Deal, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
 import { Request } from "@/types/Request";
 
 interface SalesPipelineProps {
@@ -92,8 +93,8 @@ const SalesPipeline = ({
         quotes: sessionQuotes.length,
         stages: stages.length
       });
-      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-      const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+      const initialDeals = createInitialDeals(sessionRequests, sessionQuotes, sessionClients, stages);
+      const initialAllDeals = createAllDeals(sessionRequests, sessionQuotes, sessionClients);
       console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'pipeline deals and', initialAllDeals.length, 'all deals');
       setDeals(initialDeals);
       setAllDeals(initialAllDeals);
@@ -118,8 +119,8 @@ const SalesPipeline = ({
       quotes: sessionQuotes.length
     });
     
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
-    const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    const newDeals = createInitialDeals(sessionRequests, sessionQuotes, sessionClients, stages);
+    const newAllDeals = createAllDeals(sessionRequests, sessionQuotes, sessionClients);
     const currentDealIds = new Set(deals.map(d => d.id));
     const newDealIds = new Set(newDeals.map(d => d.id));
     const currentAllDealIds = new Set(allDeals.map(d => d.id));
@@ -451,9 +452,9 @@ const SalesPipeline = ({
         
         // Update source data
         if (deal.type === 'request') {
-          updateSessionRequest(dealId, { status: 'Closed Won' });
+          updateSessionRequest(dealId, { status: 'Converted' });
         } else if (deal.type === 'quote' && deal.quoteId) {
-          updateSessionQuote(deal.quoteId, { status: 'Closed Won' });
+          updateSessionQuote(deal.quoteId, { status: 'Converted' });
         }
         
         // Update client status to Active if they're currently a Lead

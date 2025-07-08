@@ -1,3 +1,4 @@
+
 import { Request } from '@/types/Request';
 import { Quote } from '@/types/Quote';
 import { Client } from '@/types/Client';
@@ -16,6 +17,9 @@ export interface Deal {
   quoteId?: string;
   priority?: 'High' | 'Medium' | 'Low';
   notes?: string;
+  contact?: string;
+  createdAt?: string;
+  stageEnteredDate?: string;
 }
 
 const mapRequestStatusToDealStatus = (requestStatus: string): string => {
@@ -83,10 +87,13 @@ const createDealsFromRequests = (requests: Request[], clients: Client[]): Deal[]
         title: request.title,
         status: dealStatus,
         requested: request.requestDate,
-        salesperson: request.assignedTo || 'Unassigned',
+        salesperson: request.teamMember || 'Unassigned',
         type: 'request' as const,
         priority: request.urgency,
-        notes: request.notes
+        notes: request.notes,
+        contact: client.phone || client.email || '',
+        createdAt: request.requestDate,
+        stageEnteredDate: new Date().toISOString()
       };
     })
     .filter((deal): deal is Deal => deal !== null);
@@ -118,7 +125,10 @@ const createDealsFromStandaloneQuotes = (quotes: Quote[], clients: Client[], exi
         salesperson: quote.salesperson || 'Unassigned',
         type: 'quote' as const,
         quoteId: quote.id,
-        notes: `Quote #${quote.quoteNumber}`
+        notes: `Quote #${quote.quoteNumber}`,
+        contact: client.phone || client.email || '',
+        createdAt: quote.createdDate,
+        stageEnteredDate: new Date().toISOString()
       };
     })
     .filter((deal): deal is Deal => deal !== null);
@@ -179,4 +189,58 @@ export const createInitialDeals = (requests: Request[], quotes: Quote[], clients
   console.log(`📊 Total deals (including closed): ${allDeals.length}`);
   
   return openDeals;
+};
+
+// Add missing validation functions
+export const canDragFromJobberStage = (dealId: string, stageId: string): { allowed: boolean; message?: string } => {
+  const JOBBER_STAGE_IDS = [
+    'draft-quote',
+    'quote-awaiting-response', 
+    'jobber-unscheduled-assessment',
+    'jobber-overdue-assessment',
+    'jobber-assessment-completed',
+    'jobber-quote-changes-requested'
+  ];
+  
+  if (JOBBER_STAGE_IDS.includes(stageId)) {
+    return {
+      allowed: false,
+      message: "Cannot manually move deals from Jobber-managed stages. These stages are automatically updated based on your Jobber data."
+    };
+  }
+  
+  return { allowed: true };
+};
+
+export const canDropInJobberStage = (dealId: string, stageId: string): { allowed: boolean; message?: string } => {
+  const JOBBER_STAGE_IDS = [
+    'draft-quote',
+    'quote-awaiting-response', 
+    'jobber-unscheduled-assessment',
+    'jobber-overdue-assessment',
+    'jobber-assessment-completed',
+    'jobber-quote-changes-requested'
+  ];
+  
+  if (JOBBER_STAGE_IDS.includes(stageId)) {
+    return {
+      allowed: false,
+      message: "Cannot manually move deals to Jobber-managed stages. These stages are automatically populated based on your Jobber data."
+    };
+  }
+  
+  return { allowed: true };
+};
+
+// Add missing action handlers (these will be implemented as needed)
+export const handleArchiveAction = (dealId: string) => {
+  console.log('Archive action for deal:', dealId);
+};
+
+export const handleLostAction = (dealId: string) => {
+  console.log('Lost action for deal:', dealId);
+};
+
+export const handleWonAction = (dealId: string) => {
+  console.log('Won action for deal:', dealId);
 };
