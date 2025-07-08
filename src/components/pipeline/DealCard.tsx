@@ -158,13 +158,13 @@ const DealCard = ({
                 <div className="cursor-help">
                   <Badge 
                     variant="secondary" 
-                    className={`h-5 w-5 p-0 rounded-full flex items-center justify-center text-xs pointer-events-none ${
+                    className={`px-2 py-1 text-xs font-medium rounded-full pointer-events-none ${
                       clientStatus === 'Lead' 
-                        ? 'text-orange-800 bg-orange-200' 
-                        : 'text-green-800 bg-green-200'
+                        ? 'text-blue-700 bg-blue-100 border-blue-200' 
+                        : 'text-green-700 bg-green-100 border-green-200'
                     }`}
                   >
-                    {clientStatus === 'Lead' ? 'L' : 'C'}
+                    {clientStatus === 'Lead' ? 'Lead' : 'Client'}
                   </Badge>
                 </div>
               </TooltipPrimitive.Trigger>
