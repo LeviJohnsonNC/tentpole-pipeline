@@ -123,8 +123,8 @@ const ClientsTable = ({ searchTerm, onSearchChange }: ClientsTableProps) => {
     let mostRecentDate = client.createdAt;
 
     clientRequests.forEach(request => {
-      if (request.createdAt > mostRecentDate) {
-        mostRecentDate = request.createdAt;
+      if (request.requestDate > mostRecentDate) {
+        mostRecentDate = request.requestDate;
       }
     });
 
@@ -159,14 +159,17 @@ const ClientsTable = ({ searchTerm, onSearchChange }: ClientsTableProps) => {
         aValue = getClientLastActivity(a.name);
         bValue = getClientLastActivity(b.name);
       } else {
-        aValue = a[sortField as keyof typeof a] || '';
-        bValue = b[sortField as keyof typeof b] || '';
+        // Safely convert client field values to strings
+        const aFieldValue = a[sortField as keyof typeof a];
+        const bFieldValue = b[sortField as keyof typeof b];
+        aValue = aFieldValue ? String(aFieldValue) : '';
+        bValue = bFieldValue ? String(bFieldValue) : '';
       }
       
       if (sortDirection === 'asc') {
-        return aValue.toString().localeCompare(bValue.toString());
+        return aValue.localeCompare(bValue);
       } else {
-        return bValue.toString().localeCompare(aValue.toString());
+        return bValue.localeCompare(aValue);
       }
     });
   }, [filteredClients, sortField, sortDirection, sessionRequests, sessionQuotes, sessionClients]);
