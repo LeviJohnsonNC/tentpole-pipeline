@@ -1,3 +1,4 @@
+
 import { MoreHorizontal, ChartColumn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -164,25 +165,25 @@ const Sales = () => {
                 </div>
               </div>
               
-              {/* Summary Cards */}
-              <PipelineSummaryCards
-                wonCount={wonData.count}
-                wonTotal={wonData.totalValue}
-                lostCount={lostData.count}
-                lostTotal={lostData.totalValue}
-                onWonClick={() => handleAggregateColumnClick('won')}
-                onLostClick={() => handleAggregateColumnClick('lost')}
-              />
-              
-              {/* Search bar for kanban view */}
-              {pipelineView === 'kanban' && (
-                <div className="flex justify-end mb-4">
+              {/* Summary Cards and Search Bar aligned horizontally */}
+              <div className="flex items-start justify-between mb-4">
+                <PipelineSummaryCards
+                  wonCount={wonData.count}
+                  wonTotal={wonData.totalValue}
+                  lostCount={lostData.count}
+                  lostTotal={lostData.totalValue}
+                  onWonClick={() => handleAggregateColumnClick('won')}
+                  onLostClick={() => handleAggregateColumnClick('lost')}
+                />
+                
+                {/* Search bar for kanban view - aligned with summary cards */}
+                {pipelineView === 'kanban' && (
                   <SearchBar 
                     searchTerm={searchTerm}
                     onSearchChange={handleSearchChange}
                   />
-                </div>
-              )}
+                )}
+              </div>
               
               {pipelineView === 'list' && (
                 <div className="flex items-center justify-between">

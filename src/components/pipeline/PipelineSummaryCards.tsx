@@ -20,7 +20,7 @@ const PipelineSummaryCards = ({
   onLostClick
 }: PipelineSummaryCardsProps) => {
   return (
-    <div className="flex gap-4 mb-6">
+    <div className="flex gap-4">
       {/* Closed Won Card */}
       <div 
         className="bg-green-500 text-white px-4 py-3 rounded-lg cursor-pointer hover:bg-green-600 transition-colors flex-shrink-0"
