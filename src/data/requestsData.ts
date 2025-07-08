@@ -364,5 +364,53 @@ export const requestsData: Request[] = [
     urgency: 'High',
     preferredTime: 'ASAP',
     notes: 'Generated request for standalone quote'
+  },
+  {
+    id: 'request-31',
+    clientId: 'client-3',
+    title: 'Outdoor Furniture Deep Clean',
+    serviceDetails: 'Deep cleaning and maintenance of all outdoor restaurant furniture including tables, chairs, and umbrellas. Apply weather protection treatment.',
+    requestDate: '2025-06-25',
+    status: 'New',
+    assignedTeamMember: 'Mike Johnson',
+    urgency: 'Medium',
+    preferredTime: 'Early morning',
+    notes: 'Customer wants furniture refreshed for busy summer season'
+  },
+  {
+    id: 'request-32',
+    clientId: 'client-10',
+    title: 'Garage Floor Cleaning',
+    serviceDetails: 'Pressure wash and deep clean garage floor, remove oil stains, apply protective coating. 500 sq ft garage.',
+    requestDate: '2025-06-26',
+    status: 'New',
+    assignedTeamMember: 'Lisa Chen',
+    urgency: 'Low',
+    preferredTime: 'Weekends',
+    notes: 'Homeowner wants garage floor restored before organizing garage'
+  },
+  {
+    id: 'request-33',
+    clientId: 'client-7',
+    title: 'Building Entrance Renovation',
+    serviceDetails: 'Complete renovation of office building entrance including new planters, pathway cleaning, and welcome signage area preparation.',
+    requestDate: '2025-06-27',
+    status: 'New',
+    assignedTeamMember: 'Mike Johnson',
+    urgency: 'Medium',
+    preferredTime: 'After business hours',
+    notes: 'Building management wants professional entrance for new tenants'
+  },
+  {
+    id: 'request-34',
+    clientId: 'client-13',
+    title: 'Community Garden Maintenance',
+    serviceDetails: 'Monthly maintenance of community garden including weeding, pruning, pathway cleaning, and tool shed organization.',
+    requestDate: '2025-06-28',
+    status: 'New',
+    assignedTeamMember: 'Lisa Chen',
+    urgency: 'Low',
+    preferredTime: 'Summer months',
+    notes: 'Community association approved ongoing maintenance contract'
   }
 ];
