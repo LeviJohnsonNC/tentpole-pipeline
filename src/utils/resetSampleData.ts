@@ -7,10 +7,6 @@ import { useStagesStore } from '@/store/stagesStore';
 export const resetToSampleData = () => {
   console.log('Resetting all data to original sample data...');
   
-  // Clear localStorage for manual deal positions
-  localStorage.removeItem('manualDealPositions');
-  console.log('Cleared localStorage for manual deal positions');
-  
   // Get store actions
   const { clearAllRequests, initializeWithStaticData: initRequests } = useRequestStore.getState();
   const { clearAllClients, initializeWithStaticData: initClients } = useClientStore.getState();
@@ -25,8 +21,8 @@ export const resetToSampleData = () => {
   // Reset stages to default state with time limit properties
   const defaultStages = [
     { 
-      id: "new-opportunities", 
-      title: "New Opportunities", 
+      id: "new-deals", 
+      title: "New Lead", 
       order: 1, 
       isImmutable: true,
       timeLimitEnabled: true,

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -15,7 +14,7 @@ import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
-import { createInitialDeals, createAllDeals, Deal, handleArchiveAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage, saveManualDealPositions } from './pipeline/SalesPipelineData';
+import { createInitialDeals, createAllDeals, Deal, handleArchiveAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
 import { Request } from "@/types/Request";
 
 interface SalesPipelineProps {
@@ -545,9 +544,6 @@ const SalesPipeline = ({
         const reorderedDeals = arrayMove(containerDeals, activeIndex, overIndex);
         const updatedDeals = [...otherDeals, ...reorderedDeals];
         
-        // PERSISTENCE: Save manual positions after reordering
-        saveManualDealPositions(updatedDeals);
-        
         if (onDealsChange) {
           onDealsChange(updatedDeals);
         }
@@ -571,9 +567,6 @@ const SalesPipeline = ({
           return deal;
         });
         
-        // PERSISTENCE: Save manual positions after manual move
-        saveManualDealPositions(updatedDeals);
-        
         if (onDealsChange) {
           onDealsChange(updatedDeals);
         }
@@ -581,7 +574,7 @@ const SalesPipeline = ({
         return updatedDeals;
       });
 
-      console.log('🏁 DRAG END: Manual move completed and saved');
+      console.log('🏁 DRAG END: Manual move completed');
     }
   };
   
