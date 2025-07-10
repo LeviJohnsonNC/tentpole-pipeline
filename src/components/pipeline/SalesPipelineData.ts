@@ -31,6 +31,54 @@ const isJobberStageId = (stageId: string): boolean => {
   return Object.values(JOBBER_STAGE_IDS).includes(stageId as any);
 };
 
+// PERSISTENCE: Save manual deal positions to localStorage
+export const saveManualDealPositions = (deals: Deal[]) => {
+  const manualPositions: Record<string, { status: string; timestamp: number }> = {};
+  
+  deals.forEach(deal => {
+    // Only save non-Jobber stage positions as manual
+    if (!isJobberStageId(deal.status)) {
+      manualPositions[deal.id] = {
+        status: deal.status,
+        timestamp: Date.now()
+      };
+    }
+  });
+  
+  localStorage.setItem('manualDealPositions', JSON.stringify(manualPositions));
+  console.log('💾 PERSISTENCE: Saved manual positions for', Object.keys(manualPositions).length, 'deals');
+};
+
+// PERSISTENCE: Load manual deal positions from localStorage
+export const loadManualDealPositions = (): Record<string, { status: string; timestamp: number }> => {
+  try {
+    const saved = localStorage.getItem('manualDealPositions');
+    if (saved) {
+      const positions = JSON.parse(saved);
+      console.log('📂 PERSISTENCE: Loaded manual positions for', Object.keys(positions).length, 'deals');
+      return positions;
+    }
+  } catch (error) {
+    console.warn('⚠️ PERSISTENCE: Failed to load manual positions:', error);
+  }
+  return {};
+};
+
+// PERSISTENCE: Clear old manual positions (older than 7 days)
+export const cleanupOldManualPositions = () => {
+  const positions = loadManualDealPositions();
+  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  
+  const cleaned = Object.fromEntries(
+    Object.entries(positions).filter(([_, data]) => data.timestamp > sevenDaysAgo)
+  );
+  
+  if (Object.keys(cleaned).length !== Object.keys(positions).length) {
+    localStorage.setItem('manualDealPositions', JSON.stringify(cleaned));
+    console.log('🧹 PERSISTENCE: Cleaned up old manual positions');
+  }
+};
+
 // Helper function to generate dates for new deals (5-7 hours ago)
 const generateNewDealDate = (): string => {
   const now = new Date();
@@ -82,7 +130,7 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
   
   // Set conservative limits to ensure deals stay within bounds
   switch (stageId) {
-    case 'new-deals':
+    case 'new-opportunities': // CHANGED: from 'new-deals'
       maxDaysInStage = 0.1; // Stay well within 3 hours (convert to days)
       break;
     case 'contacted':
@@ -233,10 +281,10 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   } else if (request.status === 'New') {
     // STEP 4: Handle new requests and others
     const distributionMapping: Record<string, string> = {
-      'request-1': 'new-deals',
-      'request-2': 'new-deals', 
+      'request-1': 'new-opportunities', // CHANGED: from 'new-deals'
+      'request-2': 'new-opportunities', // CHANGED: from 'new-deals'
       'request-4': 'quote-awaiting-response', // This one will be overdue
-      'request-6': 'new-deals',
+      'request-6': 'new-opportunities', // CHANGED: from 'new-deals'
       'request-7': 'contacted',
       'request-8': 'contacted',
       'request-9': 'contacted',
@@ -245,10 +293,10 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
       'request-12': 'followup'
     };
     
-    assignedStage = distributionMapping[request.id] || 'new-deals';
+    assignedStage = distributionMapping[request.id] || 'new-opportunities'; // CHANGED: from 'new-deals'
   } else {
-    console.log(`Request ${request.id} using default fallback: new-deals`);
-    assignedStage = 'new-deals';
+    console.log(`Request ${request.id} using default fallback: new-opportunities`); // CHANGED: from 'new-deals'
+    assignedStage = 'new-opportunities'; // CHANGED: from 'new-deals'
   }
   
   console.log(`Non-Jobber stage assigned: ${assignedStage}`);
@@ -282,9 +330,9 @@ const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
     return null;
   }
   
-  // RESTORED: Original fallback logic - use new-deals for standalone quotes that don't match Jobber stages
-  console.log(`✅ FALLBACK ASSIGNMENT: Standalone quote ${quote.id} using fallback new-deals stage for status: ${quote.status}`);
-  return 'new-deals';
+  // RESTORED: Original fallback logic - use new-opportunities for standalone quotes that don't match Jobber stages
+  console.log(`✅ FALLBACK ASSIGNMENT: Standalone quote ${quote.id} using fallback new-opportunities stage for status: ${quote.status}`); // CHANGED: from 'new-deals'
+  return 'new-opportunities'; // CHANGED: from 'new-deals'
 };
 
 // SIMPLIFIED: Convert requests to deals for the pipeline
@@ -791,13 +839,32 @@ export const createInitialDeals = (
     return [];
   }
   
+  // PERSISTENCE: Clean up old positions on load
+  cleanupOldManualPositions();
+  
   // Create deals from open requests
   const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
   
   // Create deals from standalone quotes
   const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
   
-  const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
+  let totalDeals = [...requestDeals, ...standaloneQuoteDeals];
+  
+  // PERSISTENCE: Apply manual positions
+  const manualPositions = loadManualDealPositions();
+  totalDeals = totalDeals.map(deal => {
+    const manualPos = manualPositions[deal.id];
+    if (manualPos && !isJobberStageId(deal.status)) {
+      console.log(`📍 PERSISTENCE: Applying manual position for deal ${deal.id}: ${manualPos.status}`);
+      return {
+        ...deal,
+        status: manualPos.status,
+        stageEnteredDate: new Date(manualPos.timestamp).toISOString()
+      };
+    }
+    return deal;
+  });
+  
   console.log('✅ Total pipeline deals created:', totalDeals.length);
   console.log('  - Request deals:', requestDeals.length);
   console.log('  - Standalone quote deals:', standaloneQuoteDeals.length);
@@ -988,7 +1055,7 @@ export const handleDeleteAction = (
 export type { Deal };
 
 export const pipelineColumns = [
-  { id: "new-deals", title: "New Deals" },
+  { id: "new-opportunities", title: "New Opportunities" },
   { id: "contacted", title: "Contacted" },
   { id: "draft-quote", title: "Draft Quote" },
   { id: "quote-awaiting-response", title: "Quote Awaiting Response" },
