@@ -125,6 +125,15 @@ const DealCard = ({
           <p className="text-sm text-gray-600 truncate leading-tight">{deal.title}</p>
         </div>
 
+        {/* Amount above date/client line if present */}
+        {deal.amount && (
+          <div className="mb-2">
+            <p className="text-sm text-green-600 font-medium">
+              {formatAmount(deal.amount)}
+            </p>
+          </div>
+        )}
+
         {/* Bottom section with date, days counter, and client status */}
         <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-100">
           {/* Left side - Date and days counter */}
@@ -187,8 +196,8 @@ const DealCard = ({
                   variant="secondary" 
                   className={`px-2 py-1 text-xs font-medium rounded pointer-events-none ${
                     clientStatus === 'Lead' 
-                      ? 'text-blue-600 bg-blue-100 border-blue-200' 
-                      : 'text-green-600 bg-green-100 border-green-200'
+                      ? 'text-orange-700 bg-orange-100 border-orange-200' 
+                      : 'text-blue-700 bg-blue-100 border-blue-200'
                   }`}
                 >
                   {clientStatus === 'Lead' ? 'Lead' : 'Client'}
@@ -206,15 +215,6 @@ const DealCard = ({
             </TooltipPrimitive.Portal>
           </TooltipPrimitive.Root>
         </div>
-
-        {/* Amount at bottom if present */}
-        {deal.amount && (
-          <div className="mt-2 pt-1">
-            <p className="text-xs text-green-600 font-medium">
-              {formatAmount(deal.amount)}
-            </p>
-          </div>
-        )}
       </div>
     </TooltipPrimitive.Provider>
   );

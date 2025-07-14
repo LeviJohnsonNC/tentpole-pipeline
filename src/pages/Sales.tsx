@@ -1,7 +1,5 @@
-
-import { MoreHorizontal, ChartColumn } from "lucide-react";
+import { ChartColumn, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import CommonHeader from "@/components/CommonHeader";
 import Sidebar from "@/components/Sidebar";
@@ -136,19 +134,14 @@ const Sales = () => {
                     <ChartColumn className="h-4 w-4" />
                     Insights
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                        More Actions
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleEditStages}>
-                        Edit Stages
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleEditStages}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
                 </div>
               </div>
               
