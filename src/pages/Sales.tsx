@@ -82,6 +82,14 @@ const Sales = () => {
     setSearchTerm('');
   };
 
+  const handleWonActionClick = () => {
+    handleAggregateColumnClick('won');
+  };
+
+  const handleLostActionClick = () => {
+    handleAggregateColumnClick('lost');
+  };
+
   // Helper function to format amounts
   const formatAmount = (amount: number) => {
     return `$${amount.toLocaleString()}`;
@@ -207,6 +215,8 @@ const Sales = () => {
                     onAllDealsChange={handleAllDealsChange}
                     searchTerm={searchTerm}
                     onDealClick={handleDealClick}
+                    onWonClick={handleWonActionClick}
+                    onLostClick={handleLostActionClick}
                   />
                 </div>
               </div>

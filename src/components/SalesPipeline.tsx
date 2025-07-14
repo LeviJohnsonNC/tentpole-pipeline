@@ -9,6 +9,7 @@ import PipelineColumn from './pipeline/PipelineColumn';
 import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
 import FeedbackModal from './FeedbackModal';
+import PersistentActionBar from './pipeline/PersistentActionBar';
 import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
@@ -22,6 +23,8 @@ interface SalesPipelineProps {
   onAllDealsChange?: (allDeals: Deal[]) => void;
   searchTerm?: string;
   onDealClick?: (dealId: string) => void;
+  onWonClick?: () => void;
+  onLostClick?: () => void;
 }
 
 // Helper function to check if a stage ID is a Jobber stage
@@ -41,7 +44,9 @@ const SalesPipeline = ({
   onDealsChange,
   onAllDealsChange,
   searchTerm = '',
-  onDealClick
+  onDealClick,
+  onWonClick,
+  onLostClick
 }: SalesPipelineProps) => {
   const {
     sessionClients,
@@ -582,7 +587,7 @@ const SalesPipeline = ({
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
   return (
-    <div className="h-full relative">
+    <div className="h-full relative pb-20">
       {/* Pipeline Header */}
       <div className="flex justify-end mb-4">
         
@@ -617,7 +622,7 @@ const SalesPipeline = ({
             </ScrollArea>
           ) : (
             <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
-              gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`, // Remove +2 for aggregate columns
+              gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`,
               justifyContent: 'center'
             }}>
               {/* Regular pipeline columns only */}
@@ -645,8 +650,11 @@ const SalesPipeline = ({
           {activeItem ? <DealCard deal={activeItem} isDragging /> : null}
         </DragOverlay>
 
-        {/* Action Bar - shows when dragging */}
-        <ActionBar isVisible={!!activeId} />
+        {/* Persistent Action Bar - always visible */}
+        <PersistentActionBar 
+          onWonClick={onWonClick}
+          onLostClick={onLostClick}
+        />
       </DndContext>
 
       {/* Feedback Modal */}
