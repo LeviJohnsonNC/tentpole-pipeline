@@ -4,7 +4,7 @@ import { format, differenceInDays, differenceInHours, parseISO } from 'date-fns'
 export const formatDateShort = (dateString: string): string => {
   try {
     const date = parseISO(dateString);
-    return format(date, 'yy/MM/dd');
+    return format(date, 'MMM dd');
   } catch (error) {
     console.error('Error formatting date:', error);
     return 'N/A';

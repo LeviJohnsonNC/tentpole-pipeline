@@ -107,7 +107,7 @@ const DealCard = ({
         {...listeners} 
         onClick={handleCardClick}
         className={`
-          bg-white border-2 rounded-lg p-2 shadow-sm 
+          bg-white border rounded-lg p-3 shadow-sm 
           cursor-grab active:cursor-grabbing
           transition-all duration-150 ease-out
           hover:shadow-md hover:-translate-y-0.5
@@ -117,56 +117,24 @@ const DealCard = ({
           ${onDealClick && !isBeingDragged ? 'hover:cursor-pointer' : ''}
         `}
       >
-        {/* Main content */}
+        {/* Client name */}
         <div className="mb-2">
-          <h4 className="font-medium text-gray-900 text-xs mb-1 truncate">
+          <h4 className="font-medium text-gray-900 text-sm mb-1 truncate">
             {deal.client}
           </h4>
-          <p className="text-xs text-gray-600 truncate">{deal.title}</p>
-          {deal.amount && (
-            <p className="text-xs text-green-600 font-medium mt-1">
-              {formatAmount(deal.amount)}
-            </p>
-          )}
+          <p className="text-sm text-gray-600 truncate leading-tight">{deal.title}</p>
         </div>
 
-        {/* Bottom section with date and status indicators */}
-        <div className="flex justify-between items-center mt-2 pt-1 border-t border-gray-100">
-          {/* Date field (left) - only show tooltip when not dragging */}
-          <TooltipPrimitive.Root delayDuration={300}>
-            <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
-              <span className="text-xs text-gray-500 cursor-help">
-                {formatDateShort(deal.createdAt)}
-              </span>
-            </TooltipPrimitive.Trigger>
-            <TooltipPrimitive.Portal>
-              <TooltipPrimitive.Content
-                side="top"
-                sideOffset={8}
-                className="z-[9999] overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
-              >
-                Created: {formatDateTimeFull(deal.createdAt)}
-              </TooltipPrimitive.Content>
-            </TooltipPrimitive.Portal>
-          </TooltipPrimitive.Root>
-
-          {/* Status indicators (right) */}
-          <div className="flex items-center space-x-1">
-            {/* Client status indicator */}
+        {/* Bottom section with date, days counter, and client status */}
+        <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-100">
+          {/* Left side - Date and days counter */}
+          <div className="flex items-center space-x-2">
+            {/* Date field - only show tooltip when not dragging */}
             <TooltipPrimitive.Root delayDuration={300}>
               <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
-                <div className="cursor-help">
-                  <Badge 
-                    variant="secondary" 
-                    className={`px-2 py-1 text-xs font-medium rounded-full pointer-events-none ${
-                      clientStatus === 'Lead' 
-                        ? 'text-blue-700 bg-blue-100 border-blue-200' 
-                        : 'text-green-700 bg-green-100 border-green-200'
-                    }`}
-                  >
-                    {clientStatus === 'Lead' ? 'Lead' : 'Client'}
-                  </Badge>
-                </div>
+                <span className="text-xs text-gray-500 cursor-help">
+                  {formatDateShort(deal.createdAt)}
+                </span>
               </TooltipPrimitive.Trigger>
               <TooltipPrimitive.Portal>
                 <TooltipPrimitive.Content
@@ -174,25 +142,24 @@ const DealCard = ({
                   sideOffset={8}
                   className="z-[9999] overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
                 >
-                  Client Status: {clientStatus}
+                  Created: {formatDateTimeFull(deal.createdAt)}
                 </TooltipPrimitive.Content>
               </TooltipPrimitive.Portal>
             </TooltipPrimitive.Root>
 
-            {/* Days in stage counter - made larger to match client status badge */}
+            {/* Days in stage counter */}
             <TooltipPrimitive.Root delayDuration={300}>
               <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
                 <div className="cursor-help">
-                  <Badge 
-                    variant="secondary" 
-                    className={`px-2 py-1 text-xs font-medium rounded-full flex items-center justify-center pointer-events-none ${
-                      isOverLimit 
-                        ? 'text-red-800 bg-red-200' 
-                        : 'text-blue-800 bg-slate-200'
-                    }`}
-                  >
+                  <div className={`
+                    w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium pointer-events-none
+                    ${isOverLimit 
+                      ? 'text-red-800 bg-red-200' 
+                      : 'text-gray-700 bg-gray-200'
+                    }
+                  `}>
                     {daysInStage}
-                  </Badge>
+                  </div>
                 </div>
               </TooltipPrimitive.Trigger>
               <TooltipPrimitive.Portal>
@@ -211,7 +178,43 @@ const DealCard = ({
               </TooltipPrimitive.Portal>
             </TooltipPrimitive.Root>
           </div>
+
+          {/* Right side - Client status indicator */}
+          <TooltipPrimitive.Root delayDuration={300}>
+            <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
+              <div className="cursor-help">
+                <Badge 
+                  variant="secondary" 
+                  className={`px-2 py-1 text-xs font-medium rounded pointer-events-none ${
+                    clientStatus === 'Lead' 
+                      ? 'text-blue-600 bg-blue-100 border-blue-200' 
+                      : 'text-green-600 bg-green-100 border-green-200'
+                  }`}
+                >
+                  {clientStatus === 'Lead' ? 'Lead' : 'Client'}
+                </Badge>
+              </div>
+            </TooltipPrimitive.Trigger>
+            <TooltipPrimitive.Portal>
+              <TooltipPrimitive.Content
+                side="top"
+                sideOffset={8}
+                className="z-[9999] overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+              >
+                Client Status: {clientStatus}
+              </TooltipPrimitive.Content>
+            </TooltipPrimitive.Portal>
+          </TooltipPrimitive.Root>
         </div>
+
+        {/* Amount at bottom if present */}
+        {deal.amount && (
+          <div className="mt-2 pt-1">
+            <p className="text-xs text-green-600 font-medium">
+              {formatAmount(deal.amount)}
+            </p>
+          </div>
+        )}
       </div>
     </TooltipPrimitive.Provider>
   );
