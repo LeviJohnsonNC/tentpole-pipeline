@@ -587,7 +587,7 @@ const SalesPipeline = ({
   const activeItem = activeId ? deals.find(deal => deal.id === activeId) : null;
   
   return (
-    <div className="h-full relative pb-20">
+    <div className="h-full relative">
       {/* Pipeline Header */}
       <div className="flex justify-end mb-4">
         
@@ -650,7 +650,7 @@ const SalesPipeline = ({
           {activeItem ? <DealCard deal={activeItem} isDragging /> : null}
         </DragOverlay>
 
-        {/* Persistent Action Bar - always visible */}
+        {/* Persistent Action Bar - nested below pipeline */}
         <PersistentActionBar 
           onWonClick={onWonClick}
           onLostClick={onLostClick}

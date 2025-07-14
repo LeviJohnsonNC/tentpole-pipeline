@@ -1,3 +1,4 @@
+
 import { MoreHorizontal, ChartColumn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -14,7 +15,6 @@ import PipelineViewToggle from "@/components/pipeline/PipelineViewToggle";
 import PipelineListView from "@/components/pipeline/PipelineListView";
 import StageFilter from "@/components/pipeline/StageFilter";
 import SearchBar from "@/components/pipeline/SearchBar";
-import PipelineSummaryCards from "@/components/pipeline/PipelineSummaryCards";
 
 const Sales = () => {
   const navigate = useNavigate();
@@ -90,26 +90,6 @@ const Sales = () => {
     handleAggregateColumnClick('lost');
   };
 
-  // Helper function to format amounts
-  const formatAmount = (amount: number) => {
-    return `$${amount.toLocaleString()}`;
-  };
-
-  // Calculate summary data
-  const getSummaryData = (type: 'won' | 'lost') => {
-    const statusFilter = type === 'won' ? 'Closed Won' : 'Closed Lost';
-    const summaryDeals = allDeals.filter(deal => deal.status === statusFilter);
-    const count = summaryDeals.length;
-    const totalValue = summaryDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
-    return {
-      count,
-      totalValue: formatAmount(totalValue)
-    };
-  };
-
-  const wonData = getSummaryData('won');
-  const lostData = getSummaryData('lost');
-
   // Filter deals based on selected stage and search term - use allDeals for list view
   const filteredDeals = (pipelineView === 'list' ? allDeals : deals).filter(deal => {
     const matchesStage = selectedStage === 'all' || 
@@ -174,17 +154,8 @@ const Sales = () => {
               
               {/* Conditional content based on view */}
               {pipelineView === 'kanban' ? (
-                /* Summary Cards and Search Bar for kanban view */
-                <div className="flex items-start justify-between mb-3">
-                  <PipelineSummaryCards
-                    wonCount={wonData.count}
-                    wonTotal={wonData.totalValue}
-                    lostCount={lostData.count}
-                    lostTotal={lostData.totalValue}
-                    onWonClick={() => handleAggregateColumnClick('won')}
-                    onLostClick={() => handleAggregateColumnClick('lost')}
-                  />
-                  
+                /* Search Bar only for kanban view */
+                <div className="flex items-start justify-end mb-3">
                   <SearchBar 
                     searchTerm={searchTerm}
                     onSearchChange={handleSearchChange}
