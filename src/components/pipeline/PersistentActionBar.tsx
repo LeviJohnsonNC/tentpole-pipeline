@@ -14,8 +14,8 @@ const PersistentActionBar = ({
   onArchiveClick 
 }: PersistentActionBarProps) => {
   return (
-    <div className="mt-3 mb-3">
-      <div className="flex gap-3 max-w-4xl mx-auto">
+    <div className="mt-1 mb-1">
+      <div className="flex gap-4">
         <ActionZone 
           id="action-won" 
           type="won" 

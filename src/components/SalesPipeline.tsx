@@ -619,42 +619,59 @@ const SalesPipeline = ({
                 })}
               </div>
               <ScrollBar orientation="horizontal" />
+              
+              {/* Action Bar aligned with scrollable columns */}
+              <div className="flex space-x-4 min-w-max">
+                <div style={{ width: `${columnWidth * stages.length + (stages.length - 1) * 16}px` }}>
+                  <PersistentActionBar 
+                    onWonClick={onWonClick}
+                    onLostClick={onLostClick}
+                  />
+                </div>
+              </div>
             </ScrollArea>
           ) : (
-            <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
-              gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`,
-              justifyContent: 'center'
-            }}>
-              {/* Regular pipeline columns only */}
-              {stages.sort((a, b) => a.order - b.order).map(stage => {
-                const columnDeals = getColumnDeals(stage.id);
-                return (
-                  <PipelineColumn 
-                    key={stage.id} 
-                    id={stage.id} 
-                    title={stage.title} 
-                    deals={columnDeals} 
-                    count={columnDeals.length} 
-                    totalValue={getColumnTotalValue(stage.id)} 
-                    fixedHeight={fixedColumnHeight}
-                    stage={stage}
-                    onDealClick={onDealClick}
-                  />
-                );
-              })}
-            </div>
+            <>
+              <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
+                gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`,
+                justifyContent: 'center'
+              }}>
+                {/* Regular pipeline columns only */}
+                {stages.sort((a, b) => a.order - b.order).map(stage => {
+                  const columnDeals = getColumnDeals(stage.id);
+                  return (
+                    <PipelineColumn 
+                      key={stage.id} 
+                      id={stage.id} 
+                      title={stage.title} 
+                      deals={columnDeals} 
+                      count={columnDeals.length} 
+                      totalValue={getColumnTotalValue(stage.id)} 
+                      fixedHeight={fixedColumnHeight}
+                      stage={stage}
+                      onDealClick={onDealClick}
+                    />
+                  );
+                })}
+              </div>
+              
+              {/* Action Bar aligned with grid columns */}
+              <div className="transition-all duration-300 ease-out" style={{
+                width: `${columnWidth * stages.length + (stages.length - 1) * 16}px`,
+                margin: '0 auto'
+              }}>
+                <PersistentActionBar 
+                  onWonClick={onWonClick}
+                  onLostClick={onLostClick}
+                />
+              </div>
+            </>
           )}
         </div>
 
         <DragOverlay>
           {activeItem ? <DealCard deal={activeItem} isDragging /> : null}
         </DragOverlay>
-
-        {/* Persistent Action Bar - nested below pipeline */}
-        <PersistentActionBar 
-          onWonClick={onWonClick}
-          onLostClick={onLostClick}
-        />
       </DndContext>
 
       {/* Feedback Modal */}
