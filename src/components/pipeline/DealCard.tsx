@@ -196,8 +196,8 @@ const DealCard = ({
                   variant="secondary" 
                   className={`px-2 py-1 text-xs font-medium rounded pointer-events-none ${
                     clientStatus === 'Lead' 
-                      ? 'text-orange-700 bg-orange-100 border-orange-200' 
-                      : 'text-blue-700 bg-blue-100 border-blue-200'
+                      ? 'text-green-800 bg-green-100 border-green-200' 
+                      : 'text-green-700 bg-green-50 border-green-200'
                   }`}
                 >
                   {clientStatus === 'Lead' ? 'Lead' : 'Client'}
