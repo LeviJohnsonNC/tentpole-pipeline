@@ -223,5 +223,29 @@ export const useStagesStore = create<StagesState>((set, get) => ({
       .map(stage => stage.title);
   },
 
-  setAutoOnlyStages: () => set({ stages: autoOnlyStages })
+  setAutoOnlyStages: () => {
+    // Import the stores to update deal positions when switching to auto-only mode
+    import('@/store/requestStore').then(({ useRequestStore }) => {
+      import('@/store/quoteStore').then(({ useQuoteStore }) => {
+        const { sessionRequests, updateSessionRequest } = useRequestStore.getState();
+        const { sessionQuotes, updateSessionQuote } = useQuoteStore.getState();
+        
+        // Update requests to appropriate auto-only stages
+        sessionRequests.forEach(request => {
+          if (request.status === 'Contacted' || request.status === 'contacted') {
+            // Move contacted requests to unscheduled assessment
+            updateSessionRequest(request.id, { status: 'Unscheduled Assessment' });
+          } else if (request.status === 'Followup' || request.status === 'followup') {
+            // Move followup requests to assessment completed
+            updateSessionRequest(request.id, { status: 'Assessment Completed' });
+          }
+        });
+        
+        // Quotes should remain in their current Jobber stages as they're already automated
+        console.log('Successfully redistributed deals for auto-only mode');
+      });
+    });
+    
+    set({ stages: autoOnlyStages });
+  }
 }));
