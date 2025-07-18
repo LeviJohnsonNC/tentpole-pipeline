@@ -209,7 +209,7 @@ const DealCard = ({
                   </div>
                 )}
               </TooltipPrimitive.Content>
-            </TotooltipPrimitive.Portal>
+            </TooltipPrimitive.Portal>
           </TooltipPrimitive.Root>
         </div>
       </div>
