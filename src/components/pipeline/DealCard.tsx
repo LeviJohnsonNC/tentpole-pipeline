@@ -133,7 +133,7 @@ const DealCard = ({
                 <div className="cursor-help ml-2 flex-shrink-0">
                   <Badge 
                     variant="secondary" 
-                    className="px-2 py-1 text-xs font-medium rounded pointer-events-none text-green-800 bg-green-100 border-green-200"
+                    className="px-2 py-1 text-xs font-medium rounded pointer-events-none text-blue-800 bg-blue-100 border-blue-200"
                   >
                     Lead
                   </Badge>
@@ -209,7 +209,7 @@ const DealCard = ({
                   </div>
                 )}
               </TooltipPrimitive.Content>
-            </TooltipPrimitive.Portal>
+            </TotooltipPrimitive.Portal>
           </TooltipPrimitive.Root>
         </div>
       </div>
