@@ -61,16 +61,30 @@ export const useManualMovementStore = create<ManualMovementStore>()(
     }),
     {
       name: 'manual-movement-store',
-      serialize: (state) => {
-        return JSON.stringify({
-          manuallyMovedDeals: Array.from(state.manuallyMovedDeals.entries())
-        });
-      },
-      deserialize: (str) => {
-        const parsed = JSON.parse(str);
-        return {
-          manuallyMovedDeals: new Map(parsed.manuallyMovedDeals || [])
-        };
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          const parsed = JSON.parse(str);
+          return {
+            ...parsed,
+            state: {
+              ...parsed.state,
+              manuallyMovedDeals: new Map(parsed.state.manuallyMovedDeals || [])
+            }
+          };
+        },
+        setItem: (name, value) => {
+          const str = JSON.stringify({
+            ...value,
+            state: {
+              ...value.state,
+              manuallyMovedDeals: Array.from(value.state.manuallyMovedDeals.entries())
+            }
+          });
+          localStorage.setItem(name, str);
+        },
+        removeItem: (name) => localStorage.removeItem(name)
       }
     }
   )
