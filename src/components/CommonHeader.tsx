@@ -1,20 +1,29 @@
 
-import { Search, Bell, MessageCircle, Settings, RotateCcw } from "lucide-react";
+import { Search, Bell, MessageCircle, Settings, RotateCcw, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { resetToSampleData } from "@/utils/resetSampleData";
+import { useStagesStore } from "@/store/stagesStore";
 import { toast } from "sonner";
 
 interface CommonHeaderProps {
   showResetButton?: boolean;
+  showAutoOnlyButton?: boolean;
   additionalButtons?: React.ReactNode;
 }
 
-const CommonHeader = ({ showResetButton = false, additionalButtons }: CommonHeaderProps) => {
+const CommonHeader = ({ showResetButton = false, showAutoOnlyButton = false, additionalButtons }: CommonHeaderProps) => {
+  const { setAutoOnlyStages } = useStagesStore();
+
   const handleResetSampleData = () => {
     resetToSampleData();
     toast.success("Sample data has been reset to original state");
+  };
+
+  const handleAutoOnlyMode = () => {
+    setAutoOnlyStages();
+    toast.success("Pipeline set to automated stages only");
   };
 
   return (
@@ -47,6 +56,17 @@ const CommonHeader = ({ showResetButton = false, additionalButtons }: CommonHead
             >
               <RotateCcw className="h-4 w-4" />
               Reset Sample Data
+            </Button>
+          )}
+          {showAutoOnlyButton && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleAutoOnlyMode}
+              className="flex items-center gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Auto Only
             </Button>
           )}
           {additionalButtons}

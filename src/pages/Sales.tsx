@@ -110,7 +110,7 @@ const Sales = () => {
         <Sidebar />
         
         <SidebarInset>
-          <CommonHeader showResetButton={true} />
+          <CommonHeader showResetButton={true} showAutoOnlyButton={true} />
           
           {/* Main Content */}
           <main className="flex-1 p-6">

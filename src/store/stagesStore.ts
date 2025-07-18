@@ -22,6 +22,7 @@ interface StagesState {
   addJobberStage: (title: string) => void;
   deleteStage: (id: string) => void;
   getUsedJobberStages: () => string[];
+  setAutoOnlyStages: () => void;
 }
 
 const defaultStages: Stage[] = [
@@ -66,6 +67,72 @@ const defaultStages: Stage[] = [
     order: 5,
     timeLimitEnabled: true,
     timeLimitDays: 7,
+    timeLimitHours: 0
+  }
+];
+
+const autoOnlyStages: Stage[] = [
+  { 
+    id: "new-deals", 
+    title: "New Opportunities", 
+    order: 1, 
+    isImmutable: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 0,
+    timeLimitHours: 3
+  },
+  { 
+    id: "jobber-unscheduled-assessment", 
+    title: "Unscheduled Assessment", 
+    order: 2, 
+    isJobberStage: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 2,
+    timeLimitHours: 0
+  },
+  { 
+    id: "jobber-overdue-assessment", 
+    title: "Overdue Assessment", 
+    order: 3, 
+    isJobberStage: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 1,
+    timeLimitHours: 0
+  },
+  { 
+    id: "jobber-assessment-completed", 
+    title: "Assessment Completed", 
+    order: 4, 
+    isJobberStage: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 2,
+    timeLimitHours: 0
+  },
+  { 
+    id: "draft-quote", 
+    title: "Draft Quote", 
+    order: 5, 
+    isJobberStage: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 1,
+    timeLimitHours: 0
+  },
+  { 
+    id: "quote-awaiting-response", 
+    title: "Quote Awaiting Response", 
+    order: 6, 
+    isJobberStage: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 7,
+    timeLimitHours: 0
+  },
+  { 
+    id: "jobber-quote-changes-requested", 
+    title: "Quote Changes Requested", 
+    order: 7, 
+    isJobberStage: true,
+    timeLimitEnabled: true,
+    timeLimitDays: 3,
     timeLimitHours: 0
   }
 ];
@@ -154,5 +221,7 @@ export const useStagesStore = create<StagesState>((set, get) => ({
     return stages
       .filter(stage => stage.isJobberStage)
       .map(stage => stage.title);
-  }
+  },
+
+  setAutoOnlyStages: () => set({ stages: autoOnlyStages })
 }));
