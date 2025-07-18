@@ -81,6 +81,9 @@ const SalesPipeline = ({
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
 
+  // NEW: Track original deal position before drag starts
+  const [originalDealPosition, setOriginalDealPosition] = useState<string | null>(null);
+
   // NEW: Helper function to get current deal position
   const getCurrentDealPosition = (dealId: string): string | null => {
     const deal = deals.find(d => d.id === dealId);
@@ -326,6 +329,13 @@ const SalesPipeline = ({
     console.log('🚀 DRAG START: Active ID:', active.id);
     setActiveId(active.id as string);
     setIsDraggingToActionZone(false);
+    
+    // NEW: Store the original position before any modifications
+    const activeDeal = deals.find(deal => deal.id === active.id);
+    if (activeDeal) {
+      setOriginalDealPosition(activeDeal.status);
+      console.log('🚀 DRAG START: Stored original position:', activeDeal.status);
+    }
   };
   
   const handleDragOver = (event: DragOverEvent) => {
@@ -389,18 +399,24 @@ const SalesPipeline = ({
     
     if (!over || !active) {
       console.log('🏁 DRAG END: No over target, ending drag');
+      // Reset original position state
+      setOriginalDealPosition(null);
       return;
     }
     const activeId = active.id as string;
     const overId = over.id as string;
     if (activeId === overId) {
       console.log('🏁 DRAG END: Dropped on self, no action needed');
+      // Reset original position state
+      setOriginalDealPosition(null);
       return;
     }
     const overContainer = findContainer(overId);
     console.log('🏁 DRAG END: Over container:', overContainer);
     if (!overContainer) {
       console.log('🏁 DRAG END: No valid container found');
+      // Reset original position state
+      setOriginalDealPosition(null);
       return;
     }
 
@@ -525,12 +541,17 @@ const SalesPipeline = ({
           enhancedWonAction(activeId);
           break;
       }
+      
+      // Reset original position state
+      setOriginalDealPosition(null);
       return;
     }
 
     const activeContainer = findContainer(activeId);
     if (!activeContainer) {
       console.log('🏁 DRAG END: No active container found');
+      // Reset original position state
+      setOriginalDealPosition(null);
       return;
     }
 
@@ -540,24 +561,27 @@ const SalesPipeline = ({
       console.log('🏁 DRAG END: Final validation failed:', validation.message);
       toast.error(validation.message);
 
-      // Revert the deal to its original position
-      setDeals(prevDeals => {
-        const originalDeal = deals.find(d => d.id === activeId);
-        if (originalDeal) {
+      // FIXED: Revert the deal to its ORIGINAL position (not current position)
+      if (originalDealPosition) {
+        console.log('🏁 DRAG END: Reverting deal to ORIGINAL status:', originalDealPosition);
+        setDeals(prevDeals => {
           return prevDeals.map(deal => {
             if (deal.id === activeId) {
-              console.log('🏁 DRAG END: Reverting deal to original status:', originalDeal.status);
+              // Find the original deal data to restore all properties
+              const originalDeal = deals.find(d => d.id === activeId);
               return {
                 ...deal,
-                status: originalDeal.status,
-                stageEnteredDate: originalDeal.stageEnteredDate
+                status: originalDealPosition,
+                stageEnteredDate: originalDeal?.stageEnteredDate || deal.stageEnteredDate
               };
             }
             return deal;
           });
-        }
-        return prevDeals;
-      });
+        });
+      }
+      
+      // Reset original position state
+      setOriginalDealPosition(null);
       return;
     }
 
@@ -613,6 +637,9 @@ const SalesPipeline = ({
 
       console.log('🏁 DRAG END: Manual move completed and tracked');
     }
+    
+    // Reset original position state
+    setOriginalDealPosition(null);
   };
   
   
