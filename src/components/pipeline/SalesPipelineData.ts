@@ -31,6 +31,88 @@ const isJobberStageId = (stageId: string): boolean => {
   return Object.values(JOBBER_STAGE_IDS).includes(stageId as any);
 };
 
+// NEW: Helper function to check if a deal meets the conditions for a specific Jobber stage
+const checkJobberStageCondition = (
+  deal: Deal, 
+  stageId: string, 
+  sessionRequests: any[] = [], 
+  sessionQuotes: any[] = []
+): { allowed: boolean; message?: string } => {
+  console.log(`🔍 JOBBER CONDITION CHECK: Deal ${deal.id} for stage ${stageId}`);
+  
+  let request = null;
+  let quote = null;
+  
+  // Get the associated request and quote data
+  if (deal.type === 'request') {
+    request = sessionRequests.find(r => r.id === deal.id);
+    if (deal.quoteId) {
+      quote = sessionQuotes.find(q => q.id === deal.quoteId);
+    }
+  } else if (deal.type === 'quote' && deal.quoteId) {
+    quote = sessionQuotes.find(q => q.id === deal.quoteId);
+    if (quote && quote.requestId) {
+      request = sessionRequests.find(r => r.id === quote.requestId);
+    }
+  }
+  
+  console.log(`🔍 CONDITION CHECK: Request status: ${request?.status || 'N/A'}, Quote status: ${quote?.status || 'N/A'}`);
+  
+  switch (stageId) {
+    case 'draft-quote':
+      if (quote && quote.status === 'Draft') {
+        console.log(`✅ CONDITION MET: Deal has Draft quote`);
+        return { allowed: true };
+      }
+      console.log(`❌ CONDITION NOT MET: Deal does not have Draft quote`);
+      return { allowed: false, message: "Deal must have a Draft quote to be placed in this stage" };
+      
+    case 'quote-awaiting-response':
+      if (quote && quote.status === 'Awaiting Response') {
+        console.log(`✅ CONDITION MET: Deal has Awaiting Response quote`);
+        return { allowed: true };
+      }
+      console.log(`❌ CONDITION NOT MET: Deal does not have Awaiting Response quote`);
+      return { allowed: false, message: "Deal must have a quote awaiting response to be placed in this stage" };
+      
+    case 'jobber-quote-changes-requested':
+      if (quote && quote.status === 'Changes Requested') {
+        console.log(`✅ CONDITION MET: Deal has Changes Requested quote`);
+        return { allowed: true };
+      }
+      console.log(`❌ CONDITION NOT MET: Deal does not have Changes Requested quote`);
+      return { allowed: false, message: "Deal must have a quote with changes requested to be placed in this stage" };
+      
+    case 'jobber-assessment-completed':
+      if (request && request.status === 'Assessment complete') {
+        console.log(`✅ CONDITION MET: Deal has Assessment complete request`);
+        return { allowed: true };
+      }
+      console.log(`❌ CONDITION NOT MET: Deal does not have Assessment complete request`);
+      return { allowed: false, message: "Deal must have a completed assessment to be placed in this stage" };
+      
+    case 'jobber-overdue-assessment':
+      if (request && request.status === 'Overdue') {
+        console.log(`✅ CONDITION MET: Deal has Overdue request`);
+        return { allowed: true };
+      }
+      console.log(`❌ CONDITION NOT MET: Deal does not have Overdue request`);
+      return { allowed: false, message: "Deal must have an overdue assessment to be placed in this stage" };
+      
+    case 'jobber-unscheduled-assessment':
+      if (request && request.status === 'Unscheduled') {
+        console.log(`✅ CONDITION MET: Deal has Unscheduled request`);
+        return { allowed: true };
+      }
+      console.log(`❌ CONDITION NOT MET: Deal does not have Unscheduled request`);
+      return { allowed: false, message: "Deal must have an unscheduled assessment to be placed in this stage" };
+      
+    default:
+      console.log(`❌ UNKNOWN JOBBER STAGE: ${stageId}`);
+      return { allowed: false, message: "Unknown Jobber stage" };
+  }
+};
+
 // Helper function to generate dates for new deals (5-7 hours ago)
 const generateNewDealDate = (): string => {
   const now = new Date();
@@ -192,10 +274,30 @@ const findJobberStageByPriority = (request: any, newestQuote: any | null, stages
   return null;
 };
 
-// SIMPLIFIED: Basic pipeline stage assignment
-const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[]): string | null => {
+// UPDATED: Pipeline stage assignment with manual movement tracking
+const assignPipelineStage = (
+  request: any, 
+  newestQuote: any | null, 
+  stages: any[], 
+  isManuallyMovedFn?: (dealId: string) => boolean,
+  getCurrentPositionFn?: (dealId: string) => string | null
+): string | null => {
   console.log(`\n--- Assigning pipeline stage for request ${request.id} ---`);
   console.log(`Request status: ${request.status}, Newest quote: ${newestQuote?.id || 'none'}, Quote status: ${newestQuote?.status || 'N/A'}`);
+  
+  // STEP 0: Check if deal was manually moved and still meets conditions
+  if (isManuallyMovedFn && getCurrentPositionFn && isManuallyMovedFn(request.id)) {
+    const currentPosition = getCurrentPositionFn(request.id);
+    const originalJobberStage = findJobberStageByPriority(request, newestQuote, stages);
+    
+    console.log(`🎯 MANUAL MOVEMENT CHECK: Deal ${request.id} was manually moved, current: ${currentPosition}, original would be: ${originalJobberStage}`);
+    
+    // If still meets original Jobber condition and is in a non-Jobber stage, respect manual position
+    if (originalJobberStage && currentPosition && !isJobberStageId(currentPosition)) {
+      console.log(`✅ RESPECTING MANUAL POSITION: Deal ${request.id} staying in ${currentPosition}`);
+      return currentPosition;
+    }
+  }
   
   // STEP 1: Check for priority-based Jobber stage matches first
   const jobberStageMatch = findJobberStageByPriority(request, newestQuote, stages);
@@ -255,10 +357,30 @@ const assignPipelineStage = (request: any, newestQuote: any | null, stages: any[
   return assignedStage;
 };
 
-// RESTORED: Original function to determine pipeline stage for standalone quotes
-const assignQuotePipelineStage = (quote: any, stages: any[]): string | null => {
+// UPDATED: Quote pipeline stage assignment with manual movement tracking
+const assignQuotePipelineStage = (
+  quote: any, 
+  stages: any[], 
+  isManuallyMovedFn?: (dealId: string) => boolean,
+  getCurrentPositionFn?: (dealId: string) => string | null
+): string | null => {
+  const quoteBasedDealId = `quote-${quote.id}`;
   console.log(`\n🔍 STANDALONE QUOTE STAGE ASSIGNMENT: Starting for quote ${quote.id}`);
   console.log(`📋 Quote details: status="${quote.status}", amount=${quote.amount}, clientId="${quote.clientId}", requestId="${quote.requestId || 'NONE'}"`);
+  
+  // STEP 0: Check if deal was manually moved and still meets conditions
+  if (isManuallyMovedFn && getCurrentPositionFn && isManuallyMovedFn(quoteBasedDealId)) {
+    const currentPosition = getCurrentPositionFn(quoteBasedDealId);
+    const originalJobberStage = findJobberStageByPriority(null, quote, stages);
+    
+    console.log(`🎯 MANUAL MOVEMENT CHECK: Quote ${quote.id} was manually moved, current: ${currentPosition}, original would be: ${originalJobberStage}`);
+    
+    // If still meets original Jobber condition and is in a non-Jobber stage, respect manual position
+    if (originalJobberStage && currentPosition && !isJobberStageId(currentPosition)) {
+      console.log(`✅ RESPECTING MANUAL POSITION: Quote ${quote.id} staying in ${currentPosition}`);
+      return currentPosition;
+    }
+  }
   
   // Check for priority-based Jobber stage matches
   console.log(`🎯 PRIORITY CHECK: Looking for Jobber stage matches for status "${quote.status}"`);
@@ -292,7 +414,9 @@ const createDealsFromRequests = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
   sessionQuotes: any[] = [], 
-  stages: any[] = []
+  stages: any[] = [],
+  isManuallyMovedFn?: (dealId: string) => boolean,
+  getCurrentPositionFn?: (dealId: string) => string | null
 ): Deal[] => {
   console.log('Creating deals from requests. Session requests:', sessionRequests.length);
   const requestsWithClients = getRequestsWithClientInfo(sessionClients, sessionRequests);
@@ -318,8 +442,8 @@ const createDealsFromRequests = (
       return null; // This ensures the deal won't appear in the pipeline
     }
     
-    // Determine pipeline stage
-    const pipelineStage = assignPipelineStage(request, newestQuote, stages);
+    // Determine pipeline stage with manual movement tracking
+    const pipelineStage = assignPipelineStage(request, newestQuote, stages, isManuallyMovedFn, getCurrentPositionFn);
     
     // If pipeline stage is null (closed won or excluded), don't include in pipeline
     if (!pipelineStage) {
@@ -367,7 +491,6 @@ const createDealsFromRequests = (
   return deals;
 };
 
-// NEW: Create deals from requests including closed won/lost for list view
 const createAllDealsFromRequests = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
@@ -461,7 +584,9 @@ const createAllDealsFromRequests = (
 const createDealsFromStandaloneQuotes = (
   sessionClients: any[] = [], 
   sessionQuotes: any[] = [], 
-  stages: any[] = []
+  stages: any[] = [],
+  isManuallyMovedFn?: (dealId: string) => boolean,
+  getCurrentPositionFn?: (dealId: string) => string | null
 ): Deal[] => {
   console.log('\n🚀 STANDALONE QUOTE PROCESSING: Starting conversion to deals');
   console.log(`📊 Input: ${sessionQuotes.length} quotes, ${sessionClients.length} clients, ${stages.length} stages`);
@@ -553,7 +678,7 @@ const createDealsFromStandaloneQuotes = (
     
     console.log(`✅ CLIENT FOUND: ${client.name} for quote ${quote.id}`);
     
-    const pipelineStage = assignQuotePipelineStage(quote, stages);
+    const pipelineStage = assignQuotePipelineStage(quote, stages, isManuallyMovedFn, getCurrentPositionFn);
     
     // If pipelineStage is null, don't include this quote
     if (!pipelineStage) {
@@ -613,7 +738,6 @@ const createDealsFromStandaloneQuotes = (
   return deals;
 };
 
-// NEW: Create deals from standalone quotes including closed won/lost for list view
 const createAllDealsFromStandaloneQuotes = (
   sessionClients: any[] = [], 
   sessionQuotes: any[] = [], 
@@ -769,12 +893,14 @@ const createAllDealsFromStandaloneQuotes = (
   return deals;
 };
 
-// SIMPLIFIED: Main function
+// UPDATED: Main function with manual movement tracking support
 export const createInitialDeals = (
   sessionClients: any[] = [], 
   sessionRequests: any[] = [], 
   sessionQuotes: any[] = [], 
-  stages: any[] = []
+  stages: any[] = [],
+  isManuallyMovedFn?: (dealId: string) => boolean,
+  getCurrentPositionFn?: (dealId: string) => string | null
 ): Deal[] => {
   console.log('\n=== 🚀 SIMPLIFIED PIPELINE DATA CREATION WITH COMPREHENSIVE DEBUGGING ===');
   console.log('Input data - Clients:', sessionClients.length, 'Requests:', sessionRequests.length, 'Quotes:', sessionQuotes.length);
@@ -792,10 +918,10 @@ export const createInitialDeals = (
   }
   
   // Create deals from open requests
-  const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages);
+  const requestDeals = createDealsFromRequests(sessionClients, sessionRequests, sessionQuotes, stages, isManuallyMovedFn, getCurrentPositionFn);
   
   // Create deals from standalone quotes
-  const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages);
+  const standaloneQuoteDeals = createDealsFromStandaloneQuotes(sessionClients, sessionQuotes, stages, isManuallyMovedFn, getCurrentPositionFn);
   
   const totalDeals = [...requestDeals, ...standaloneQuoteDeals];
   console.log('✅ Total pipeline deals created:', totalDeals.length);
@@ -851,48 +977,51 @@ export const createAllDeals = (
   return totalDeals;
 };
 
-// Enhanced validation function with complete Jobber stage blocking
-export const canDropInJobberStage = (dealId: string, targetStageId: string): {
-  allowed: boolean;
-  message?: string;
-} => {
-  console.log('🚫 DRAG VALIDATION: Checking drop for deal:', dealId, 'to stage:', targetStageId);
-  
-  // COMPLETE BLOCK: No manual drags into any Jobber stage
-  if (isJobberStageId(targetStageId)) {
-    console.log('🚫 DRAG BLOCKED: Cannot manually drag into Jobber stage:', targetStageId);
-    return {
-      allowed: false,
-      message: "This stage is automatically managed. Deals are moved here based on their status."
-    };
-  }
-  
-  console.log('✅ DRAG ALLOWED: Target is not a Jobber stage');
-  return {
-    allowed: true
-  };
-};
-
-// Function to check if dragging FROM a Jobber stage should be blocked
+// UPDATED: Enhanced validation function - no longer blocks drag FROM any stage
 export const canDragFromJobberStage = (dealId: string, sourceStageId: string): {
   allowed: boolean;
   message?: string;
 } => {
-  console.log('🚫 DRAG FROM VALIDATION: Checking drag from stage:', sourceStageId);
+  console.log('✅ DRAG FROM VALIDATION: Always allowing drag from any stage (including Jobber stages)');
+  return { allowed: true };
+};
+
+// UPDATED: Enhanced validation function with conditional Jobber stage drops
+export const canDropInJobberStage = (
+  dealId: string, 
+  targetStageId: string,
+  deals: Deal[] = [],
+  sessionRequests: any[] = [],
+  sessionQuotes: any[] = []
+): {
+  allowed: boolean;
+  message?: string;
+} => {
+  console.log('🔍 DRAG VALIDATION: Checking drop for deal:', dealId, 'to stage:', targetStageId);
   
-  // COMPLETE BLOCK: No manual drags out of any Jobber stage
-  if (isJobberStageId(sourceStageId)) {
-    console.log('🚫 DRAG BLOCKED: Cannot manually drag from Jobber stage:', sourceStageId);
-    return {
-      allowed: false,
-      message: "This stage is automatically managed. Deals cannot be manually moved from here."
-    };
+  // If not a Jobber stage, allow the drop
+  if (!isJobberStageId(targetStageId)) {
+    console.log('✅ DRAG ALLOWED: Target is not a Jobber stage');
+    return { allowed: true };
   }
   
-  console.log('✅ DRAG ALLOWED: Source is not a Jobber stage');
-  return {
-    allowed: true
-  };
+  // Find the deal
+  const deal = deals.find(d => d.id === dealId);
+  if (!deal) {
+    console.log('❌ DRAG BLOCKED: Deal not found');
+    return { allowed: false, message: "Deal not found" };
+  }
+  
+  // Check if deal meets the condition for this Jobber stage
+  const conditionCheck = checkJobberStageCondition(deal, targetStageId, sessionRequests, sessionQuotes);
+  
+  if (!conditionCheck.allowed) {
+    console.log('🚫 DRAG BLOCKED: Condition not met for Jobber stage:', conditionCheck.message);
+  } else {
+    console.log('✅ DRAG ALLOWED: Deal meets Jobber stage condition');
+  }
+  
+  return conditionCheck;
 };
 
 // Enhanced action handlers that update source data and show toast notifications

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -14,6 +15,7 @@ import { useClientStore } from "@/store/clientStore";
 import { useRequestStore } from "@/store/requestStore";
 import { useQuoteStore } from "@/store/quoteStore";
 import { useStagesStore } from "@/store/stagesStore";
+import { useManualMovementStore } from "@/store/manualMovementStore";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
 import { createInitialDeals, createAllDeals, Deal, handleArchiveAction, handleLostAction, handleWonAction, canDropInJobberStage, canDragFromJobberStage } from './pipeline/SalesPipelineData';
 import { Request } from "@/types/Request";
@@ -64,6 +66,13 @@ const SalesPipeline = ({
     stages
   } = useStagesStore();
 
+  // NEW: Manual movement tracking
+  const {
+    isManuallyMoved,
+    addManualMovement,
+    clearManualMovement
+  } = useManualMovementStore();
+
   // Simplified state management
   const [isInitialized, setIsInitialized] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]); // Pipeline deals
@@ -71,6 +80,12 @@ const SalesPipeline = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isDraggingToActionZone, setIsDraggingToActionZone] = useState(false);
+
+  // NEW: Helper function to get current deal position
+  const getCurrentDealPosition = (dealId: string): string | null => {
+    const deal = deals.find(d => d.id === dealId);
+    return deal ? deal.status : null;
+  };
 
   // Responsive columns setup - back to original column count
   const containerRef = useRef<HTMLDivElement>(null);
@@ -97,7 +112,14 @@ const SalesPipeline = ({
         quotes: sessionQuotes.length,
         stages: stages.length
       });
-      const initialDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+      const initialDeals = createInitialDeals(
+        sessionClients, 
+        sessionRequests, 
+        sessionQuotes, 
+        stages,
+        isManuallyMoved,
+        getCurrentDealPosition
+      );
       const initialAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages);
       console.log('🚀 PIPELINE INIT: Created', initialDeals.length, 'pipeline deals and', initialAllDeals.length, 'all deals');
       setDeals(initialDeals);
@@ -110,9 +132,9 @@ const SalesPipeline = ({
         onAllDealsChange(initialAllDeals);
       }
     }
-  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange, onAllDealsChange]);
+  }, [sessionClients, sessionRequests, sessionQuotes, stages, isInitialized, onDealsChange, onAllDealsChange, isManuallyMoved]);
 
-  // ENHANCED: Better detection of new data changes
+  // ENHANCED: Better detection of new data changes with manual movement support
   useEffect(() => {
     if (!isInitialized) return;
     
@@ -123,7 +145,14 @@ const SalesPipeline = ({
       quotes: sessionQuotes.length
     });
     
-    const newDeals = createInitialDeals(sessionClients, sessionRequests, sessionQuotes, stages);
+    const newDeals = createInitialDeals(
+      sessionClients, 
+      sessionRequests, 
+      sessionQuotes, 
+      stages,
+      isManuallyMoved,
+      getCurrentDealPosition
+    );
     const newAllDeals = createAllDeals(sessionClients, sessionRequests, sessionQuotes, stages);
     const currentDealIds = new Set(deals.map(d => d.id));
     const newDealIds = new Set(newDeals.map(d => d.id));
@@ -146,11 +175,26 @@ const SalesPipeline = ({
       const existingDeal = allDeals.find(d => d.id === newDeal.id);
       return existingDeal && existingDeal.amount !== newDeal.amount;
     });
+
+    // NEW: Check for status changes that should clear manual movements
+    const hasStatusChanges = newDeals.some(newDeal => {
+      const existingDeal = deals.find(d => d.id === newDeal.id);
+      if (!existingDeal) return false;
+      
+      // If the deal would naturally be in a different Jobber stage, clear manual movement
+      if (isJobberStageId(newDeal.status) && existingDeal.status !== newDeal.status) {
+        console.log(`🧹 CLEARING MANUAL MOVEMENT: Deal ${newDeal.id} status changed from ${existingDeal.status} to ${newDeal.status}`);
+        clearManualMovement(newDeal.id);
+        return true;
+      }
+      return false;
+    });
     
     console.log('📡 PIPELINE UPDATE CHECK Results:', {
       hasNewDeals,
       hasRemovedDeals,
       hasAmountChanges,
+      hasStatusChanges,
       hasNewAllDeals,
       hasRemovedAllDeals,
       hasAllAmountChanges,
@@ -160,38 +204,11 @@ const SalesPipeline = ({
       newAllDeals: newAllDeals.length
     });
     
-    if (hasNewDeals || hasRemovedDeals || hasAmountChanges) {
+    if (hasNewDeals || hasRemovedDeals || hasAmountChanges || hasStatusChanges) {
       console.log('📡 PIPELINE: Detected pipeline changes, updating pipeline');
-      
-      // Preserve manual positions for existing deals but update amounts and stage dates for changed deals
-      const updatedDeals = newDeals.map(newDeal => {
-        const existingDeal = deals.find(d => d.id === newDeal.id);
-        if (existingDeal) {
-          // Check if the deal should be in a different stage due to data changes
-          if (isJobberStageId(newDeal.status) && existingDeal.status !== newDeal.status) {
-            // Automatic stage change - reset stage entered date and update amount
-            console.log(`🔄 PIPELINE: Auto-moving deal ${newDeal.id} from ${existingDeal.status} to ${newDeal.status}`);
-            return {
-              ...newDeal,
-              stageEnteredDate: new Date().toISOString() // Reset stage entered date
-            };
-          } else if (!isJobberStageId(existingDeal.status)) {
-            // Keep manual position for custom columns but update amount if changed
-            return {
-              ...newDeal,
-              status: existingDeal.status,
-              stageEnteredDate: existingDeal.stageEnteredDate,
-              // Update amount if it changed (e.g., new quote created)
-              amount: newDeal.amount !== existingDeal.amount ? newDeal.amount : existingDeal.amount
-            };
-          }
-        }
-        return newDeal;
-      });
-      
-      setDeals(updatedDeals);
+      setDeals(newDeals);
       if (onDealsChange) {
-        onDealsChange(updatedDeals);
+        onDealsChange(newDeals);
       }
     }
 
@@ -202,7 +219,7 @@ const SalesPipeline = ({
         onAllDealsChange(newAllDeals);
       }
     }
-  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange, onAllDealsChange]);
+  }, [sessionClients.length, sessionRequests.length, sessionQuotes.length, sessionQuotes, isInitialized, onDealsChange, onAllDealsChange, isManuallyMoved, clearManualMovement]);
 
   // Helper function to format amounts
   const formatAmount = (amount: number) => {
@@ -277,22 +294,22 @@ const SalesPipeline = ({
     return headerHeight + maxDeals * cardHeight + totalSpacing + bufferSpace;
   }, [deals, stages]);
 
-  // Enhanced validation function with complete Jobber stage blocking
+  // UPDATED: Enhanced validation function that passes session data for condition checking
   const validateDragOperation = (dealId: string, sourceStageId: string, targetStageId: string): {
     allowed: boolean;
     message?: string;
   } => {
     console.log('🔍 DRAG VALIDATION: Full validation for deal:', dealId, 'from:', sourceStageId, 'to:', targetStageId);
     
-    // Check if dragging FROM a Jobber stage is allowed
+    // Check if dragging FROM a stage is allowed (now always allowed)
     const fromValidation = canDragFromJobberStage(dealId, sourceStageId);
     if (!fromValidation.allowed) {
       console.log('🔍 DRAG VALIDATION: FROM validation failed:', fromValidation.message);
       return fromValidation;
     }
     
-    // Check if dragging TO a Jobber stage is allowed
-    const toValidation = canDropInJobberStage(dealId, targetStageId);
+    // Check if dragging TO a stage is allowed (with condition checking for Jobber stages)
+    const toValidation = canDropInJobberStage(dealId, targetStageId, deals, sessionRequests, sessionQuotes);
     if (!toValidation.allowed) {
       console.log('🔍 DRAG VALIDATION: TO validation failed:', toValidation.message);
       return toValidation;
@@ -403,6 +420,9 @@ const SalesPipeline = ({
           updateSessionQuote(deal.quoteId, { status: 'Archived' });
         }
         
+        // Clear manual movement tracking
+        clearManualMovement(dealId);
+        
         // IMMEDIATE: Update both deal collections to remove from both instantly
         setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
         setAllDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
@@ -429,6 +449,9 @@ const SalesPipeline = ({
         } else if (deal.type === 'quote' && deal.quoteId) {
           updateSessionQuote(deal.quoteId, { status: 'Closed Lost' });
         }
+        
+        // Clear manual movement tracking
+        clearManualMovement(dealId);
         
         // IMMEDIATE: Remove from pipeline deals, update status in all deals
         setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
@@ -467,6 +490,9 @@ const SalesPipeline = ({
           console.log('Updating client status from Lead to Active:', client.id);
           updateSessionClient(client.id, { status: 'Active' });
         }
+        
+        // Clear manual movement tracking
+        clearManualMovement(dealId);
         
         // IMMEDIATE: Remove from pipeline deals, update status in all deals
         setDeals(prevDeals => prevDeals.filter(d => d.id !== dealId));
@@ -556,8 +582,14 @@ const SalesPipeline = ({
         return updatedDeals;
       });
     } else {
-      // Moving between containers - PURE MANUAL MOVE
-      console.log('🏁 DRAG END: Moving between containers - pure manual move');
+      // Moving between containers - TRACK MANUAL MOVEMENT
+      console.log('🏁 DRAG END: Moving between containers - tracking manual movement');
+
+      // NEW: Track manual movement if moving FROM a Jobber stage TO a non-Jobber stage
+      if (isJobberStageId(activeContainer) && !isJobberStageId(overContainer)) {
+        console.log(`📝 TRACKING MANUAL MOVEMENT: Deal ${activeId} moved from Jobber stage ${activeContainer} to ${overContainer}`);
+        addManualMovement(activeId, activeContainer, overContainer);
+      }
 
       setDeals(prevDeals => {
         const updatedDeals = prevDeals.map(deal => {
@@ -579,7 +611,7 @@ const SalesPipeline = ({
         return updatedDeals;
       });
 
-      console.log('🏁 DRAG END: Manual move completed');
+      console.log('🏁 DRAG END: Manual move completed and tracked');
     }
   };
   
