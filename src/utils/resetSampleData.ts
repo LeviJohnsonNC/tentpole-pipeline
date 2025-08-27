@@ -33,7 +33,7 @@ export const resetToSampleData = () => {
       id: "contacted", 
       title: "Contacted", 
       order: 2,
-      bucket: "manual" as const,
+      bucket: "requests" as const,
       timeLimitEnabled: true,
       timeLimitDays: 3,
       timeLimitHours: 0
@@ -62,7 +62,7 @@ export const resetToSampleData = () => {
       id: "followup", 
       title: "Followup", 
       order: 5,
-      bucket: "manual" as const,
+      bucket: "requests" as const,
       timeLimitEnabled: true,
       timeLimitDays: 7,
       timeLimitHours: 0

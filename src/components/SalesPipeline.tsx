@@ -5,9 +5,9 @@ import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Calendar, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PipelineColumn from './pipeline/PipelineColumn';
-import PipelineBucket from './pipeline/PipelineBucket';
 import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
 import FeedbackModal from './FeedbackModal';
@@ -91,10 +91,9 @@ const SalesPipeline = ({
   // Get stages by bucket for responsive column calculation
   const requestStages = getStagesByBucket('requests');
   const quoteStages = getStagesByBucket('quotes');
-  const manualStages = getStagesByBucket('manual');
   
-  // Calculate max columns needed for any bucket
-  const maxBucketColumns = Math.max(requestStages.length, quoteStages.length, manualStages.length);
+  // Calculate max columns needed for any bucket for responsive design
+  const maxBucketColumns = Math.max(requestStages.length, quoteStages.length);
   
   // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
@@ -658,96 +657,149 @@ const SalesPipeline = ({
         
       </div>
 
-      {/* Pipeline Buckets Layout */}
+      {/* Pipeline Buckets Layout - Side by Side */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <div ref={containerRef} className="w-full space-y-8">
-          {/* Requests Bucket */}
-          {requestStages.length > 0 && (
-            <PipelineBucket
-              title="Requests"
-              stages={requestStages}
-              deals={filteredDeals}
-              fixedHeight={fixedColumnHeight}
-              shouldUseHorizontalScroll={shouldUseHorizontalScroll}
-              columnWidth={columnWidth}
-              formatAmount={formatAmount}
-              onDealClick={onDealClick}
-            />
-          )}
-
-          {/* Quotes Bucket */}
-          {quoteStages.length > 0 && (
-            <PipelineBucket
-              title="Quotes"
-              stages={quoteStages}
-              deals={filteredDeals}
-              fixedHeight={fixedColumnHeight}
-              shouldUseHorizontalScroll={shouldUseHorizontalScroll}
-              columnWidth={columnWidth}
-              formatAmount={formatAmount}
-              onDealClick={onDealClick}
-            />
-          )}
-
-          {/* Manual Stages - if any exist, render as individual columns */}
-          {manualStages.length > 0 && (
-            <div className="space-y-4">
-              <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div ref={containerRef} className="w-full">
+          {/* Bucket Headers */}
+          <div className="grid grid-cols-2 gap-8 mb-4">
+            {/* Requests Header */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-semibold text-gray-900">Manual Stages</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Requests</h2>
+                  <Badge variant="secondary" className="text-sm">
+                    {requestStages.reduce((sum, stage) => sum + getColumnDeals(stage.id).length, 0)}
+                  </Badge>
                 </div>
-              </div>
-              
-              <div className="w-full">
-                {shouldUseHorizontalScroll ? (
-                  <ScrollArea className="w-full">
-                    <div className="flex gap-4 min-w-max pb-4">
-                      {manualStages.sort((a, b) => a.order - b.order).map(stage => (
-                        <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
-                          <PipelineColumn
-                            id={stage.id}
-                            title={stage.title}
-                            deals={getColumnDeals(stage.id)}
-                            count={getColumnDeals(stage.id).length}
-                            totalValue={getColumnTotalValue(stage.id)}
-                            fixedHeight={fixedColumnHeight}
-                            stage={stage}
-                            onDealClick={onDealClick}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                ) : (
-                  <div 
-                    className="grid gap-4 pb-4 transition-all duration-300 ease-out"
-                    style={{
-                      gridTemplateColumns: `repeat(${manualStages.length}, ${columnWidth}px)`,
-                      justifyContent: 'center'
-                    }}
-                  >
-                    {manualStages.sort((a, b) => a.order - b.order).map(stage => (
-                      <PipelineColumn
-                        key={stage.id}
-                        id={stage.id}
-                        title={stage.title}
-                        deals={getColumnDeals(stage.id)}
-                        count={getColumnDeals(stage.id).length}
-                        totalValue={getColumnTotalValue(stage.id)}
-                        fixedHeight={fixedColumnHeight}
-                        stage={stage}
-                        onDealClick={onDealClick}
-                      />
-                    ))}
+                {requestStages.reduce((sum, stage) => sum + getColumnDeals(stage.id).reduce((stageSum, deal) => stageSum + (deal.amount || 0), 0), 0) > 0 && (
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-green-600">
+                      {formatAmount(requestStages.reduce((sum, stage) => sum + getColumnDeals(stage.id).reduce((stageSum, deal) => stageSum + (deal.amount || 0), 0), 0))}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
-          )}
+
+            {/* Quotes Header */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-semibold text-gray-900">Quotes</h2>
+                  <Badge variant="secondary" className="text-sm">
+                    {quoteStages.reduce((sum, stage) => sum + getColumnDeals(stage.id).length, 0)}
+                  </Badge>
+                </div>
+                {quoteStages.reduce((sum, stage) => sum + getColumnDeals(stage.id).reduce((stageSum, deal) => stageSum + (deal.amount || 0), 0), 0) > 0 && (
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-green-600">
+                      {formatAmount(quoteStages.reduce((sum, stage) => sum + getColumnDeals(stage.id).reduce((stageSum, deal) => stageSum + (deal.amount || 0), 0), 0))}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Bucket Columns Side by Side */}
+          <div className="grid grid-cols-2 gap-8">
+            {/* Requests Bucket */}
+            <div className="w-full">
+              {shouldUseHorizontalScroll ? (
+                <ScrollArea className="w-full">
+                  <div className="flex gap-4 min-w-max pb-4">
+                    {requestStages.sort((a, b) => a.order - b.order).map(stage => (
+                      <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                        <PipelineColumn
+                          id={stage.id}
+                          title={stage.title}
+                          deals={getColumnDeals(stage.id)}
+                          count={getColumnDeals(stage.id).length}
+                          totalValue={getColumnTotalValue(stage.id)}
+                          fixedHeight={fixedColumnHeight}
+                          stage={stage}
+                          onDealClick={onDealClick}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              ) : (
+                <div 
+                  className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                  style={{
+                    gridTemplateColumns: `repeat(${requestStages.length}, 1fr)`,
+                    minHeight: `${fixedColumnHeight}px`
+                  }}
+                >
+                  {requestStages.sort((a, b) => a.order - b.order).map(stage => (
+                    <PipelineColumn
+                      key={stage.id}
+                      id={stage.id}
+                      title={stage.title}
+                      deals={getColumnDeals(stage.id)}
+                      count={getColumnDeals(stage.id).length}
+                      totalValue={getColumnTotalValue(stage.id)}
+                      fixedHeight={fixedColumnHeight}
+                      stage={stage}
+                      onDealClick={onDealClick}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quotes Bucket */}
+            <div className="w-full">
+              {shouldUseHorizontalScroll ? (
+                <ScrollArea className="w-full">
+                  <div className="flex gap-4 min-w-max pb-4">
+                    {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
+                      <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                        <PipelineColumn
+                          id={stage.id}
+                          title={stage.title}
+                          deals={getColumnDeals(stage.id)}
+                          count={getColumnDeals(stage.id).length}
+                          totalValue={getColumnTotalValue(stage.id)}
+                          fixedHeight={fixedColumnHeight}
+                          stage={stage}
+                          onDealClick={onDealClick}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              ) : (
+                <div 
+                  className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                  style={{
+                    gridTemplateColumns: `repeat(${quoteStages.length}, 1fr)`,
+                    minHeight: `${fixedColumnHeight}px`
+                  }}
+                >
+                  {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
+                    <PipelineColumn
+                      key={stage.id}
+                      id={stage.id}
+                      title={stage.title}
+                      deals={getColumnDeals(stage.id)}
+                      count={getColumnDeals(stage.id).length}
+                      totalValue={getColumnTotalValue(stage.id)}
+                      fixedHeight={fixedColumnHeight}
+                      stage={stage}
+                      onDealClick={onDealClick}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           
           {/* Action Bar */}
-          <div className="w-full flex justify-center">
+          <div className="w-full flex justify-center mt-8">
             <PersistentActionBar />
           </div>
         </div>

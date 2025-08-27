@@ -28,16 +28,15 @@ const EditStages = () => {
   } = useStagesStore();
   const [localStages, setLocalStages] = useState<Stage[]>(stages);
   const [showJobberSelector, setShowJobberSelector] = useState(false);
-  const [selectedCustomBucket, setSelectedCustomBucket] = useState<'requests' | 'quotes' | 'manual'>('manual');
+  const [selectedCustomBucket, setSelectedCustomBucket] = useState<'requests' | 'quotes'>('requests');
   const [selectedJobberBucket, setSelectedJobberBucket] = useState<'requests' | 'quotes'>('requests');
 
   // Get stages by bucket
   const requestStages = getStagesByBucket('requests');
   const quoteStages = getStagesByBucket('quotes');
-  const manualStages = getStagesByBucket('manual');
   
   // Calculate max columns needed for responsive layout
-  const maxBucketColumns = Math.max(requestStages.length, quoteStages.length, manualStages.length);
+  const maxBucketColumns = Math.max(requestStages.length, quoteStages.length);
   
   // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
@@ -155,18 +154,25 @@ const EditStages = () => {
               </p>
             </div>
 
-            {/* Stages by Bucket */}
-            <div ref={containerRef} className="w-full mb-6 space-y-8">
+            {/* Stages by Bucket - Side by Side */}
+            <div ref={containerRef} className="w-full mb-6">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={localStages.map(stage => stage.id)} strategy={horizontalListSortingStrategy}>
                   
-                  {/* Requests Bucket */}
-                  {requestStages.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-900">Requests</h3>
-                      </div>
-                      
+                  {/* Bucket Headers */}
+                  <div className="grid grid-cols-2 gap-8 mb-6">
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <h3 className="text-lg font-semibold text-gray-900">Requests</h3>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <h3 className="text-lg font-semibold text-gray-900">Quotes</h3>
+                    </div>
+                  </div>
+                  
+                  {/* Bucket Columns Side by Side */}
+                  <div className="grid grid-cols-2 gap-8">
+                    {/* Requests Bucket */}
+                    <div className="w-full">
                       {shouldUseHorizontalScroll ? (
                         <ScrollArea className="w-full">
                           <div className="flex gap-4 min-w-max pb-4">
@@ -188,8 +194,7 @@ const EditStages = () => {
                         <div 
                           className="grid gap-4 pb-4 transition-all duration-300 ease-out"
                           style={{
-                            gridTemplateColumns: `repeat(${requestStages.length}, ${columnWidth}px)`,
-                            justifyContent: 'center'
+                            gridTemplateColumns: `repeat(${requestStages.length}, 1fr)`
                           }}
                         >
                           {requestStages.sort((a, b) => a.order - b.order).map(stage => (
@@ -205,15 +210,9 @@ const EditStages = () => {
                         </div>
                       )}
                     </div>
-                  )}
 
-                  {/* Quotes Bucket */}
-                  {quoteStages.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-900">Quotes</h3>
-                      </div>
-                      
+                    {/* Quotes Bucket */}
+                    <div className="w-full">
                       {shouldUseHorizontalScroll ? (
                         <ScrollArea className="w-full">
                           <div className="flex gap-4 min-w-max pb-4">
@@ -235,8 +234,7 @@ const EditStages = () => {
                         <div 
                           className="grid gap-4 pb-4 transition-all duration-300 ease-out"
                           style={{
-                            gridTemplateColumns: `repeat(${quoteStages.length}, ${columnWidth}px)`,
-                            justifyContent: 'center'
+                            gridTemplateColumns: `repeat(${quoteStages.length}, 1fr)`
                           }}
                         >
                           {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
@@ -252,54 +250,7 @@ const EditStages = () => {
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {/* Manual Stages Bucket */}
-                  {manualStages.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-900">Manual Stages</h3>
-                      </div>
-                      
-                      {shouldUseHorizontalScroll ? (
-                        <ScrollArea className="w-full">
-                          <div className="flex gap-4 min-w-max pb-4">
-                            {manualStages.sort((a, b) => a.order - b.order).map(stage => (
-                              <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
-                                <StageCard 
-                                  stage={stage} 
-                                  onUpdateTitle={handleTitleChange}
-                                  onUpdateTimeLimit={handleTimeLimitChange}
-                                  onDelete={handleDelete} 
-                                  canDelete={!stage.isImmutable} 
-                                />
-                              </div>
-                            ))}
-                          </div>
-                          <ScrollBar orientation="horizontal" />
-                        </ScrollArea>
-                      ) : (
-                        <div 
-                          className="grid gap-4 pb-4 transition-all duration-300 ease-out"
-                          style={{
-                            gridTemplateColumns: `repeat(${manualStages.length}, ${columnWidth}px)`,
-                            justifyContent: 'center'
-                          }}
-                        >
-                          {manualStages.sort((a, b) => a.order - b.order).map(stage => (
-                            <StageCard 
-                              key={stage.id}
-                              stage={stage} 
-                              onUpdateTitle={handleTitleChange}
-                              onUpdateTimeLimit={handleTimeLimitChange}
-                              onDelete={handleDelete} 
-                              canDelete={!stage.isImmutable} 
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  </div>
                   
                 </SortableContext>
               </DndContext>
@@ -310,14 +261,13 @@ const EditStages = () => {
               {/* Custom Stage Section */}
               <div className="flex flex-col gap-3 items-center">
                 <div className="flex items-center gap-3">
-                  <Select value={selectedCustomBucket} onValueChange={(value: 'requests' | 'quotes' | 'manual') => setSelectedCustomBucket(value)}>
+                  <Select value={selectedCustomBucket} onValueChange={(value: 'requests' | 'quotes') => setSelectedCustomBucket(value)}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="requests">Requests</SelectItem>
                       <SelectItem value="quotes">Quotes</SelectItem>
-                      <SelectItem value="manual">Manual</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button 

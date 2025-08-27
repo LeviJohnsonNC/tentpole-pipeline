@@ -4,7 +4,7 @@ export interface Stage {
   id: string;
   title: string;
   order: number;
-  bucket: 'requests' | 'quotes' | 'manual';
+  bucket: 'requests' | 'quotes';
   isJobberStage?: boolean;
   isImmutable?: boolean;
   timeLimitEnabled: boolean;
@@ -18,11 +18,11 @@ interface StagesState {
   updateStageTitle: (id: string, title: string) => void;
   updateStageTimeLimit: (id: string, enabled: boolean, days: number, hours: number) => void;
   reorderStages: (reorderedStages: Stage[]) => void;
-  addCustomStage: (bucket: 'requests' | 'quotes' | 'manual') => void;
+  addCustomStage: (bucket: 'requests' | 'quotes') => void;
   addJobberStage: (title: string, bucket: 'requests' | 'quotes') => void;
   deleteStage: (id: string) => void;
   getUsedJobberStages: () => string[];
-  getStagesByBucket: (bucket: 'requests' | 'quotes' | 'manual') => Stage[];
+  getStagesByBucket: (bucket: 'requests' | 'quotes') => Stage[];
   setAutoOnlyStages: () => void;
 }
 
@@ -41,7 +41,7 @@ const defaultStages: Stage[] = [
     id: "contacted", 
     title: "Contacted", 
     order: 2,
-    bucket: "manual",
+    bucket: "requests",
     timeLimitEnabled: true,
     timeLimitDays: 3,
     timeLimitHours: 0
@@ -70,7 +70,7 @@ const defaultStages: Stage[] = [
     id: "followup", 
     title: "Followup", 
     order: 5,
-    bucket: "manual",
+    bucket: "requests",
     timeLimitEnabled: true,
     timeLimitDays: 7,
     timeLimitHours: 0
@@ -174,15 +174,15 @@ export const useStagesStore = create<StagesState>((set, get) => ({
   
   reorderStages: (reorderedStages) => {
     const stagesWithUpdatedOrder = reorderedStages.map((stage, index) => {
-      if (stage.isImmutable && stage.id === "new-deals") {
+      if (stage.isImmutable && stage.id === "new-requests") {
         return { ...stage, order: 1 };
       }
       return { ...stage, order: index + 1 };
     });
     
     const sortedStages = stagesWithUpdatedOrder.sort((a, b) => {
-      if (a.isImmutable && a.id === "new-deals") return -1;
-      if (b.isImmutable && b.id === "new-deals") return 1;
+      if (a.isImmutable && a.id === "new-requests") return -1;
+      if (b.isImmutable && b.id === "new-requests") return 1;
       return a.order - b.order;
     });
     
