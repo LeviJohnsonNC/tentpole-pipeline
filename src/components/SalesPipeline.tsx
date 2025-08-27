@@ -95,11 +95,7 @@ const SalesPipeline = ({
   // Calculate max columns needed across both buckets for uniform sizing
   const maxBucketColumns = Math.max(requestStages.length, quoteStages.length);
   
-  // Calculate uniform column width based on container width and max columns
-  // Each bucket gets 50% of width, then divided by max columns, minus gaps
-  const uniformColumnWidth = maxBucketColumns > 0 ? `calc((50% - 2rem) / ${maxBucketColumns} - 0.75rem)` : '250px';
-  
-  // Responsive columns setup
+  // Responsive columns setup - use the original width logic for proper sizing
   const containerRef = useRef<HTMLDivElement>(null);
   const {
     columnWidth,
@@ -737,7 +733,7 @@ const SalesPipeline = ({
                   }}
                 >
                   {requestStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} style={{ width: uniformColumnWidth, flexShrink: 0 }}> {/* Use uniform width */}
+                    <div key={stage.id} style={{ width: `${columnWidth}px`, flexShrink: 0 }}> {/* Use original columnWidth */}
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
@@ -785,7 +781,7 @@ const SalesPipeline = ({
                   }}
                 >
                   {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} style={{ width: uniformColumnWidth, flexShrink: 0 }}> {/* Use uniform width */}
+                    <div key={stage.id} style={{ width: `${columnWidth}px`, flexShrink: 0 }}> {/* Use original columnWidth */}
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
