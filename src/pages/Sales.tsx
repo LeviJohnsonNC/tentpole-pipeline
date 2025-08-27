@@ -128,10 +128,6 @@ const Sales = () => {
                   <h1 className="text-2xl font-semibold text-gray-900">
                     {pipelineView === 'kanban' ? 'Sales Pipeline' : 'Sales List'}
                   </h1>
-                  <PipelineViewToggle 
-                    view={pipelineView}
-                    onViewChange={setPipelineView}
-                  />
                 </div>
                 <div className="flex items-center space-x-3">
                   <Button 
@@ -156,14 +152,16 @@ const Sales = () => {
               {/* Conditional content based on view */}
               {pipelineView === 'kanban' ? (
                 /* Pipeline view: View toggle, Won/Lost cards, and Search Bar */
-                 <div className="flex items-center justify-between mb-3 gap-4">
-                   <div></div>
-                  <PipelineSummaryCards
-                    wonCount={wonDeals.length}
-                    lostCount={lostDeals.length}
-                    onWonClick={handleWonActionClick}
-                    onLostClick={handleLostActionClick}
-                  />
+                <div className="flex items-center justify-between mb-3 gap-4">
+                  <div className="flex items-center gap-4">
+                    <PipelineViewToggle view={pipelineView} onViewChange={setPipelineView} />
+                    <PipelineSummaryCards
+                      wonCount={wonDeals.length}
+                      lostCount={lostDeals.length}
+                      onWonClick={handleWonActionClick}
+                      onLostClick={handleLostActionClick}
+                    />
+                  </div>
                   <SearchBar 
                     searchTerm={searchTerm}
                     onSearchChange={handleSearchChange}
