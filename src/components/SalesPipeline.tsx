@@ -704,7 +704,7 @@ const SalesPipeline = ({
           {/* Bucket Columns Side by Side with Proper Boundaries */}
           <div className="grid grid-cols-2 gap-8 min-h-[600px]">
             {/* Requests Bucket */}
-            <div className="w-full overflow-hidden border-r border-gray-200 pr-4">{/* Added border and padding for visual separation */}
+            <div className="w-full overflow-visible border-r border-gray-200 pr-4"> {/* Changed overflow-hidden to overflow-visible */}
               {shouldUseHorizontalScroll ? (
                 <ScrollArea className="w-full">
                   <div className="flex gap-4 min-w-max pb-4">
@@ -727,13 +727,14 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="flex gap-3 pb-4 transition-all duration-300 ease-out"
+                  className="flex gap-3 pb-4 transition-all duration-300 ease-out overflow-x-auto"
                   style={{
-                    justifyContent: 'flex-start' /* Align columns to the left */
+                    justifyContent: 'flex-start',
+                    minWidth: `${requestStages.length * (columnWidth + 12)}px` /* Ensure container is wide enough */
                   }}
                 >
                   {requestStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} style={{ width: `${columnWidth}px`, flexShrink: 0 }}> {/* Use original columnWidth */}
+                    <div key={stage.id} style={{ width: `${columnWidth}px`, flexShrink: 0 }}> 
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
@@ -752,7 +753,7 @@ const SalesPipeline = ({
             </div>
 
             {/* Quotes Bucket */}
-            <div className="w-full overflow-hidden pl-4"> {/* Added padding for visual separation */}
+            <div className="w-full overflow-visible pl-4"> {/* Changed overflow-hidden to overflow-visible */}
               {shouldUseHorizontalScroll ? (
                 <ScrollArea className="w-full">
                   <div className="flex gap-4 min-w-max pb-4">
@@ -775,13 +776,14 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="flex gap-3 pb-4 transition-all duration-300 ease-out"
+                  className="flex gap-3 pb-4 transition-all duration-300 ease-out overflow-x-auto"
                   style={{
-                    justifyContent: 'flex-start' /* Align columns to the left */
+                    justifyContent: 'flex-start',
+                    minWidth: `${quoteStages.length * (columnWidth + 12)}px` /* Ensure container is wide enough */
                   }}
                 >
                   {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} style={{ width: `${columnWidth}px`, flexShrink: 0 }}> {/* Use original columnWidth */}
+                    <div key={stage.id} style={{ width: `${columnWidth}px`, flexShrink: 0 }}> 
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
