@@ -92,13 +92,12 @@ const SalesPipeline = ({
   const requestStages = getStagesByBucket('requests');
   const quoteStages = getStagesByBucket('quotes');
   
-  // Calculate max columns needed across both buckets for uniform sizing
+  // Calculate max columns needed across both buckets for scroll detection
   const maxBucketColumns = Math.max(requestStages.length, quoteStages.length);
   
-  // Calculate uniform column width for each bucket (50% container width minus gaps and padding)
-  // Each bucket gets 50% width, then we calculate uniform column width based on max columns
-  const bucketWidth = `calc(50% - 2rem)`; // 50% minus the gap between buckets
-  const uniformColumnWidth = maxBucketColumns > 0 ? `calc((100% - ${(maxBucketColumns - 1) * 12}px) / ${maxBucketColumns})` : '250px';
+  // Calculate column width for each bucket individually to fill their respective space
+  const requestColumnWidth = requestStages.length > 0 ? `calc((100% - ${(requestStages.length - 1) * 12}px) / ${requestStages.length})` : '250px';
+  const quoteColumnWidth = quoteStages.length > 0 ? `calc((100% - ${(quoteStages.length - 1) * 12}px) / ${quoteStages.length})` : '250px';
   
   // Responsive columns setup for scroll detection
   const containerRef = useRef<HTMLDivElement>(null);
@@ -737,7 +736,7 @@ const SalesPipeline = ({
                   }}
                 >
                   {requestStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} style={{ width: uniformColumnWidth, flexShrink: 0 }}> {/* Use uniform width within bucket */}
+                    <div key={stage.id} style={{ width: requestColumnWidth, flexShrink: 0 }}> {/* Use request-specific width */}
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
@@ -785,7 +784,7 @@ const SalesPipeline = ({
                   }}
                 >
                   {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} style={{ width: uniformColumnWidth, flexShrink: 0 }}> {/* Use uniform width within bucket */}
+                    <div key={stage.id} style={{ width: quoteColumnWidth, flexShrink: 0 }}> {/* Use quote-specific width */}
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
