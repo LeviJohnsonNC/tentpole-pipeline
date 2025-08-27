@@ -14,6 +14,7 @@ interface Deal {
   quoteId?: string; // Optional field for quote-based deals
   createdAt: string; // Enhanced creation date tracking
   stageEnteredDate: string; // New field to track when deal entered current stage
+  salesperson?: string; // Salesperson assigned to the client
 }
 
 // JOBBER STAGE ID MAPPING - Centralized mapping of Jobber stage titles to their IDs
@@ -501,7 +502,8 @@ const createDealsFromRequests = (
       type: 'request' as const,
       quoteId: newestQuote?.id,
       createdAt,
-      stageEnteredDate
+      stageEnteredDate,
+      salesperson: request.client.salesperson
     };
   }).filter(Boolean); // Remove null entries
   
@@ -590,7 +592,8 @@ const createAllDealsFromRequests = (
       type: 'request' as const,
       quoteId: newestQuote?.id,
       createdAt,
-      stageEnteredDate
+      stageEnteredDate,
+      salesperson: request.client.salesperson
     };
   }).filter(Boolean); // Remove null entries
   
@@ -736,7 +739,8 @@ const createDealsFromStandaloneQuotes = (
       type: 'quote' as const,
       quoteId: quote.id,
       createdAt,
-      stageEnteredDate
+      stageEnteredDate,
+      salesperson: client.salesperson
     };
     
     console.log(`✅ DEAL CREATED: ${dealData.id}`);
@@ -891,7 +895,8 @@ const createAllDealsFromStandaloneQuotes = (
       type: 'quote' as const,
       quoteId: quote.id,
       createdAt,
-      stageEnteredDate
+      stageEnteredDate,
+      salesperson: client.salesperson
     };
     
     console.log(`✅ DEAL CREATED: ${dealData.id}`);

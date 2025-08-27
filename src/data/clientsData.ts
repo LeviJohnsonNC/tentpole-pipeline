@@ -13,7 +13,7 @@ export const clientsData: Client[] = [
     jobHistory: ['Seasonal lawn care contract', 'Building pressure wash'],
     communicationLog: ['Initial contract signed March 2024', 'Spring service planning call'],
     createdAt: '2024-03-15',
-    salesperson: 'Mike Johnson',
+    salesperson: 'Emily Zhang',
     sourceInfo: 'LinkedIn outreach'
   },
   {
@@ -58,7 +58,7 @@ export const clientsData: Client[] = [
     jobHistory: [],
     communicationLog: ['Wants quote for backyard landscaping'],
     createdAt: '2025-06-08',
-    salesperson: 'Lisa Chen',
+    salesperson: 'David Rodriguez',
     sourceInfo: 'Facebook ads'
   },
   {
@@ -73,7 +73,7 @@ export const clientsData: Client[] = [
     jobHistory: ['Parking lot pressure wash', 'Seasonal flower bed maintenance'],
     communicationLog: ['Contract renewal discussion', 'Summer service schedule confirmed'],
     createdAt: '2024-08-12',
-    salesperson: 'Mike Johnson',
+    salesperson: 'Alex Thompson',
     sourceInfo: 'Cold call'
   },
   {
@@ -88,7 +88,7 @@ export const clientsData: Client[] = [
     jobHistory: [],
     communicationLog: ['Inquiry about tree removal and stump grinding'],
     createdAt: '2025-06-12',
-    salesperson: 'Lisa Chen',
+    salesperson: 'Maria Santos',
     sourceInfo: 'Nextdoor app'
   },
   {
@@ -103,7 +103,7 @@ export const clientsData: Client[] = [
     jobHistory: ['Exterior building wash', 'Courtyard landscaping'],
     communicationLog: ['Monthly service review', 'Additional services requested'],
     createdAt: '2024-11-05',
-    salesperson: 'Mike Johnson',
+    salesperson: 'Chris Anderson',
     sourceInfo: 'Property manager referral'
   },
   {
@@ -118,7 +118,7 @@ export const clientsData: Client[] = [
     jobHistory: ['Weekly lawn maintenance', 'Spring aeration and overseeding'],
     communicationLog: ['Satisfied with weekly service', 'Requested hedge trimming quote'],
     createdAt: '2024-04-08',
-    salesperson: 'Lisa Chen',
+    salesperson: 'Jordan Kim',
     sourceInfo: 'Neighbor recommendation'
   },
   {
@@ -133,7 +133,7 @@ export const clientsData: Client[] = [
     jobHistory: [],
     communicationLog: ['Inquiry about playground area cleaning and maintenance'],
     createdAt: '2025-06-05',
-    salesperson: 'Mike Johnson',
+    salesperson: 'Sarah Wilson',
     sourceInfo: 'School board tender'
   },
   {
