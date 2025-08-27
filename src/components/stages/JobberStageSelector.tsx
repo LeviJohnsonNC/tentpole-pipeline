@@ -11,13 +11,13 @@ interface JobberStageSelectorProps {
 
 const jobberStages = [
   // Requests stages
-  { name: "Unscheduled Assessment", bucket: 'requests' as const },
-  { name: "Assessment Scheduled", bucket: 'requests' as const },
-  { name: "Assessment Completed", bucket: 'requests' as const },
+  { name: "Assessment unscheduled", bucket: 'requests' as const },
+  { name: "Assessment scheduled", bucket: 'requests' as const },
+  { name: "Assessment completed", bucket: 'requests' as const },
   // Quotes stages  
-  { name: "Draft Quote", bucket: 'quotes' as const },
-  { name: "Quote Awaiting Response", bucket: 'quotes' as const },
-  { name: "Quote Changes Requested", bucket: 'quotes' as const }
+  { name: "Draft", bucket: 'quotes' as const },
+  { name: "Awaiting response", bucket: 'quotes' as const },
+  { name: "Changes requested", bucket: 'quotes' as const }
 ];
 
 const JobberStageSelector = ({ onSelect, onClose }: JobberStageSelectorProps) => {
