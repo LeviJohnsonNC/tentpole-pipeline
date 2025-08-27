@@ -76,6 +76,11 @@ const checkJobberStageCondition = (
       console.log(`❌ CONDITION NOT MET: Deal does not have Awaiting Response quote`);
       return { allowed: false, message: "Deal must have a quote awaiting response to be placed in this stage" };
       
+    case 'try-again-later':
+      // Allow any deal to be moved to "Try again later" - it's a manual follow-up stage
+      console.log(`✅ CONDITION MET: Any deal can be placed in Try again later stage`);
+      return { allowed: true };
+      
     case 'jobber-quote-changes-requested':
       if (quote && quote.status === 'Changes Requested') {
         console.log(`✅ CONDITION MET: Deal has Changes Requested quote`);
