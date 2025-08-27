@@ -131,7 +131,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-009',
     title: 'Hedge Trimming and Shaping',
     property: '3421 Hillview Crescent NW',
-    status: 'Changes Requested',
+    status: 'Awaiting Response',
     amount: 425.00,
     createdDate: '2025-06-04',
     sentDate: '2025-06-05',
@@ -207,7 +207,7 @@ export const quotesData: Quote[] = [
     quoteNumber: 'Q-2025-014',
     title: 'Playground Safety Surface Cleaning - Updated',
     property: '725 School Avenue NE',
-    status: 'Changes Requested',
+    status: 'Awaiting Response',
     amount: 1150.00,
     createdDate: '2025-06-12',
     sentDate: '2025-06-13',
@@ -458,5 +458,45 @@ export const quotesData: Quote[] = [
     salesperson: 'Lisa Chen',
     validUntil: '2025-05-09',
     notes: 'Community association decided to postpone project to next year'
+  },
+  {
+    id: 'quote-31',
+    clientId: 'client-8',
+    requestId: 'request-10',
+    quoteNumber: 'Q-2025-031',
+    title: 'Hedge Trimming Premium Service',
+    property: '789 Oak Lane',
+    status: 'Awaiting Response',
+    amount: 850,
+    createdDate: '2025-06-18',
+    sentDate: '2025-06-18',
+    validUntil: '2025-07-15',
+    salesperson: 'Lisa Chen',
+    lineItems: [
+      { id: 'li-31-1', description: 'Hedge trimming and shaping (150 linear feet)', quantity: 150, rate: 4.50, total: 675 },
+      { id: 'li-31-2', description: 'Ornamental shrub pruning', quantity: 1, rate: 125, total: 125 },
+      { id: 'li-31-3', description: 'Debris removal and disposal', quantity: 1, rate: 50, total: 50 }
+    ],
+    notes: 'Customer is very particular about hedge shape - discussed detailed approach'
+  },
+  {
+    id: 'quote-32',
+    clientId: 'client-12',
+    requestId: 'request-12',
+    quoteNumber: 'Q-2025-032',
+    title: 'Sprinkler System Annual Service',
+    property: '456 Pine Street',
+    status: 'Awaiting Response',
+    amount: 475,
+    createdDate: '2025-06-20',
+    sentDate: '2025-06-20',
+    validUntil: '2025-07-20',
+    salesperson: 'Lisa Chen',
+    lineItems: [
+      { id: 'li-32-1', description: 'Spring system startup and testing', quantity: 1, rate: 200, total: 200 },
+      { id: 'li-32-2', description: 'Zone adjustment and optimization', quantity: 8, rate: 25, total: 200 },
+      { id: 'li-32-3', description: 'Minor repairs and parts', quantity: 1, rate: 75, total: 75 }
+    ],
+    notes: 'System installed last year - first professional maintenance with optimization focus'
   }
 ];

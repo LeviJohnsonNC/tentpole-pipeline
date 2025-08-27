@@ -20,6 +20,7 @@ interface Deal {
 const JOBBER_STAGE_IDS = {
   'Draft': 'draft-quote',
   'Awaiting response': 'quote-awaiting-response', 
+  'Try again later': 'try-again-later',
   'Assessment unscheduled': 'jobber-unscheduled-assessment',
   'Assessment scheduled': 'jobber-assessment-scheduled',
   'Assessment completed': 'jobber-assessment-completed',
@@ -175,6 +176,9 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
       break;
     case 'quote-awaiting-response':
       maxDaysInStage = 5; // Stay within 7 day limit
+      break;
+    case 'try-again-later':
+      maxDaysInStage = 10; // Stay within 14 day limit
       break;
     case 'followup':
       maxDaysInStage = 5; // Stay within 7 day limit
@@ -344,7 +348,9 @@ const assignPipelineStage = (
       'request-9': 'contacted',
       'request-10': 'followup', // This one will be overdue
       'request-11': 'followup',
-      'request-12': 'followup'
+      'request-12': 'followup',
+      'quote-31': 'try-again-later', // New sample card 1
+      'quote-32': 'try-again-later'  // New sample card 2
     };
     
     assignedStage = distributionMapping[request.id] || 'new-requests';
@@ -384,6 +390,13 @@ const assignQuotePipelineStage = (
   
   // Check for priority-based Jobber stage matches
   console.log(`🎯 PRIORITY CHECK: Looking for Jobber stage matches for status "${quote.status}"`);
+  
+  // SPECIAL: Put our new sample quotes directly in try-again-later stage
+  if (quote.id === 'quote-31' || quote.id === 'quote-32') {
+    console.log(`✅ SPECIAL ASSIGNMENT: Quote ${quote.id} assigned to try-again-later stage`);
+    return 'try-again-later';
+  }
+  
   const jobberStageMatch = findJobberStageByPriority(null, quote, stages);
   if (jobberStageMatch) {
     console.log(`✅ JOBBER STAGE MATCH: Standalone quote ${quote.id} matched to Jobber stage: ${jobberStageMatch}`);

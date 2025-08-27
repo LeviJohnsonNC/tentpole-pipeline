@@ -67,9 +67,18 @@ const defaultStages: Stage[] = [
     timeLimitHours: 0
   },
   { 
+    id: "try-again-later", 
+    title: "Try again later", 
+    order: 5, 
+    bucket: "quotes",
+    timeLimitEnabled: true,
+    timeLimitDays: 14,
+    timeLimitHours: 0
+  },
+  { 
     id: "followup", 
     title: "Followup", 
-    order: 5,
+    order: 6,
     bucket: "requests",
     timeLimitEnabled: true,
     timeLimitDays: 7,
