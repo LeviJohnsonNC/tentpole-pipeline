@@ -18,7 +18,7 @@ const ActionBar = ({ isVisible }: ActionBarProps) => {
     >
       <div className="p-4 max-w-7xl mx-auto">
         <div className="flex space-x-4">
-          <ActionZone id="action-archive" type="archive" />
+          
           <ActionZone id="action-lost" type="lost" />
           <ActionZone id="action-won" type="won" />
         </div>

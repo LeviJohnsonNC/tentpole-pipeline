@@ -1,9 +1,9 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { Archive, X, Check, ArrowRight } from 'lucide-react';
+import { X, Check, ArrowRight } from 'lucide-react';
 interface ActionZoneProps {
   id: string;
-  type: 'archive' | 'lost' | 'won';
+  type: 'lost' | 'won';
   onClick?: () => void;
   className?: string;
 }
@@ -40,16 +40,6 @@ const ActionZone = ({
           iconColor: isOver ? 'text-red-600' : 'text-red-600',
           borderColor: isOver ? 'border-red-300' : 'border-gray-200',
           clickable: true
-        };
-      case 'archive':
-        return {
-          icon: Archive,
-          label: 'Archive',
-          bgColor: isOver ? 'bg-white' : 'bg-white',
-          textColor: isOver ? 'text-gray-600' : 'text-gray-600',
-          iconColor: isOver ? 'text-gray-600' : 'text-gray-600',
-          borderColor: isOver ? 'border-gray-300' : 'border-gray-200',
-          clickable: false
         };
     }
   };
