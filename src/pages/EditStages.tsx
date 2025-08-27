@@ -29,7 +29,7 @@ const EditStages = () => {
   const [localStages, setLocalStages] = useState<Stage[]>(stages);
   const [showJobberSelector, setShowJobberSelector] = useState(false);
   const [selectedCustomBucket, setSelectedCustomBucket] = useState<'requests' | 'quotes'>('requests');
-  const [selectedJobberBucket, setSelectedJobberBucket] = useState<'requests' | 'quotes'>('requests');
+  
 
   // Get stages by bucket
   const requestStages = getStagesByBucket('requests');
@@ -120,10 +120,10 @@ const EditStages = () => {
     toast.success(`New stage added to ${selectedCustomBucket} bucket`);
   };
 
-  const handleAddJobberStage = (stageName: string) => {
-    addJobberStage(stageName, selectedJobberBucket);
+  const handleAddJobberStage = (stageName: string, bucket: 'requests' | 'quotes') => {
+    addJobberStage(stageName, bucket);
     setShowJobberSelector(false);
-    toast.success(`Jobber stage added to ${selectedJobberBucket} bucket`);
+    toast.success(`Jobber stage added to ${bucket} bucket`);
   };
 
   return (
@@ -283,25 +283,14 @@ const EditStages = () => {
               
               {/* Jobber Stage Section */}
               <div className="flex flex-col gap-3 items-center">
-                <div className="flex items-center gap-3">
-                  <Select value={selectedJobberBucket} onValueChange={(value: 'requests' | 'quotes') => setSelectedJobberBucket(value)}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="requests">Requests</SelectItem>
-                      <SelectItem value="quotes">Quotes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    onClick={() => setShowJobberSelector(true)} 
-                    className="h-10 px-6 border-dashed border-2 border-gray-400 bg-gray-100 text-gray-700 hover:text-gray-900 hover:border-gray-500 hover:bg-gray-200" 
-                    variant="outline"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Jobber Stage
-                  </Button>
-                </div>
+                <Button 
+                  onClick={() => setShowJobberSelector(true)} 
+                  className="h-10 px-6 border-dashed border-2 border-gray-400 bg-gray-100 text-gray-700 hover:text-gray-900 hover:border-gray-500 hover:bg-gray-200" 
+                  variant="outline"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Jobber Stage
+                </Button>
               </div>
             </div>
           </div>
