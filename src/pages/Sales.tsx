@@ -13,6 +13,7 @@ import PipelineViewToggle from "@/components/pipeline/PipelineViewToggle";
 import PipelineListView from "@/components/pipeline/PipelineListView";
 import StageFilter from "@/components/pipeline/StageFilter";
 import SearchBar from "@/components/pipeline/SearchBar";
+import PipelineSummaryCards from "@/components/pipeline/PipelineSummaryCards";
 
 const Sales = () => {
   const navigate = useNavigate();
@@ -104,6 +105,13 @@ const Sales = () => {
     return matchesStage && matchesSearch;
   });
 
+  // Calculate Won/Lost totals for summary cards
+  const wonDeals = allDeals.filter(deal => deal.status === 'Closed Won');
+  const lostDeals = allDeals.filter(deal => deal.status === 'Closed Lost');
+  const wonTotal = wonDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
+  const lostTotal = lostDeals.reduce((sum, deal) => sum + (deal.amount || 0), 0);
+  const formatCurrency = (amount: number) => `$${amount.toLocaleString()}`;
+
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex w-full">
@@ -170,6 +178,18 @@ const Sales = () => {
               )}
             </div>
             
+            {/* Won/Lost Summary Cards */}
+            <div className="mb-4">
+              <PipelineSummaryCards
+                wonCount={wonDeals.length}
+                wonTotal={formatCurrency(wonTotal)}
+                lostCount={lostDeals.length}
+                lostTotal={formatCurrency(lostTotal)}
+                onWonClick={handleWonActionClick}
+                onLostClick={handleLostActionClick}
+              />
+            </div>
+            
             {/* Conditional rendering based on view */}
             {pipelineView === 'kanban' ? (
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -179,8 +199,6 @@ const Sales = () => {
                     onAllDealsChange={handleAllDealsChange}
                     searchTerm={searchTerm}
                     onDealClick={handleDealClick}
-                    onWonClick={handleWonActionClick}
-                    onLostClick={handleLostActionClick}
                   />
                 </div>
               </div>

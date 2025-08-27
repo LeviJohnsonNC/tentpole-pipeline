@@ -36,36 +36,20 @@ interface MenuItem {
 
 const Sidebar = () => {
   const location = useLocation();
-  const [expandedItems, setExpandedItems] = useState<string[]>(() => {
-    // Auto-expand Sales if user is on requests, quotes, or sales routes
-    if (location.pathname.startsWith('/requests') || 
-        location.pathname.startsWith('/quotes') || 
-        location.pathname.startsWith('/sales')) {
-      return ['sales'];
-    }
-    return [];
-  });
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const menuItems: MenuItem[] = [
     { id: "create", label: "Create", icon: Plus, path: "/create", active: false },
     { id: "home", label: "Home", icon: Home, path: "/home", active: false },
     { id: "schedule", label: "Schedule", icon: Calendar, badge: "New", path: "/schedule", active: false },
     { id: "clients", label: "Clients", icon: Users, path: "/clients", active: true },
-    { 
-      id: "sales", 
-      label: "Sales", 
-      icon: CircleDollarSign, 
-      path: "/sales", 
-      active: true,
-      children: [
-        { id: "requests", label: "Requests", path: "/requests", active: true },
-        { id: "quotes", label: "Quotes", path: "/quotes", active: true }
-      ]
-    },
+    { id: "ai-receptionist", label: "AI Receptionist", icon: Bot, path: "/ai-receptionist", active: false },
+    { id: "sales", label: "Sales", icon: CircleDollarSign, path: "/sales", badge: "Lab", active: true },
+    { id: "requests", label: "Requests", icon: FileText, path: "/requests", active: true },
+    { id: "quotes", label: "Quotes", icon: FileText, path: "/quotes", active: true },
     { id: "jobs", label: "Jobs", icon: Briefcase, path: "/jobs", active: false },
     { id: "invoices", label: "Invoices", icon: Receipt, path: "/invoices", active: false },
     { id: "marketing", label: "Marketing", icon: TrendingUp, path: "/marketing", active: false },
-    { id: "ai-receptionist", label: "AI Receptionist", icon: Bot, path: "/ai-receptionist", active: false },
     { id: "insights", label: "Insights", icon: BarChart3, path: "/insights", active: false },
     { id: "expenses", label: "Expenses", icon: CreditCard, path: "/expenses", active: false },
     { id: "timesheets", label: "Timesheets", icon: Clock, path: "/timesheets", active: false },
@@ -100,11 +84,6 @@ const Sidebar = () => {
       return true;
     }
     
-    // Sales should only be active if on /sales exactly, not on child routes
-    if (item.id === "sales" && location.pathname === "/sales") {
-      return true;
-    }
-    
     if (item.id === "quotes" && location.pathname.startsWith("/quotes")) {
       return true;
     }
@@ -113,8 +92,8 @@ const Sidebar = () => {
   };
 
   const isParentActive = (item: MenuItem) => {
-    if (!item.children) return false;
-    return item.children.some(child => getIsActive(child));
+    // No more parent/child logic since Sales, Requests, and Quotes are all top-level now
+    return false;
   };
 
   const renderMenuItem = (item: MenuItem) => {
@@ -156,7 +135,11 @@ const Sidebar = () => {
                 <Icon className="h-4 w-4 mr-3" />
                 <span className="flex-1 text-left">{item.label}</span>
                 {item.badge && (
-                  <Badge className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5">
+                  <Badge className={`ml-2 text-xs px-2 py-0.5 ${
+                    item.badge === 'Lab' 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-green-500 text-white'
+                  }`}>
                     {item.badge}
                   </Badge>
                 )}
@@ -212,7 +195,11 @@ const Sidebar = () => {
           <Icon className="h-4 w-4 mr-3" />
           <span className="flex-1 text-left">{item.label}</span>
           {item.badge && (
-            <Badge className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5">
+            <Badge className={`ml-2 text-xs px-2 py-0.5 ${
+              item.badge === 'Lab' 
+                ? 'bg-green-500 text-white' 
+                : 'bg-green-500 text-white'
+            }`}>
               {item.badge}
             </Badge>
           )}

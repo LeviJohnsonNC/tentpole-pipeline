@@ -25,8 +25,6 @@ interface SalesPipelineProps {
   onAllDealsChange?: (allDeals: Deal[]) => void;
   searchTerm?: string;
   onDealClick?: (dealId: string) => void;
-  onWonClick?: () => void;
-  onLostClick?: () => void;
 }
 
 // Helper function to check if a stage ID is a Jobber stage
@@ -46,9 +44,7 @@ const SalesPipeline = ({
   onDealsChange,
   onAllDealsChange,
   searchTerm = '',
-  onDealClick,
-  onWonClick,
-  onLostClick
+  onDealClick
 }: SalesPipelineProps) => {
   const {
     sessionClients,
@@ -682,10 +678,7 @@ const SalesPipeline = ({
               {/* Action Bar aligned with scrollable columns */}
               <div className="flex space-x-4 min-w-max">
                 <div style={{ width: `${columnWidth * stages.length + (stages.length - 1) * 16}px` }}>
-                  <PersistentActionBar 
-                    onWonClick={onWonClick}
-                    onLostClick={onLostClick}
-                  />
+                  <PersistentActionBar />
                 </div>
               </div>
             </ScrollArea>
@@ -719,10 +712,7 @@ const SalesPipeline = ({
                 width: `${columnWidth * stages.length + (stages.length - 1) * 16}px`,
                 margin: '0 auto'
               }}>
-                <PersistentActionBar 
-                  onWonClick={onWonClick}
-                  onLostClick={onLostClick}
-                />
+                <PersistentActionBar />
               </div>
             </>
           )}
