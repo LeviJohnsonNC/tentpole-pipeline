@@ -92,8 +92,12 @@ const SalesPipeline = ({
   const requestStages = getStagesByBucket('requests');
   const quoteStages = getStagesByBucket('quotes');
   
-  // Calculate max columns needed for any bucket for responsive design
+  // Calculate max columns needed across both buckets for uniform sizing
   const maxBucketColumns = Math.max(requestStages.length, quoteStages.length);
+  
+  // Calculate uniform column width based on container width and max columns
+  // Each bucket gets 50% of width, then divided by max columns, minus gaps
+  const uniformColumnWidth = maxBucketColumns > 0 ? `calc((50% - 2rem) / ${maxBucketColumns} - 0.75rem)` : '250px';
   
   // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
@@ -727,14 +731,13 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="grid gap-3 pb-4 transition-all duration-300 ease-out w-full"
+                  className="flex gap-3 pb-4 transition-all duration-300 ease-out"
                   style={{
-                    gridTemplateColumns: `repeat(${requestStages.length}, minmax(0, 1fr))`, /* Use minmax to prevent overflow */
-                    maxWidth: '100%' /* Ensure it doesn't exceed container width */
+                    justifyContent: 'flex-start' /* Align columns to the left */
                   }}
                 >
                   {requestStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} className="min-w-0"> {/* Allow shrinking */}
+                    <div key={stage.id} style={{ width: uniformColumnWidth, flexShrink: 0 }}> {/* Use uniform width */}
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
@@ -776,14 +779,13 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="grid gap-3 pb-4 transition-all duration-300 ease-out w-full"
+                  className="flex gap-3 pb-4 transition-all duration-300 ease-out"
                   style={{
-                    gridTemplateColumns: `repeat(${quoteStages.length}, minmax(0, 1fr))`, /* Use minmax to prevent overflow */
-                    maxWidth: '100%' /* Ensure it doesn't exceed container width */
+                    justifyContent: 'flex-start' /* Align columns to the left */
                   }}
                 >
                   {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} className="min-w-0"> {/* Allow shrinking */}
+                    <div key={stage.id} style={{ width: uniformColumnWidth, flexShrink: 0 }}> {/* Use uniform width */}
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
