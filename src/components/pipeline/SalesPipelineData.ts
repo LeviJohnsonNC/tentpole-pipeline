@@ -18,12 +18,12 @@ interface Deal {
 
 // JOBBER STAGE ID MAPPING - Centralized mapping of Jobber stage titles to their IDs
 const JOBBER_STAGE_IDS = {
-  'Draft Quote': 'draft-quote',
-  'Quote Awaiting Response': 'quote-awaiting-response', 
-  'Unscheduled Assessment': 'jobber-unscheduled-assessment',
-  'Overdue Assessment': 'jobber-overdue-assessment',
-  'Assessment Completed': 'jobber-assessment-completed',
-  'Quote Changes Requested': 'jobber-quote-changes-requested'
+  'Draft': 'draft-quote',
+  'Awaiting response': 'quote-awaiting-response', 
+  'Assessment unscheduled': 'jobber-unscheduled-assessment',
+  'Assessment scheduled': 'jobber-assessment-scheduled',
+  'Assessment completed': 'jobber-assessment-completed',
+  'Changes requested': 'jobber-quote-changes-requested'
 } as const;
 
 // Helper function to check if a stage ID is a Jobber stage
@@ -91,13 +91,13 @@ const checkJobberStageCondition = (
       console.log(`❌ CONDITION NOT MET: Deal does not have Assessment complete request`);
       return { allowed: false, message: "Deal must have a completed assessment to be placed in this stage" };
       
-    case 'jobber-overdue-assessment':
-      if (request && request.status === 'Overdue') {
-        console.log(`✅ CONDITION MET: Deal has Overdue request`);
+    case 'jobber-assessment-scheduled':
+      if (request && request.status === 'Scheduled') {
+        console.log(`✅ CONDITION MET: Deal has Scheduled request`);
         return { allowed: true };
       }
-      console.log(`❌ CONDITION NOT MET: Deal does not have Overdue request`);
-      return { allowed: false, message: "Deal must have an overdue assessment to be placed in this stage" };
+      console.log(`❌ CONDITION NOT MET: Deal does not have Scheduled request`);
+      return { allowed: false, message: "Deal must have a scheduled assessment to be placed in this stage" };
       
     case 'jobber-unscheduled-assessment':
       if (request && request.status === 'Unscheduled') {
@@ -164,7 +164,7 @@ const generateStageEnteredDate = (createdAt: string, stageId: string, dealId: st
   
   // Set conservative limits to ensure deals stay within bounds
   switch (stageId) {
-    case 'new-deals':
+    case 'new-requests':
       maxDaysInStage = 0.1; // Stay well within 3 hours (convert to days)
       break;
     case 'contacted':
@@ -227,7 +227,7 @@ const findJobberStageByPriority = (request: any, newestQuote: any | null, stages
   
   // Priority 2: Quote "Awaiting Response" → quote-awaiting-response
   if (newestQuote && newestQuote.status === 'Awaiting Response') {
-    const stageId = JOBBER_STAGE_IDS['Quote Awaiting Response'];
+    const stageId = JOBBER_STAGE_IDS['Awaiting response'];
     if (stages.some(s => s.id === stageId)) {
       console.log(`✅ PRIORITY 2: Found Awaiting Response stage: ${stageId}`);
       return stageId;
@@ -236,7 +236,7 @@ const findJobberStageByPriority = (request: any, newestQuote: any | null, stages
   
   // Priority 3: Quote "Draft" → draft-quote
   if (newestQuote && newestQuote.status === 'Draft') {
-    const stageId = JOBBER_STAGE_IDS['Draft Quote'];
+    const stageId = JOBBER_STAGE_IDS['Draft'];
     if (stages.some(s => s.id === stageId)) {
       console.log(`✅ PRIORITY 3: Found Draft Quote stage: ${stageId}`);
       return stageId;
@@ -245,25 +245,25 @@ const findJobberStageByPriority = (request: any, newestQuote: any | null, stages
   
   // Priority 4: Request "Assessment complete" → jobber-assessment-completed
   if (request && request.status === 'Assessment complete') {
-    const stageId = JOBBER_STAGE_IDS['Assessment Completed'];
+    const stageId = JOBBER_STAGE_IDS['Assessment completed'];
     if (stages.some(s => s.id === stageId)) {
       console.log(`✅ PRIORITY 4: Found Assessment Completed stage: ${stageId}`);
       return stageId;
     }
   }
   
-  // Priority 5: Request "Overdue" → jobber-overdue-assessment
-  if (request && request.status === 'Overdue') {
-    const stageId = JOBBER_STAGE_IDS['Overdue Assessment'];
+  // Priority 5: Request "Scheduled" → jobber-assessment-scheduled
+  if (request && request.status === 'Scheduled') {
+    const stageId = JOBBER_STAGE_IDS['Assessment scheduled'];
     if (stages.some(s => s.id === stageId)) {
-      console.log(`✅ PRIORITY 5: Found Overdue Assessment stage: ${stageId}`);
+      console.log(`✅ PRIORITY 5: Found Assessment Scheduled stage: ${stageId}`);
       return stageId;
     }
   }
   
   // Priority 6: Request "Unscheduled" → jobber-unscheduled-assessment
   if (request && request.status === 'Unscheduled') {
-    const stageId = JOBBER_STAGE_IDS['Unscheduled Assessment'];
+    const stageId = JOBBER_STAGE_IDS['Assessment unscheduled'];
     if (stages.some(s => s.id === stageId)) {
       console.log(`✅ PRIORITY 6: Found Unscheduled Assessment stage: ${stageId}`);
       return stageId;
@@ -335,10 +335,10 @@ const assignPipelineStage = (
   } else if (request.status === 'New') {
     // STEP 4: Handle new requests and others
     const distributionMapping: Record<string, string> = {
-      'request-1': 'new-deals',
-      'request-2': 'new-deals', 
+      'request-1': 'new-requests',
+      'request-2': 'new-requests', 
       'request-4': 'quote-awaiting-response', // This one will be overdue
-      'request-6': 'new-deals',
+      'request-6': 'new-requests',
       'request-7': 'contacted',
       'request-8': 'contacted',
       'request-9': 'contacted',
@@ -347,10 +347,10 @@ const assignPipelineStage = (
       'request-12': 'followup'
     };
     
-    assignedStage = distributionMapping[request.id] || 'new-deals';
+    assignedStage = distributionMapping[request.id] || 'new-requests';
   } else {
-    console.log(`Request ${request.id} using default fallback: new-deals`);
-    assignedStage = 'new-deals';
+    console.log(`Request ${request.id} using default fallback: new-requests`);
+    assignedStage = 'new-requests';
   }
   
   console.log(`Non-Jobber stage assigned: ${assignedStage}`);
@@ -404,9 +404,9 @@ const assignQuotePipelineStage = (
     return null;
   }
   
-  // RESTORED: Original fallback logic - use new-deals for standalone quotes that don't match Jobber stages
-  console.log(`✅ FALLBACK ASSIGNMENT: Standalone quote ${quote.id} using fallback new-deals stage for status: ${quote.status}`);
-  return 'new-deals';
+  // RESTORED: Original fallback logic - use new-requests for standalone quotes that don't match Jobber stages
+  console.log(`✅ FALLBACK ASSIGNMENT: Standalone quote ${quote.id} using fallback new-requests stage for status: ${quote.status}`);
+  return 'new-requests';
 };
 
 // SIMPLIFIED: Convert requests to deals for the pipeline

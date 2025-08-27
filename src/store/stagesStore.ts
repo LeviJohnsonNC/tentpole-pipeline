@@ -4,6 +4,7 @@ export interface Stage {
   id: string;
   title: string;
   order: number;
+  bucket: 'requests' | 'quotes' | 'manual';
   isJobberStage?: boolean;
   isImmutable?: boolean;
   timeLimitEnabled: boolean;
@@ -17,18 +18,20 @@ interface StagesState {
   updateStageTitle: (id: string, title: string) => void;
   updateStageTimeLimit: (id: string, enabled: boolean, days: number, hours: number) => void;
   reorderStages: (reorderedStages: Stage[]) => void;
-  addCustomStage: () => void;
-  addJobberStage: (title: string) => void;
+  addCustomStage: (bucket: 'requests' | 'quotes' | 'manual') => void;
+  addJobberStage: (title: string, bucket: 'requests' | 'quotes') => void;
   deleteStage: (id: string) => void;
   getUsedJobberStages: () => string[];
+  getStagesByBucket: (bucket: 'requests' | 'quotes' | 'manual') => Stage[];
   setAutoOnlyStages: () => void;
 }
 
 const defaultStages: Stage[] = [
   { 
-    id: "new-deals", 
-    title: "New Opportunities", 
+    id: "new-requests", 
+    title: "New Requests", 
     order: 1, 
+    bucket: "requests",
     isImmutable: true,
     timeLimitEnabled: true,
     timeLimitDays: 0,
@@ -38,14 +41,16 @@ const defaultStages: Stage[] = [
     id: "contacted", 
     title: "Contacted", 
     order: 2,
+    bucket: "manual",
     timeLimitEnabled: true,
     timeLimitDays: 3,
     timeLimitHours: 0
   },
   { 
     id: "draft-quote", 
-    title: "Draft Quote", 
+    title: "Draft", 
     order: 3, 
+    bucket: "quotes",
     isJobberStage: true,
     timeLimitEnabled: true,
     timeLimitDays: 1,
@@ -53,8 +58,9 @@ const defaultStages: Stage[] = [
   },
   { 
     id: "quote-awaiting-response", 
-    title: "Quote Awaiting Response", 
+    title: "Awaiting response", 
     order: 4, 
+    bucket: "quotes",
     isJobberStage: true,
     timeLimitEnabled: true,
     timeLimitDays: 7,
@@ -64,6 +70,7 @@ const defaultStages: Stage[] = [
     id: "followup", 
     title: "Followup", 
     order: 5,
+    bucket: "manual",
     timeLimitEnabled: true,
     timeLimitDays: 7,
     timeLimitHours: 0
@@ -72,9 +79,10 @@ const defaultStages: Stage[] = [
 
 const autoOnlyStages: Stage[] = [
   { 
-    id: "new-deals", 
-    title: "New Opportunities", 
+    id: "new-requests", 
+    title: "New Requests", 
     order: 1, 
+    bucket: "requests",
     isImmutable: true,
     timeLimitEnabled: true,
     timeLimitDays: 0,
@@ -82,17 +90,19 @@ const autoOnlyStages: Stage[] = [
   },
   { 
     id: "jobber-unscheduled-assessment", 
-    title: "Unscheduled Assessment", 
+    title: "Assessment unscheduled", 
     order: 2, 
+    bucket: "requests",
     isJobberStage: true,
     timeLimitEnabled: true,
     timeLimitDays: 2,
     timeLimitHours: 0
   },
   { 
-    id: "jobber-overdue-assessment", 
-    title: "Overdue Assessment", 
+    id: "jobber-assessment-scheduled", 
+    title: "Assessment scheduled", 
     order: 3, 
+    bucket: "requests",
     isJobberStage: true,
     timeLimitEnabled: true,
     timeLimitDays: 1,
@@ -100,8 +110,9 @@ const autoOnlyStages: Stage[] = [
   },
   { 
     id: "jobber-assessment-completed", 
-    title: "Assessment Completed", 
+    title: "Assessment completed", 
     order: 4, 
+    bucket: "requests",
     isJobberStage: true,
     timeLimitEnabled: true,
     timeLimitDays: 2,
@@ -109,8 +120,9 @@ const autoOnlyStages: Stage[] = [
   },
   { 
     id: "draft-quote", 
-    title: "Draft Quote", 
+    title: "Draft", 
     order: 5, 
+    bucket: "quotes",
     isJobberStage: true,
     timeLimitEnabled: true,
     timeLimitDays: 1,
@@ -118,8 +130,9 @@ const autoOnlyStages: Stage[] = [
   },
   { 
     id: "quote-awaiting-response", 
-    title: "Quote Awaiting Response", 
+    title: "Awaiting response", 
     order: 6, 
+    bucket: "quotes",
     isJobberStage: true,
     timeLimitEnabled: true,
     timeLimitDays: 7,
@@ -127,8 +140,9 @@ const autoOnlyStages: Stage[] = [
   },
   { 
     id: "jobber-quote-changes-requested", 
-    title: "Quote Changes Requested", 
+    title: "Changes requested", 
     order: 7, 
+    bucket: "quotes",
     isJobberStage: true,
     timeLimitEnabled: true,
     timeLimitDays: 3,
@@ -175,13 +189,14 @@ export const useStagesStore = create<StagesState>((set, get) => ({
     set({ stages: sortedStages });
   },
   
-  addCustomStage: () => set((state) => {
+  addCustomStage: (bucket) => set((state) => {
     const newStageId = `custom-stage-${Date.now()}`;
     const newOrder = Math.max(...state.stages.map(s => s.order)) + 1;
     const newStage: Stage = {
       id: newStageId,
       title: "New Stage",
       order: newOrder,
+      bucket,
       timeLimitEnabled: true,
       timeLimitDays: 2,
       timeLimitHours: 0
@@ -189,13 +204,14 @@ export const useStagesStore = create<StagesState>((set, get) => ({
     return { stages: [...state.stages, newStage] };
   }),
   
-  addJobberStage: (title) => set((state) => {
+  addJobberStage: (title, bucket) => set((state) => {
     const newStageId = `jobber-${title.toLowerCase().replace(/\s+/g, '-')}`;
     const newOrder = Math.max(...state.stages.map(s => s.order)) + 1;
     const newStage: Stage = {
       id: newStageId,
       title,
       order: newOrder,
+      bucket,
       isJobberStage: true,
       timeLimitEnabled: true,
       timeLimitDays: 2,
@@ -220,6 +236,11 @@ export const useStagesStore = create<StagesState>((set, get) => ({
     return stages
       .filter(stage => stage.isJobberStage)
       .map(stage => stage.title);
+  },
+
+  getStagesByBucket: (bucket) => {
+    const stages = get().stages;
+    return stages.filter(stage => stage.bucket === bucket);
   },
 
   setAutoOnlyStages: () => {

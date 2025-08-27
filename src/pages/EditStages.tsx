@@ -12,6 +12,7 @@ import Sidebar from "@/components/Sidebar";
 import JobberStageSelector from "@/components/stages/JobberStageSelector";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useResponsiveColumns } from "@/hooks/useResponsiveColumns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const EditStages = () => {
   const navigate = useNavigate();
@@ -22,16 +23,27 @@ const EditStages = () => {
     reorderStages,
     addCustomStage,
     addJobberStage,
-    deleteStage
+    deleteStage,
+    getStagesByBucket
   } = useStagesStore();
   const [localStages, setLocalStages] = useState<Stage[]>(stages);
   const [showJobberSelector, setShowJobberSelector] = useState(false);
+  const [selectedCustomBucket, setSelectedCustomBucket] = useState<'requests' | 'quotes' | 'manual'>('manual');
+  const [selectedJobberBucket, setSelectedJobberBucket] = useState<'requests' | 'quotes'>('requests');
 
-  // Responsive columns setup - updated for taller cards
+  // Get stages by bucket
+  const requestStages = getStagesByBucket('requests');
+  const quoteStages = getStagesByBucket('quotes');
+  const manualStages = getStagesByBucket('manual');
+  
+  // Calculate max columns needed for responsive layout
+  const maxBucketColumns = Math.max(requestStages.length, quoteStages.length, manualStages.length);
+  
+  // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
   const { columnWidth, shouldUseHorizontalScroll } = useResponsiveColumns({
     containerRef,
-    columnCount: stages.length,
+    columnCount: maxBucketColumns,
     minColumnWidth: 200,
     maxColumnWidth: 320,
     columnGap: 16,
@@ -61,9 +73,9 @@ const EditStages = () => {
         return;
       }
 
-      const hasImmutableFirst = localStages.some(stage => stage.isImmutable && stage.id === "new-deals");
+      const hasImmutableFirst = localStages.some(stage => stage.isImmutable && stage.id === "new-requests");
       if (hasImmutableFirst && newIndex === 0) {
-        toast.error("Cannot move stages before the locked 'New Lead' stage");
+        toast.error("Cannot move stages before the locked 'New Requests' stage");
         return;
       }
       const newStages = arrayMove(localStages, oldIndex, newIndex);
@@ -105,14 +117,14 @@ const EditStages = () => {
   };
 
   const handleAddStage = () => {
-    addCustomStage();
-    toast.success("New stage added");
+    addCustomStage(selectedCustomBucket);
+    toast.success(`New stage added to ${selectedCustomBucket} bucket`);
   };
 
   const handleAddJobberStage = (stageName: string) => {
-    addJobberStage(stageName);
+    addJobberStage(stageName, selectedJobberBucket);
     setShowJobberSelector(false);
-    toast.success("Jobber stage added");
+    toast.success(`Jobber stage added to ${selectedJobberBucket} bucket`);
   };
 
   return (
@@ -143,70 +155,204 @@ const EditStages = () => {
               </p>
             </div>
 
-            {/* Stages - Dynamic Layout with Responsive Columns */}
-            <div ref={containerRef} className="w-full mb-6">
+            {/* Stages by Bucket */}
+            <div ref={containerRef} className="w-full mb-6 space-y-8">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={localStages.map(stage => stage.id)} strategy={horizontalListSortingStrategy}>
-                  {shouldUseHorizontalScroll ? (
-                    <ScrollArea className="w-full">
-                      <div className="flex gap-4 min-w-max pb-4">
-                        {localStages.sort((a, b) => a.order - b.order).map(stage => (
-                          <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                  
+                  {/* Requests Bucket */}
+                  {requestStages.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <h3 className="text-lg font-semibold text-gray-900">Requests</h3>
+                      </div>
+                      
+                      {shouldUseHorizontalScroll ? (
+                        <ScrollArea className="w-full">
+                          <div className="flex gap-4 min-w-max pb-4">
+                            {requestStages.sort((a, b) => a.order - b.order).map(stage => (
+                              <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                                <StageCard 
+                                  stage={stage} 
+                                  onUpdateTitle={handleTitleChange}
+                                  onUpdateTimeLimit={handleTimeLimitChange}
+                                  onDelete={handleDelete} 
+                                  canDelete={!stage.isImmutable} 
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+                      ) : (
+                        <div 
+                          className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                          style={{
+                            gridTemplateColumns: `repeat(${requestStages.length}, ${columnWidth}px)`,
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {requestStages.sort((a, b) => a.order - b.order).map(stage => (
                             <StageCard 
+                              key={stage.id}
                               stage={stage} 
                               onUpdateTitle={handleTitleChange}
                               onUpdateTimeLimit={handleTimeLimitChange}
                               onDelete={handleDelete} 
                               canDelete={!stage.isImmutable} 
                             />
-                          </div>
-                        ))}
-                      </div>
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                  ) : (
-                    <div 
-                      className="grid gap-4 pb-4 transition-all duration-300 ease-out"
-                      style={{
-                        gridTemplateColumns: `repeat(${localStages.length}, ${columnWidth}px)`,
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {localStages.sort((a, b) => a.order - b.order).map(stage => (
-                        <StageCard 
-                          key={stage.id}
-                          stage={stage} 
-                          onUpdateTitle={handleTitleChange}
-                          onUpdateTimeLimit={handleTimeLimitChange}
-                          onDelete={handleDelete} 
-                          canDelete={!stage.isImmutable} 
-                        />
-                      ))}
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
+
+                  {/* Quotes Bucket */}
+                  {quoteStages.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <h3 className="text-lg font-semibold text-gray-900">Quotes</h3>
+                      </div>
+                      
+                      {shouldUseHorizontalScroll ? (
+                        <ScrollArea className="w-full">
+                          <div className="flex gap-4 min-w-max pb-4">
+                            {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
+                              <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                                <StageCard 
+                                  stage={stage} 
+                                  onUpdateTitle={handleTitleChange}
+                                  onUpdateTimeLimit={handleTimeLimitChange}
+                                  onDelete={handleDelete} 
+                                  canDelete={!stage.isImmutable} 
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+                      ) : (
+                        <div 
+                          className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                          style={{
+                            gridTemplateColumns: `repeat(${quoteStages.length}, ${columnWidth}px)`,
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
+                            <StageCard 
+                              key={stage.id}
+                              stage={stage} 
+                              onUpdateTitle={handleTitleChange}
+                              onUpdateTimeLimit={handleTimeLimitChange}
+                              onDelete={handleDelete} 
+                              canDelete={!stage.isImmutable} 
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Manual Stages Bucket */}
+                  {manualStages.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <h3 className="text-lg font-semibold text-gray-900">Manual Stages</h3>
+                      </div>
+                      
+                      {shouldUseHorizontalScroll ? (
+                        <ScrollArea className="w-full">
+                          <div className="flex gap-4 min-w-max pb-4">
+                            {manualStages.sort((a, b) => a.order - b.order).map(stage => (
+                              <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                                <StageCard 
+                                  stage={stage} 
+                                  onUpdateTitle={handleTitleChange}
+                                  onUpdateTimeLimit={handleTimeLimitChange}
+                                  onDelete={handleDelete} 
+                                  canDelete={!stage.isImmutable} 
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+                      ) : (
+                        <div 
+                          className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                          style={{
+                            gridTemplateColumns: `repeat(${manualStages.length}, ${columnWidth}px)`,
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {manualStages.sort((a, b) => a.order - b.order).map(stage => (
+                            <StageCard 
+                              key={stage.id}
+                              stage={stage} 
+                              onUpdateTitle={handleTitleChange}
+                              onUpdateTimeLimit={handleTimeLimitChange}
+                              onDelete={handleDelete} 
+                              canDelete={!stage.isImmutable} 
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                 </SortableContext>
               </DndContext>
             </div>
 
             {/* Action Buttons - Below Cards */}
-            <div className="flex gap-4 justify-center">
-              <Button 
-                onClick={handleAddStage} 
-                className="h-12 px-6 border-dashed border-2 border-gray-300 bg-white text-gray-600 hover:text-gray-800 hover:border-gray-400 hover:bg-gray-50" 
-                variant="outline"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Custom Stage
-              </Button>
+            <div className="flex flex-col gap-6 items-center">
+              {/* Custom Stage Section */}
+              <div className="flex flex-col gap-3 items-center">
+                <div className="flex items-center gap-3">
+                  <Select value={selectedCustomBucket} onValueChange={(value: 'requests' | 'quotes' | 'manual') => setSelectedCustomBucket(value)}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="requests">Requests</SelectItem>
+                      <SelectItem value="quotes">Quotes</SelectItem>
+                      <SelectItem value="manual">Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={handleAddStage} 
+                    className="h-10 px-6 border-dashed border-2 border-gray-300 bg-white text-gray-600 hover:text-gray-800 hover:border-gray-400 hover:bg-gray-50" 
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Custom Stage
+                  </Button>
+                </div>
+              </div>
               
-              <Button 
-                onClick={() => setShowJobberSelector(true)} 
-                className="h-12 px-6 border-dashed border-2 border-gray-400 bg-gray-100 text-gray-700 hover:text-gray-900 hover:border-gray-500 hover:bg-gray-200" 
-                variant="outline"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Jobber Stage
-              </Button>
+              {/* Jobber Stage Section */}
+              <div className="flex flex-col gap-3 items-center">
+                <div className="flex items-center gap-3">
+                  <Select value={selectedJobberBucket} onValueChange={(value: 'requests' | 'quotes') => setSelectedJobberBucket(value)}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="requests">Requests</SelectItem>
+                      <SelectItem value="quotes">Quotes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={() => setShowJobberSelector(true)} 
+                    className="h-10 px-6 border-dashed border-2 border-gray-400 bg-gray-100 text-gray-700 hover:text-gray-900 hover:border-gray-500 hover:bg-gray-200" 
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Jobber Stage
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </main>

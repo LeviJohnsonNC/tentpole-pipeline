@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import PipelineColumn from './pipeline/PipelineColumn';
+import PipelineBucket from './pipeline/PipelineBucket';
 import DealCard from './pipeline/DealCard';
 import ActionBar from './pipeline/ActionBar';
 import FeedbackModal from './FeedbackModal';
@@ -33,7 +34,7 @@ const isJobberStageId = (stageId: string): boolean => {
     'draft-quote',
     'quote-awaiting-response', 
     'jobber-unscheduled-assessment',
-    'jobber-overdue-assessment',
+    'jobber-assessment-scheduled',
     'jobber-assessment-completed',
     'jobber-quote-changes-requested'
   ];
@@ -59,7 +60,8 @@ const SalesPipeline = ({
     updateSessionQuote
   } = useQuoteStore();
   const {
-    stages
+    stages,
+    getStagesByBucket
   } = useStagesStore();
 
   // NEW: Manual movement tracking
@@ -86,19 +88,27 @@ const SalesPipeline = ({
     return deal ? deal.status : null;
   };
 
-  // Responsive columns setup - back to original column count
+  // Get stages by bucket for responsive column calculation
+  const requestStages = getStagesByBucket('requests');
+  const quoteStages = getStagesByBucket('quotes');
+  const manualStages = getStagesByBucket('manual');
+  
+  // Calculate max columns needed for any bucket
+  const maxBucketColumns = Math.max(requestStages.length, quoteStages.length, manualStages.length);
+  
+  // Responsive columns setup
   const containerRef = useRef<HTMLDivElement>(null);
   const {
     columnWidth,
     shouldUseHorizontalScroll
   } = useResponsiveColumns({
     containerRef,
-    columnCount: stages.length,
+    columnCount: maxBucketColumns,
     minColumnWidth: 200,
     maxColumnWidth: 320,
     columnGap: 16,
     padding: 32,
-    includeAggregateColumns: false // Remove aggregate columns
+    includeAggregateColumns: false
   });
 
   // Initialize deals only once when component mounts
@@ -648,74 +658,98 @@ const SalesPipeline = ({
         
       </div>
 
-      {/* Pipeline Columns with Dynamic Grid Layout */}
+      {/* Pipeline Buckets Layout */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <div ref={containerRef} className="w-full">
-          {shouldUseHorizontalScroll ? (
-            <ScrollArea className="w-full">
-              <div className="flex space-x-4 pb-4 min-w-max">
-                {/* Regular pipeline columns only */}
-                {stages.sort((a, b) => a.order - b.order).map(stage => {
-                  const columnDeals = getColumnDeals(stage.id);
-                  return (
-                    <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
-                      <PipelineColumn 
-                        id={stage.id} 
-                        title={stage.title} 
-                        deals={columnDeals} 
-                        count={columnDeals.length} 
-                        totalValue={getColumnTotalValue(stage.id)} 
+        <div ref={containerRef} className="w-full space-y-8">
+          {/* Requests Bucket */}
+          {requestStages.length > 0 && (
+            <PipelineBucket
+              title="Requests"
+              stages={requestStages}
+              deals={filteredDeals}
+              fixedHeight={fixedColumnHeight}
+              shouldUseHorizontalScroll={shouldUseHorizontalScroll}
+              columnWidth={columnWidth}
+              formatAmount={formatAmount}
+              onDealClick={onDealClick}
+            />
+          )}
+
+          {/* Quotes Bucket */}
+          {quoteStages.length > 0 && (
+            <PipelineBucket
+              title="Quotes"
+              stages={quoteStages}
+              deals={filteredDeals}
+              fixedHeight={fixedColumnHeight}
+              shouldUseHorizontalScroll={shouldUseHorizontalScroll}
+              columnWidth={columnWidth}
+              formatAmount={formatAmount}
+              onDealClick={onDealClick}
+            />
+          )}
+
+          {/* Manual Stages - if any exist, render as individual columns */}
+          {manualStages.length > 0 && (
+            <div className="space-y-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-semibold text-gray-900">Manual Stages</h2>
+                </div>
+              </div>
+              
+              <div className="w-full">
+                {shouldUseHorizontalScroll ? (
+                  <ScrollArea className="w-full">
+                    <div className="flex gap-4 min-w-max pb-4">
+                      {manualStages.sort((a, b) => a.order - b.order).map(stage => (
+                        <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                          <PipelineColumn
+                            id={stage.id}
+                            title={stage.title}
+                            deals={getColumnDeals(stage.id)}
+                            count={getColumnDeals(stage.id).length}
+                            totalValue={getColumnTotalValue(stage.id)}
+                            fixedHeight={fixedColumnHeight}
+                            stage={stage}
+                            onDealClick={onDealClick}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                ) : (
+                  <div 
+                    className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                    style={{
+                      gridTemplateColumns: `repeat(${manualStages.length}, ${columnWidth}px)`,
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {manualStages.sort((a, b) => a.order - b.order).map(stage => (
+                      <PipelineColumn
+                        key={stage.id}
+                        id={stage.id}
+                        title={stage.title}
+                        deals={getColumnDeals(stage.id)}
+                        count={getColumnDeals(stage.id).length}
+                        totalValue={getColumnTotalValue(stage.id)}
                         fixedHeight={fixedColumnHeight}
                         stage={stage}
                         onDealClick={onDealClick}
                       />
-                    </div>
-                  );
-                })}
+                    ))}
+                  </div>
+                )}
               </div>
-              <ScrollBar orientation="horizontal" />
-              
-              {/* Action Bar aligned with scrollable columns */}
-              <div className="flex space-x-4 min-w-max">
-                <div style={{ width: `${columnWidth * stages.length + (stages.length - 1) * 16}px` }}>
-                  <PersistentActionBar />
-                </div>
-              </div>
-            </ScrollArea>
-          ) : (
-            <>
-              <div className="grid gap-4 pb-4 transition-all duration-300 ease-out" style={{
-                gridTemplateColumns: `repeat(${stages.length}, ${columnWidth}px)`,
-                justifyContent: 'center'
-              }}>
-                {/* Regular pipeline columns only */}
-                {stages.sort((a, b) => a.order - b.order).map(stage => {
-                  const columnDeals = getColumnDeals(stage.id);
-                  return (
-                    <PipelineColumn 
-                      key={stage.id} 
-                      id={stage.id} 
-                      title={stage.title} 
-                      deals={columnDeals} 
-                      count={columnDeals.length} 
-                      totalValue={getColumnTotalValue(stage.id)} 
-                      fixedHeight={fixedColumnHeight}
-                      stage={stage}
-                      onDealClick={onDealClick}
-                    />
-                  );
-                })}
-              </div>
-              
-              {/* Action Bar aligned with grid columns */}
-              <div className="transition-all duration-300 ease-out" style={{
-                width: `${columnWidth * stages.length + (stages.length - 1) * 16}px`,
-                margin: '0 auto'
-              }}>
-                <PersistentActionBar />
-              </div>
-            </>
+            </div>
           )}
+          
+          {/* Action Bar */}
+          <div className="w-full flex justify-center">
+            <PersistentActionBar />
+          </div>
         </div>
 
         <DragOverlay>

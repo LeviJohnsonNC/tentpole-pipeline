@@ -1,4 +1,3 @@
-
 import { useRequestStore } from '@/store/requestStore';
 import { useClientStore } from '@/store/clientStore';
 import { useQuoteStore } from '@/store/quoteStore';
@@ -18,12 +17,13 @@ export const resetToSampleData = () => {
   clearAllClients();
   clearAllQuotes();
   
-  // Reset stages to default state with time limit properties
+  // Reset stages to default state with bucket properties
   const defaultStages = [
     { 
-      id: "new-deals", 
-      title: "New Lead", 
+      id: "new-requests", 
+      title: "New Requests", 
       order: 1, 
+      bucket: "requests" as const,
       isImmutable: true,
       timeLimitEnabled: true,
       timeLimitDays: 0,
@@ -33,14 +33,16 @@ export const resetToSampleData = () => {
       id: "contacted", 
       title: "Contacted", 
       order: 2,
+      bucket: "manual" as const,
       timeLimitEnabled: true,
       timeLimitDays: 3,
       timeLimitHours: 0
     },
     { 
       id: "draft-quote", 
-      title: "Draft Quote", 
+      title: "Draft", 
       order: 3, 
+      bucket: "quotes" as const,
       isJobberStage: true,
       timeLimitEnabled: true,
       timeLimitDays: 1,
@@ -48,8 +50,9 @@ export const resetToSampleData = () => {
     },
     { 
       id: "quote-awaiting-response", 
-      title: "Quote Awaiting Response", 
+      title: "Awaiting response", 
       order: 4, 
+      bucket: "quotes" as const,
       isJobberStage: true,
       timeLimitEnabled: true,
       timeLimitDays: 7,
@@ -59,6 +62,7 @@ export const resetToSampleData = () => {
       id: "followup", 
       title: "Followup", 
       order: 5,
+      bucket: "manual" as const,
       timeLimitEnabled: true,
       timeLimitDays: 7,
       timeLimitHours: 0
