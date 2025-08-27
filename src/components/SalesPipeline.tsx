@@ -701,15 +701,15 @@ const SalesPipeline = ({
             </div>
           </div>
 
-          {/* Bucket Columns Side by Side */}
-          <div className="grid grid-cols-2 gap-8">
+          {/* Bucket Columns Side by Side with Proper Boundaries */}
+          <div className="grid grid-cols-2 gap-8 min-h-[600px]">
             {/* Requests Bucket */}
-            <div className="w-full">
+            <div className="w-full overflow-hidden border-r border-gray-200 pr-4">{/* Added border and padding for visual separation */}
               {shouldUseHorizontalScroll ? (
                 <ScrollArea className="w-full">
                   <div className="flex gap-4 min-w-max pb-4">
                     {requestStages.sort((a, b) => a.order - b.order).map(stage => (
-                      <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                      <div key={stage.id} style={{ width: `${Math.min(columnWidth, 250)}px` }} className="flex-shrink-0">
                         <PipelineColumn
                           id={stage.id}
                           title={stage.title}
@@ -727,36 +727,38 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                  className="grid gap-3 pb-4 transition-all duration-300 ease-out w-full"
                   style={{
-                    gridTemplateColumns: `repeat(${requestStages.length}, 1fr)`,
-                    minHeight: `${fixedColumnHeight}px`
+                    gridTemplateColumns: `repeat(${requestStages.length}, minmax(0, 1fr))`, /* Use minmax to prevent overflow */
+                    maxWidth: '100%' /* Ensure it doesn't exceed container width */
                   }}
                 >
                   {requestStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <PipelineColumn
-                      key={stage.id}
-                      id={stage.id}
-                      title={stage.title}
-                      deals={getColumnDeals(stage.id)}
-                      count={getColumnDeals(stage.id).length}
-                      totalValue={getColumnTotalValue(stage.id)}
-                      fixedHeight={fixedColumnHeight}
-                      stage={stage}
-                      onDealClick={onDealClick}
-                    />
+                    <div key={stage.id} className="min-w-0"> {/* Allow shrinking */}
+                      <PipelineColumn
+                        key={stage.id}
+                        id={stage.id}
+                        title={stage.title}
+                        deals={getColumnDeals(stage.id)}
+                        count={getColumnDeals(stage.id).length}
+                        totalValue={getColumnTotalValue(stage.id)}
+                        fixedHeight={fixedColumnHeight}
+                        stage={stage}
+                        onDealClick={onDealClick}
+                      />
+                    </div>
                   ))}
                 </div>
               )}
             </div>
 
             {/* Quotes Bucket */}
-            <div className="w-full">
+            <div className="w-full overflow-hidden pl-4"> {/* Added padding for visual separation */}
               {shouldUseHorizontalScroll ? (
                 <ScrollArea className="w-full">
                   <div className="flex gap-4 min-w-max pb-4">
                     {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
-                      <div key={stage.id} style={{ width: `${columnWidth}px` }} className="flex-shrink-0">
+                      <div key={stage.id} style={{ width: `${Math.min(columnWidth, 250)}px` }} className="flex-shrink-0">
                         <PipelineColumn
                           id={stage.id}
                           title={stage.title}
@@ -774,24 +776,26 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="grid gap-4 pb-4 transition-all duration-300 ease-out"
+                  className="grid gap-3 pb-4 transition-all duration-300 ease-out w-full"
                   style={{
-                    gridTemplateColumns: `repeat(${quoteStages.length}, 1fr)`,
-                    minHeight: `${fixedColumnHeight}px`
+                    gridTemplateColumns: `repeat(${quoteStages.length}, minmax(0, 1fr))`, /* Use minmax to prevent overflow */
+                    maxWidth: '100%' /* Ensure it doesn't exceed container width */
                   }}
                 >
                   {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <PipelineColumn
-                      key={stage.id}
-                      id={stage.id}
-                      title={stage.title}
-                      deals={getColumnDeals(stage.id)}
-                      count={getColumnDeals(stage.id).length}
-                      totalValue={getColumnTotalValue(stage.id)}
-                      fixedHeight={fixedColumnHeight}
-                      stage={stage}
-                      onDealClick={onDealClick}
-                    />
+                    <div key={stage.id} className="min-w-0"> {/* Allow shrinking */}
+                      <PipelineColumn
+                        key={stage.id}
+                        id={stage.id}
+                        title={stage.title}
+                        deals={getColumnDeals(stage.id)}
+                        count={getColumnDeals(stage.id).length}
+                        totalValue={getColumnTotalValue(stage.id)}
+                        fixedHeight={fixedColumnHeight}
+                        stage={stage}
+                        onDealClick={onDealClick}
+                      />
+                    </div>
                   ))}
                 </div>
               )}
