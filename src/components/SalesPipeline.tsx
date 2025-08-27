@@ -96,8 +96,9 @@ const SalesPipeline = ({
   const maxBucketColumns = Math.max(requestStages.length, quoteStages.length);
   
   // Calculate column width for each bucket individually to fill their respective space
-  const requestColumnWidth = requestStages.length > 0 ? `calc((100% - ${(requestStages.length - 1) * 12}px) / ${requestStages.length})` : '250px';
-  const quoteColumnWidth = quoteStages.length > 0 ? `calc((100% - ${(quoteStages.length - 1) * 12}px) / ${quoteStages.length})` : '250px';
+  // Use smaller gap calculation to maximize column width
+  const requestColumnWidth = requestStages.length > 0 ? `calc((100% - ${(requestStages.length - 1) * 8}px) / ${requestStages.length})` : '250px';
+  const quoteColumnWidth = quoteStages.length > 0 ? `calc((100% - ${(quoteStages.length - 1) * 8}px) / ${quoteStages.length})` : '250px';
   
   // Responsive columns setup for scroll detection
   const containerRef = useRef<HTMLDivElement>(null);
@@ -710,7 +711,7 @@ const SalesPipeline = ({
             <div className="w-full max-w-[50%] border-r border-gray-200 pr-4"> {/* Strictly constrain to 50% width */}
               {shouldUseHorizontalScroll ? (
                 <ScrollArea className="w-full">
-                  <div className="flex gap-3 min-w-max pb-4">
+                  <div className="flex gap-2 min-w-max pb-4"> /* Reduced gap for scroll mode too */
                     {requestStages.sort((a, b) => a.order - b.order).map(stage => (
                       <div key={stage.id} style={{ width: '200px', flexShrink: 0 }}> {/* Fixed width for scroll */}
                         <PipelineColumn
@@ -730,7 +731,7 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="flex gap-3 pb-4 w-full"
+                  className="flex gap-2 pb-4 w-full" /* Reduced gap from 3 to 2 */
                   style={{
                     justifyContent: 'flex-start'
                   }}
@@ -758,7 +759,7 @@ const SalesPipeline = ({
             <div className="w-full max-w-[50%] pl-4"> {/* Strictly constrain to 50% width */}
               {shouldUseHorizontalScroll ? (
                 <ScrollArea className="w-full">
-                  <div className="flex gap-3 min-w-max pb-4">
+                  <div className="flex gap-2 min-w-max pb-4"> /* Reduced gap for scroll mode too */
                     {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
                       <div key={stage.id} style={{ width: '200px', flexShrink: 0 }}> {/* Fixed width for scroll */}
                         <PipelineColumn
@@ -778,7 +779,7 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="flex gap-3 pb-4 w-full"
+                  className="flex gap-2 pb-4 w-full" /* Reduced gap from 3 to 2 */
                   style={{
                     justifyContent: 'flex-start'
                   }}
