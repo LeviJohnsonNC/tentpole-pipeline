@@ -95,10 +95,14 @@ const SalesPipeline = ({
   // Calculate max columns needed across both buckets for uniform sizing
   const maxBucketColumns = Math.max(requestStages.length, quoteStages.length);
   
-  // Responsive columns setup - use the original width logic for proper sizing
+  // Calculate uniform column width for each bucket (50% container width minus gaps and padding)
+  // Each bucket gets 50% width, then we calculate uniform column width based on max columns
+  const bucketWidth = `calc(50% - 2rem)`; // 50% minus the gap between buckets
+  const uniformColumnWidth = maxBucketColumns > 0 ? `calc((100% - ${(maxBucketColumns - 1) * 12}px) / ${maxBucketColumns})` : '250px';
+  
+  // Responsive columns setup for scroll detection
   const containerRef = useRef<HTMLDivElement>(null);
   const {
-    columnWidth,
     shouldUseHorizontalScroll
   } = useResponsiveColumns({
     containerRef,
@@ -704,12 +708,12 @@ const SalesPipeline = ({
           {/* Bucket Columns Side by Side with Proper Boundaries */}
           <div className="grid grid-cols-2 gap-8 min-h-[600px]">
             {/* Requests Bucket */}
-            <div className="w-full overflow-visible border-r border-gray-200 pr-4"> {/* Changed overflow-hidden to overflow-visible */}
+            <div className="w-full max-w-[50%] border-r border-gray-200 pr-4"> {/* Strictly constrain to 50% width */}
               {shouldUseHorizontalScroll ? (
                 <ScrollArea className="w-full">
-                  <div className="flex gap-4 min-w-max pb-4">
+                  <div className="flex gap-3 min-w-max pb-4">
                     {requestStages.sort((a, b) => a.order - b.order).map(stage => (
-                      <div key={stage.id} style={{ width: `${Math.min(columnWidth, 250)}px` }} className="flex-shrink-0">
+                      <div key={stage.id} style={{ width: '200px', flexShrink: 0 }}> {/* Fixed width for scroll */}
                         <PipelineColumn
                           id={stage.id}
                           title={stage.title}
@@ -727,14 +731,13 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="flex gap-3 pb-4 transition-all duration-300 ease-out overflow-x-auto"
+                  className="flex gap-3 pb-4 w-full"
                   style={{
-                    justifyContent: 'flex-start',
-                    minWidth: `${requestStages.length * (columnWidth + 12)}px` /* Ensure container is wide enough */
+                    justifyContent: 'flex-start'
                   }}
                 >
                   {requestStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} style={{ width: `${columnWidth}px`, flexShrink: 0 }}> 
+                    <div key={stage.id} style={{ width: uniformColumnWidth, flexShrink: 0 }}> {/* Use uniform width within bucket */}
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
@@ -753,12 +756,12 @@ const SalesPipeline = ({
             </div>
 
             {/* Quotes Bucket */}
-            <div className="w-full overflow-visible pl-4"> {/* Changed overflow-hidden to overflow-visible */}
+            <div className="w-full max-w-[50%] pl-4"> {/* Strictly constrain to 50% width */}
               {shouldUseHorizontalScroll ? (
                 <ScrollArea className="w-full">
-                  <div className="flex gap-4 min-w-max pb-4">
+                  <div className="flex gap-3 min-w-max pb-4">
                     {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
-                      <div key={stage.id} style={{ width: `${Math.min(columnWidth, 250)}px` }} className="flex-shrink-0">
+                      <div key={stage.id} style={{ width: '200px', flexShrink: 0 }}> {/* Fixed width for scroll */}
                         <PipelineColumn
                           id={stage.id}
                           title={stage.title}
@@ -776,14 +779,13 @@ const SalesPipeline = ({
                 </ScrollArea>
               ) : (
                 <div 
-                  className="flex gap-3 pb-4 transition-all duration-300 ease-out overflow-x-auto"
+                  className="flex gap-3 pb-4 w-full"
                   style={{
-                    justifyContent: 'flex-start',
-                    minWidth: `${quoteStages.length * (columnWidth + 12)}px` /* Ensure container is wide enough */
+                    justifyContent: 'flex-start'
                   }}
                 >
                   {quoteStages.sort((a, b) => a.order - b.order).map(stage => (
-                    <div key={stage.id} style={{ width: `${columnWidth}px`, flexShrink: 0 }}> 
+                    <div key={stage.id} style={{ width: uniformColumnWidth, flexShrink: 0 }}> {/* Use uniform width within bucket */}
                       <PipelineColumn
                         key={stage.id}
                         id={stage.id}
