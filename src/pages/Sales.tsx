@@ -182,9 +182,7 @@ const Sales = () => {
             <div className="mb-4">
               <PipelineSummaryCards
                 wonCount={wonDeals.length}
-                wonTotal={formatCurrency(wonTotal)}
                 lostCount={lostDeals.length}
-                lostTotal={formatCurrency(lostTotal)}
                 onWonClick={handleWonActionClick}
                 onLostClick={handleLostActionClick}
               />

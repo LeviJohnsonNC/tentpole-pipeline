@@ -38,24 +38,24 @@ const Sidebar = () => {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
-  const menuItems: MenuItem[] = [
+  const menuItems: (MenuItem | { type: 'separator' })[] = [
     { id: "create", label: "Create", icon: Plus, path: "/create", active: false },
     { id: "home", label: "Home", icon: Home, path: "/home", active: false },
     { id: "schedule", label: "Schedule", icon: Calendar, badge: "New", path: "/schedule", active: false },
+    { type: 'separator' },
     { id: "clients", label: "Clients", icon: Users, path: "/clients", active: true },
-    { id: "ai-receptionist", label: "AI Receptionist", icon: Bot, path: "/ai-receptionist", active: false },
-    { id: "sales", label: "Sales", icon: CircleDollarSign, path: "/sales", badge: "Lab", active: true },
     { id: "requests", label: "Requests", icon: FileText, path: "/requests", active: true },
     { id: "quotes", label: "Quotes", icon: FileText, path: "/quotes", active: true },
     { id: "jobs", label: "Jobs", icon: Briefcase, path: "/jobs", active: false },
     { id: "invoices", label: "Invoices", icon: Receipt, path: "/invoices", active: false },
+    { type: 'separator' },
     { id: "marketing", label: "Marketing", icon: TrendingUp, path: "/marketing", active: false },
+    { id: "ai-receptionist", label: "AI Receptionist", icon: Bot, path: "/ai-receptionist", active: false },
+    { id: "sales", label: "Sales", icon: CircleDollarSign, path: "/sales", badge: "Lab", active: true },
     { id: "insights", label: "Insights", icon: BarChart3, path: "/insights", active: false },
     { id: "expenses", label: "Expenses", icon: CreditCard, path: "/expenses", active: false },
     { id: "timesheets", label: "Timesheets", icon: Clock, path: "/timesheets", active: false },
-    { id: "community", label: "Community", icon: MessageSquare, path: "/community", active: false },
     { id: "apps", label: "Apps", icon: Grid3X3, path: "/apps", active: false },
-    { id: "refer", label: "Refer a friend", icon: UserPlus, path: "/refer", active: false },
   ];
 
   const toggleExpanded = (itemId: string) => {
@@ -96,22 +96,27 @@ const Sidebar = () => {
     return false;
   };
 
-  const renderMenuItem = (item: MenuItem) => {
-    const Icon = item.icon;
-    const isActive = getIsActive(item);
-    const hasChildren = item.children && item.children.length > 0;
-    const isExpanded = expandedItems.includes(item.id);
-    const parentActive = isParentActive(item);
+  const renderMenuItem = (item: MenuItem | { type: 'separator' }) => {
+    if ('type' in item && item.type === 'separator') {
+      return <li key={Math.random()} className="border-t border-gray-200 my-2"></li>;
+    }
 
-    if (!item.active) {
+    const menuItem = item as MenuItem;
+    const Icon = menuItem.icon;
+    const isActive = getIsActive(menuItem);
+    const hasChildren = menuItem.children && menuItem.children.length > 0;
+    const isExpanded = expandedItems.includes(menuItem.id);
+    const parentActive = isParentActive(menuItem);
+
+    if (!menuItem.active) {
       return (
-        <li key={item.id}>
+        <li key={menuItem.id}>
           <div className="w-full flex items-center px-3 py-2 text-sm rounded-lg cursor-not-allowed opacity-50">
             <Icon className="h-4 w-4 mr-3 text-gray-400" />
-            <span className="flex-1 text-left text-gray-400">{item.label}</span>
-            {item.badge && (
+            <span className="flex-1 text-left text-gray-400">{menuItem.label}</span>
+            {menuItem.badge && (
               <Badge className="ml-2 bg-gray-300 text-gray-500 text-xs px-2 py-0.5">
-                {item.badge}
+                {menuItem.badge}
               </Badge>
             )}
           </div>
@@ -121,11 +126,11 @@ const Sidebar = () => {
 
     if (hasChildren) {
       return (
-        <li key={item.id}>
-          <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(item.id)}>
+        <li key={menuItem.id}>
+          <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(menuItem.id)}>
             <div className="flex items-center">
               <Link
-                to={item.path}
+                to={menuItem.path}
                 className={`flex-1 flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
                   isActive
                     ? "bg-[#d4edda] text-[#155724]"
@@ -133,14 +138,14 @@ const Sidebar = () => {
                 }`}
               >
                 <Icon className="h-4 w-4 mr-3" />
-                <span className="flex-1 text-left">{item.label}</span>
-                {item.badge && (
+                <span className="flex-1 text-left">{menuItem.label}</span>
+                {menuItem.badge && (
                   <Badge className={`ml-2 text-xs px-2 py-0.5 ${
-                    item.badge === 'Lab' 
+                    menuItem.badge === 'Lab' 
                       ? 'bg-green-500 text-white' 
                       : 'bg-green-500 text-white'
                   }`}>
-                    {item.badge}
+                    {menuItem.badge}
                   </Badge>
                 )}
               </Link>
@@ -156,7 +161,7 @@ const Sidebar = () => {
             </div>
             <CollapsibleContent>
               <ul className="ml-6 mt-1 space-y-1">
-                {item.children?.map((child) => (
+                {menuItem.children?.map((child) => (
                   <li key={child.id}>
                     <Link
                       to={child.path}
@@ -183,9 +188,9 @@ const Sidebar = () => {
     }
 
     return (
-      <li key={item.id}>
+      <li key={menuItem.id}>
         <Link
-          to={item.path}
+          to={menuItem.path}
           className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${
             isActive
               ? "bg-[#d4edda] text-[#155724]"
@@ -193,14 +198,14 @@ const Sidebar = () => {
           }`}
         >
           <Icon className="h-4 w-4 mr-3" />
-          <span className="flex-1 text-left">{item.label}</span>
-          {item.badge && (
+          <span className="flex-1 text-left">{menuItem.label}</span>
+          {menuItem.badge && (
             <Badge className={`ml-2 text-xs px-2 py-0.5 ${
-              item.badge === 'Lab' 
+              menuItem.badge === 'Lab' 
                 ? 'bg-green-500 text-white' 
                 : 'bg-green-500 text-white'
             }`}>
-              {item.badge}
+              {menuItem.badge}
             </Badge>
           )}
         </Link>
