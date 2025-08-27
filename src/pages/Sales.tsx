@@ -155,37 +155,37 @@ const Sales = () => {
               
               {/* Conditional content based on view */}
               {pipelineView === 'kanban' ? (
-                /* Search Bar only for kanban view */
-                <div className="flex items-start justify-end mb-3">
+                /* Pipeline view: View toggle, Won/Lost cards, and Search Bar */
+                 <div className="flex items-center justify-between mb-3 gap-4">
+                   <div></div>
+                  <PipelineSummaryCards
+                    wonCount={wonDeals.length}
+                    lostCount={lostDeals.length}
+                    onWonClick={handleWonActionClick}
+                    onLostClick={handleLostActionClick}
+                  />
                   <SearchBar 
                     searchTerm={searchTerm}
                     onSearchChange={handleSearchChange}
                   />
                 </div>
               ) : (
-                /* Stage Filter and Search Bar for list view */
+                /* List view: View toggle, Stage Filter and Search Bar */
                 <div className="flex items-center justify-between mb-3">
-                  <StageFilter 
-                    selectedStage={selectedStage}
-                    onStageChange={handleStageChange}
-                    resultsCount={filteredDeals.length}
-                  />
+                  <div className="flex items-center gap-4">
+                    <PipelineViewToggle view={pipelineView} onViewChange={setPipelineView} />
+                    <StageFilter 
+                      selectedStage={selectedStage}
+                      onStageChange={handleStageChange}
+                      resultsCount={filteredDeals.length}
+                    />
+                  </div>
                   <SearchBar 
                     searchTerm={searchTerm}
                     onSearchChange={handleSearchChange}
                   />
                 </div>
               )}
-            </div>
-            
-            {/* Won/Lost Summary Cards */}
-            <div className="mb-4">
-              <PipelineSummaryCards
-                wonCount={wonDeals.length}
-                lostCount={lostDeals.length}
-                onWonClick={handleWonActionClick}
-                onLostClick={handleLostActionClick}
-              />
             </div>
             
             {/* Conditional rendering based on view */}
