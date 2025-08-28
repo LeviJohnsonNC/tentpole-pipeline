@@ -143,8 +143,8 @@ const DealCard = ({
               <TooltipPrimitive.Trigger asChild disabled={isBeingDragged}>
                 <div className="cursor-help ml-2 flex-shrink-0">
                   <Badge 
-                    variant="outline" 
-                    className="px-2 py-1 text-xs font-medium rounded pointer-events-none"
+                    variant="secondary" 
+                    className="px-2 py-1 text-xs font-medium rounded pointer-events-none text-blue-800 bg-blue-100 border-blue-200"
                   >
                     Lead
                   </Badge>
@@ -166,7 +166,7 @@ const DealCard = ({
         {/* Amount above date/client line if present */}
         {deal.amount && (
           <div className="mb-2">
-            <p className="text-sm text-foreground font-medium">
+            <p className="text-sm text-green-600 font-medium">
               {formatAmount(deal.amount)}
             </p>
           </div>
